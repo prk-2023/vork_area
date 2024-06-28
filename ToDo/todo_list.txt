@@ -1,1 +1,40 @@
+- 1. Rust:
+- 2. Linux:
+- 3. V4L2:
+
+------------------------------------------------------------------------------------------
+1. Rust:
+------------------------------------------------------------------------------------------
+-> Status: []
+1. Rust in Linux: rustlab :
 https://www.youtube.com/watch?v=CEznkXjYFb4
+
+-> Status: []
+2. Rust:
+Linux torwalds on rust: 
+https://www.youtube.com/watch?v=ZZJUhHlxaYs
+
+    Scope time 
+    Potential ares where there can be contribution ( system programming and embedded area)
+
+-> Status: []
+3. Rust: visualizing the memory layout of a rust data types:
+https://www.youtube.com/watch?v=rDoqT-a6UFg
+
+-> Status: []
+4. Rust official youtube: vid material about the Rust programming language curated by Rust team.
+https://www.youtube.com/@RustVideos
+
+-> Status: []
+5. eBPF Rust:
+https://www.youtube.com/watch?v=t996ZkbWnEs
+
+------------------------------------------------------------------------------------------
+2. Linux:
+------------------------------------------------------------------------------------------
+
+------------------------------------------------------------------------------------------
+3. V4L2:  [ V4l2, Decoder, Encode ]
+------------------------------------------------------------------------------------------
+
+
