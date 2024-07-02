@@ -1,13 +1,13 @@
-# V4L2: Part 1
+# 1. V4L2: Part 1 [Part 2]
 
-- Linux SubSystems.
+- [Linux SubSystems](#LinuxSubSystems)
 - Linux Device SubSystem (Device Model, Device Instance, Device Registration ( device drivers )).
 - Linux V4L2 sub-system.
 - V4L2 M2M sub-system.
 - V4L2 Decoder.
 - V4L2 Encoder.
 
-## - Linux SubSystems:
+## - Linux SubSystems: <a name="LinuxSubSystems"></a>
 
 Linux kernel core and kernel framework is the central part of the kernel kernel that is provides the 
 infrastructure for the sub-system and drivers to work.
@@ -106,7 +106,7 @@ Recap:
         Register a platform driver and the kernel, so it can be matched with a platform device.
     - `platform_device_register`:   
         Register a platform device with the kernel, so it can be matched with a platform dirver.
-    - The kernel matches the platform device with the platform driver based on the device;s name and 
+    - The kernel matches the platform device with the platform driver based on the device's name and 
     the driver'ssupported devices.
     - the kernel calls the drivers's probe function to bind the device to the driver.
 
@@ -306,7 +306,7 @@ of least privilege, to prevent unauthorized access or malicious behavior.
 Linux kernel device driver plays a crucial role in managing a device and providing access to its resources 
 and functionality to user-space applications.
 
-# V4L2 SubSystem 
+# 2. V4L2 SubSystem [Part 2]
 
 
 ## - V4L2:
@@ -401,7 +401,7 @@ V4L2 ioctl :
              -> [VIDIOC_QUERYBUF]
                -> [VIDEO_STREAMON]
 
-## Video Buffer:
+## - Video Buffer:
 
 V4L2 has a video buffer layer which acts as medium between V4L2 driver and app( user-space side).
 There is a video device that will be streaming data (video frames) into video buffers (vb).
