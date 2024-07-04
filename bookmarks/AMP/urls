@@ -16,4 +16,7 @@
 - Building and Booting Upstream Linux and U-Boot for Raspberry Pi 2/3 ARM Boards 
     https://blog.christophersmart.com/2016/10/27/building-and-booting-upstream-linux-and-u-boot-for-raspberry-pi-23-arm-boards/
 
+-  openAMP on yocto:
+    https://github.com/OpenAMP/meta-openamp/blob/master/conf/layer.conf#L15
+
 - 
