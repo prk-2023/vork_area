@@ -1,0 +1,19 @@
+# AMP
+
+- raspi4_frertos:
+    https://github.com/TImada/raspi4_freertos
+
+- libmetal and OpenAMP:
+    https://fpga.eetrend.com/files/2019-11/wen_zhang_/100046015-84244-ug1186-zynq-openamp-gsg.pdf
+
+- raspi: how to uboot + initramfs
+    https://hechao.li/2021/12/20/Boot-Raspberry-Pi-4-Using-uboot-and-Initramfs/
+    https://andrei.gherzan.ro/linux/uboot-on-rpi/
+
+-  pi serial uart 
+    https://penzu.com/public/b94e6b30
+
+- Building and Booting Upstream Linux and U-Boot for Raspberry Pi 2/3 ARM Boards 
+    https://blog.christophersmart.com/2016/10/27/building-and-booting-upstream-linux-and-u-boot-for-raspberry-pi-23-arm-boards/
+
+- 
