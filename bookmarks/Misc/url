@@ -1,0 +1,42 @@
+
+- How to add git sub-modules to a project:
+
+https://medium.com/@nightheronry/how-to-add-and-update-git-submodules-dc1ba035e63b#:~:text=In%20order%20to%20update%20an,the%20%E2%80%9C%E2%80%93merge%E2%80%9D%20option.&text=Using%20the%20%E2%80%9C%E2%80%93remote%E2%80%9D%20command,each%20submodule%20of%20your%20project.
+
+- FFmpeg Use-cases 
+    https://www.programmersought.com/article/61393818634/#google_vignette
+
+- OpenEmbedded yocto recipes:
+    https://github.com/openembedded/meta-openembedded/tree/master
+
+- yocto tracing and profiling:
+    https://wiki.yoctoproject.org/wiki/Tracing_and_Profiling#Tracing_and_Profiling_in_Yocto
+
+- Information on video formats ( ffmepg AV format)
+    http://www.francescpinyol.cat/formats_av.html#ffmpeg_mp4
+
+- how to set tasks to run on particular CPU core:
+    https://sysplay.in/blog/category/linux/
+
+- Concurrency Management in Linux Kernel
+    https://sysplay.in/blog/linux-kernel-internals/2015/06/concurrency-management-in-linux-kernel/
+
+- compile ffmpeg with HW accleration:
+    https://www.codeinsideout.com/blog/pi/compile-ffmpeg/#compile-ffmpeg
+
+- h264_v4l2m2m acceleration in Raspberry Pi 4 - 64 bits #110
+    https://github.com/linuxserver/docker-jellyfin/issues/110
+
+- Hardware Video Transconding on the Raspberry PI 4 and AMD Graphics
+    https://blog.eiler.eu/posts/20200823/
+
+- V4L2 and Hardware Encoding on the Raspberry Pi
+    https://lalitm.com/hw-encoding-raspi/
+
+-  Tuning glibc malloc on ARM: A Case Study
+    https://blogs.oracle.com/linux/post/tuning-glibc-malloc-on-arm-a-case-study
+
+-  
+- 
+- 
+- 
