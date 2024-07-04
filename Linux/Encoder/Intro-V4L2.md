@@ -105,10 +105,10 @@ Recap:
     - `__platform_driver_register()`:
         Register a platform driver and the kernel, so it can be matched with a platform device.
     - `platform_device_register`:   
-        Register a platform device with the kernel, so it can be matched with a platform dirver.
+        Register a platform device with the kernel, so it can be matched with a platform driver.
     - The kernel matches the platform device with the platform driver based on the device's name and 
-    the driver'ssupported devices.
-    - the kernel calls the drivers's probe function to bind the device to the driver.
+    the driver's supported devices.
+    - The kernel calls the drivers's probe function to bind the device to the driver.
 
 ## - Device Model, Device Instances and Device registration.
 
@@ -170,11 +170,11 @@ the IP address of a network interface.
 5. **Device state**: The current state of the device, such as whether it is enabled or disabled.
 
 A device instance is typically represented by a data structure in the kernel, 
-such as a `struct device` or a `struct v4l2_device` 
+such as a `struct device`  example `struct v4l2_device` for a v4l2 device.
 
 ##  - V4L2 devices registration:
 
-This data structure contains pointers to functions that implement the device's operations, 
+This "v4l2_device" data structure contains pointers to functions that implement the device's operations, 
 such as open, close, read, and write.
 
 In the context of the `v4l2_device_register()` function, the device instance is the `struct v4l2_device` 

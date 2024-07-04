@@ -8,3 +8,4 @@
 - dust: disk usage 
 - btop:
 - wezterm: fast terminal using GPU
+- bat: rust replacement for cat. ( supports git )
