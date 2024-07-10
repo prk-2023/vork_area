@@ -1,0 +1,90 @@
+Document to run Run Redmine for personal using docker container:
+
+Ref: https://medium.com/@gurayy/setting-up-redmine-with-docker-be110387ba1c
+
+- Redmine + Postgres SQL db
+
+- manual installation:
+1. Create a network :
+    $ docker network create --driver bridge redmine_network
+    or 
+    $ podman network create --driver bridge redmine_network
+
+2. Create Volumes:
+    We will create Volumes for stateful services. These volumes are need for keeping
+    the stat of service and avoid automatically removing files when containers are removed.
+
+    $ docker volume create postgres-data
+    $ docker volume create redmine-data
+
+    or 
+
+    $ podman  volume create postgres-data
+    $ podman volume create redmine-data
+
+We wull tell docker about which volume belong to which dir when creating containers.
+
+3. Starting Database:
+    Start Postgres with the network and volume we created above:
+
+    $ docker container  run -d   \
+      --name postgres  \
+      --network redmine_network  \
+      -v postgres-data:/var/lib/postgresql/data \ 
+      --restart always \ 
+      -e POSTGRES_PASSWORD='day999' \ 
+      -e POSTGRES_DB='redmine' \ 
+      postgres:latest
+
+    or 
+    
+    $ podman container  run -d   \
+      --name postgres  \
+      --network redmine_network  \
+      -v postgres-data:/var/lib/postgresql/data \ 
+      --restart always \ 
+      -e POSTGRES_PASSWORD='day999' \ 
+      -e POSTGRES_DB='redmine' \ 
+      postgres:latest
+
+4. Starting Redmine:
+    Finally we start redmine with database address and credentials that we have just created:
+
+    $ docker container run -d  \ 
+    --name redmine \ 
+    --network redmine_network  \ 
+    -p 80:3000                 \ 
+    --restart always           \ 
+    -v redmine-data:/usr/src/redmine/files \ 
+    -e REDMINE_DB_POSTGRES='postgres'      \ 
+    -e REDMINE_DB_DATABASE='redmine'       \ 
+    -e REDMINE_DB_PASSWORD='password'      \ 
+    redmine:latest
+
+    or
+
+    $ podman container run -d  \ 
+    --name redmine \ 
+    --network redmine_network  \ 
+    -p 80:3000                 \ 
+    --restart always           \ 
+    -v redmine-data:/usr/src/redmine/files \ 
+    -e REDMINE_DB_POSTGRES='postgres'      \ 
+    -e REDMINE_DB_DATABASE='redmine'       \ 
+    -e REDMINE_DB_PASSWORD='password'      \ 
+    redmine:latest
+
+
+5. Open a browser and write the IP address to see the installation:
+
+    Default Username : admin
+    Default Password : admin
+
+
+
+6. For connecting to postgres database to access the redmine database: issue the below commands
+from the  host computer:
+
+    $ podman exec -it postgres psql -U postgres -d redmine
+
+-----------------------------------------------------------------
