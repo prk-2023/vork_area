@@ -22,3 +22,29 @@ Stage 3:  How to link the driver with the V4L2 Sub-System and extend the framewo
 
 Stage 4: How to extetend the current driver to support Encoding.
 
+---
+
+ToDo At Bharat:
+
+1. 
+Try to Implement a SW based codec m2m v4l2 driver on  Linux.
+
+- This would help to understand the current v4l2 framework.
+- M2M framework for using as Encoder or Decoder. 
+- How to Implement a M2M Codec. 
+    - Implement a m2m codec which takes decoded frame from user space and pass it back to user-space
+      or over rpc to a remote device and pass back the encoded frame.
+
+2. 
+- Study the Coda/wave5 driver and rtk_vdec driver.
+
+3. 
+Rust:
+    - Finish Rust book and embedded rust.
+    - Jump start with some sample project with rust.
+
+4. Presentation with Rust:
+    - Embedded Rust
+    - eBPF + Rust 
+
+
