@@ -10,4 +10,17 @@ compiling, downloading the libs our code depends on and building libraries which
 
 - Creating project: cargo is also used to create a project. 
 
+```
+    $ cargo new HelloWorld
+    Creating binary (application) `HelloWorld` package
+    warning: the name `HelloWorld` is not snake_case or kebab-case which is recommended for package names, consider `helloworld`
+    note: see more `Cargo.toml` keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+    $ cd HelloWorld; tree
+    .
+    ├── Cargo.toml
+    └── src
+        └── main.rs
+
+    2 directories, 2 files
+```
