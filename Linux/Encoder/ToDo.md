@@ -47,4 +47,11 @@ Rust:
     - Embedded Rust
     - eBPF + Rust 
 
+----------
+07/15:
 
+- V4L2 Core 
+    - framework 
+    - m2m  Sub-System
+    - Structures and API used  for drivers to leverage the v4l2 sub-system..
+    - Structures and APIs used for encoding and decoding
