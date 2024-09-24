@@ -1,6 +1,6 @@
 # Linux kernel Invites Rust and the conflict starts:
 
--  It's an interesting to get a perspective on the differences between C and Rust programming languages and
+-  It's interesting to get a perspective on the differences between C and Rust programming languages and
    their respective communities. Let's break it down:
 
 - **C: Anarchic**  ( No Controlling Rule or principles to give order )
