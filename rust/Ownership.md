@@ -32,23 +32,32 @@
     3. **When the owner goes out of scope, the value will be dropped.**
 
 - **Example 1: Simple Ownership**
+    
+    In Rust, string literals are of type " &str " , which is a reference to a string slice. 
+    When you assign a string literal to a variable, the variable is a reference to the string literal, 
+    not the owner of the string literal.
+    
+    No transfer of owenship occurs for the below code:
+    Because string literals are stored in the program's binary and are not allocated on the heap.
     ```rust
-        let s = "hello"; // s is the owner of the string "hello"
+        let s = "I am String literal"; // s is the owner of the string "hello"
     ```
-    `s` is the owner of the string "hello". 
-    When `s` goes out of scope, the string "hello" will be dropped.
 
 - **Example 2: Ownership Transfer**
     ```rust
-        let s = "hello"; // s is the owner of the string "hello"
+        let s = String::from("hello"); // s is the owner of the string "hello"
         let t = s; // t takes ownership of the string "hello", s is no longer the owner
     ```
+    In this case string 's' gets heap allocation and it gets ownership.
+
     `s` is initially the owner of the string "hello". 
+
     When we assign `s` to `t`, `t` takes ownership of the string "hello", and `s` is no longer the owner.
+    accessing s will break the compilation with a Error: [E0382] and message " value borrowed "
 
 - **Example 3: Borrowing**
     ```rust
-        let s = "hello"; // s is the owner of the string "hello"
+        let s = String::from ("hello"); // s is the owner of the string "hello"
         let len = calculate_length(&s); // s is borrowed, but still owns the string
     ```
     `s` is the owner of the string "hello". We pass a reference to `s` to the `calculate_length` function,
