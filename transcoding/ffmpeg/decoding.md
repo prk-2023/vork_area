@@ -210,3 +210,80 @@ The codecs are not opened. The stream must be closed with the avformat_close_inp
     return: 
     An AVCodecContext filled with default values or NULL on failure.
 
+FFMpeg important Structures
+---
+
+- AVFrame: 
+    `AVFrame` struct is  fundamental data structure that represents a single frame of video or audio data.
+    It is used to store and manipulate the raw data of a frame, as well as metadata associated with that
+    frame.
+
+
+    - Key components of the `AVFrame` structure:
+
+    **Data** : 
+    * `data`: an array of pointers to the raw data of the frame. 
+    The number of pointers in the array depends on the number of planes in the frame 
+    (e.g. Y, U, V for YUV 4:2:0 video).
+    * `linesize`: an array of integers that represent the size of each plane in the frame.
+
+    **Metadata**
+    * `pts`: the presentation timestamp of the frame, which represents the time at which the frame should be
+      displayed.
+    * `pkt_pts`: the pkt timestamp of the frame, which represents the time at which the frame was received.
+    * `pkt_dts`: the packet decode timestamp of the frame, which represents the time at which the frame
+      should be decoded.
+    * `duration`: the duration of the frame, which represents the time between the start of the frame and
+      the start of the next frame.
+    * `key_frame`: a flag that indicates whether the frame is a keyframe (i.e. an I-frame).
+    * `pict_type`: the type of picture (I, P, B, etc.) represented by the frame.
+
+    **Other**
+    * `width` and `height`: the width and height of the frame.
+    * `format`: the format of the frame (e.g. YUV 4:2:0, RGB, etc.).
+    * `sample_aspect_ratio`: the sample aspect ratio of the frame.
+    * `color_range`: the color range of the frame (e.g. limited, full).
+    * `color_primaries`: the color primaries of the frame (e.g. BT.709, BT.2020).
+    * `color_trc`: the color transfer characteristic of the frame (e.g. BT.709, BT.2020).
+    * `color_space`: the color space of the frame (e.g. YUV, RGB).
+
+    **Audio-specific fields**
+    * `nb_samples`: the number of audio samples in the frame.
+    * `channel_layout`: the channel layout of the audio frame (e.g. mono, stereo, 5.1).
+    * `sample_rate`: the sample rate of the audio frame.
+
+    **Other flags**
+    * `interlaced_frame`: a flag that indicates whether the frame is interlaced.
+    * `top_field_first`: a flag that indicates whether the top field of an interlaced frame is first.
+    * `repeat_pict`: a flag that indicates whether the frame should be repeated.
+
+
+The `AVFrame` structure is used throughout FFmpeg to represent frames of video and audio data. 
+It is used by the decoder to store the decoded frame, and by the encoder to store the encoded frame. 
+It is also used by filters to manipulate the frame data.
+
+Here is an example of how to access the data in an `AVFrame` structure:
+```c
+AVFrame *frame = ...;
+
+// Get the width and height of the frame
+int width = frame->width;
+int height = frame->height;
+
+// Get the format of the frame
+enum AVPixelFormat format = frame->format;
+
+// Get the data pointers for each plane
+uint8_t *y_plane = frame->data[0];
+uint8_t *u_plane = frame->data[1];
+uint8_t *v_plane = frame->data[2];
+
+// Get the linesize for each plane
+int y_linesize = frame->linesize[0];
+int u_linesize = frame->linesize[1];
+int v_linesize = frame->linesize[2];
+```
+Note that the `AVFrame` structure is a complex data structure, and accessing its fields requires a good 
+understanding of the underlying data formats and structures.
+    
+
