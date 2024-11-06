@@ -330,3 +330,76 @@ data flow:
 +---------------+
 
 
+
+---
+
+The `dst` array is used as a temporary buffer to hold the input frame data while it is being copied to the 
+OMX encoder's buffer. This buffer is then used to construct the final buffer that is sent to the 
+OMX encoder to compress the frame.
+
+The OMX encoder then processes the buffer and generates the compressed frame data, which is stored in 
+another buffer.
+
+Finally, the compressed frame data is copied to the `AVPacket` `pkt` structure, which is used to store 
+the compressed frame data along with other metadata such as the packet's timestamp, duration, and flags.
+
+So, the flow of data is:
+
+1. Input frame data is copied to the `dst` array, which is used as a temporary buffer.
+2. The `dst` array is used to construct the final buffer that is sent to the OMX encoder.
+3. The OMX encoder processes the buffer and generates the compressed frame data, which is stored in another buffer.
+4. The compressed frame data is copied to the `AVPacket` `pkt` structure.
+
+Here's a more detailed example of the flow of data:
+```
++---------------+
+|  Input Frame  |
+|  (YUV data)   |
++---------------+
+       |
+       |
+       v
++-----------------+
+|  av_image_copy  |
+|  (dst array)    |
+|  (temporary     |
+|   buffer)       |
++-----------------+
+       |
+       |
+       v
++-------------------+
+|  Construct OMX    |
+|  Encoder Buffer   |
+|  (from dst array) |
++-------------------+
+       |
+       |
+       v
++-------------------+
+|  OMX Encoder      |
+|  (compress frame) |
++-------------------+
+       |
+       |
+       v
++--------------------+
+|  Compressed Frame  |
+|  (in OMX buffer)   |
++--------------------+
+       |
+       |
+       v
++--------------------+
+|  Copy to AVPacket  |
+|  (pkt structure)   |
++--------------------+
+       |
+       |
+       v
++---------------------+
+|  AVPacket pkt       |
+|  (compressed frame) |
++---------------------+
+```
+---
