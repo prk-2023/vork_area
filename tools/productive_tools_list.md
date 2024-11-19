@@ -9,3 +9,8 @@
 - btop:
 - wezterm: fast terminal using GPU
 - bat: rust replacement for cat. ( supports git )
+- delata: ( cargo install git-delta ) 
+    - Configuration (https://github.com/dandavison/delta)
+    - git-delta: syntax highlighting pager for git.
+    - dalta: can be used with rg, diff, grep 
+
