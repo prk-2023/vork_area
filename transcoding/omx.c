@@ -355,7 +355,7 @@ static av_cold int find_component(OMXContext *omx_context, void *logctx,
     char **components;
     int ret = 0;
 
-#if CONFIG_OMX_RPI
+#if 0 // CONFIG_OMX_RPI
     if (av_strstart(role, "video_encoder.", NULL)) {
         av_strlcpy(str, "OMX.broadcom.video_encode", str_size);
         return 0;
@@ -407,6 +407,7 @@ static av_cold int omx_component_init(AVCodecContext *avctx, const char *role)
     OMX_VIDEO_PARAM_BITRATETYPE vid_param_bitrate = { 0 };
     OMX_ERRORTYPE err;
     int i;
+	OMX_INDEXTYPE index;
 
     s->version.s.nVersionMajor = 1;
     s->version.s.nVersionMinor = 1;
@@ -425,19 +426,19 @@ static av_cold int omx_component_init(AVCodecContext *avctx, const char *role)
     // Intentionally ignore errors on this one
     OMX_SetParameter(s->handle, OMX_IndexParamStandardComponentRole, &role_params);
     err = OMX_GetExtensionIndex (s->handle, (OMX_STRING) "OMX.google.android.index.storeMetaDataInBuffers", &index);
-    if (err == OMX_ErrorNone)
+    if(err == OMX_ErrorNone)
     {
-       struct storeMetaDataInBuffersParams {
+       struct StoreMetaDataInBuffersParams {
           OMX_U32           nSize;
           OMX_VERSIONTYPE   nVersion;
           OMX_U32           nPortIndex;
           OMX_BOOL          bStoreMetaData;
        };
-       struct storeMetaDataInBuffersParams storeParams = {0};
+       struct StoreMetaDataInBuffersParams storeParams = {0};
        storeParams.bStoreMetaData = OMX_FALSE;
        OMX_SetParameter(s->handle, index, &storeParams);
     }
-    else 
+    else
        av_log(avctx, AV_LOG_ERROR,"Store Meta Data in Buffer is not supported by component");
 
     INIT_STRUCT(video_port_params);
@@ -476,7 +477,8 @@ static av_cold int omx_component_init(AVCodecContext *avctx, const char *role)
         if (OMX_GetParameter(s->handle, OMX_IndexParamVideoPortFormat, &video_port_format) != OMX_ErrorNone)
             break;
         if (video_port_format.eColorFormat == OMX_COLOR_FormatYUV420Planar ||
-            video_port_format.eColorFormat == OMX_COLOR_FormatYUV420PackedPlanar) {
+            video_port_format.eColorFormat == OMX_COLOR_FormatYUV420PackedPlanar ||
+            video_port_format.eColorFormat == OMX_COLOR_FormatYUV420SemiPlanar) {
             s->color_format = video_port_format.eColorFormat;
             break;
         }
@@ -502,9 +504,9 @@ static av_cold int omx_component_init(AVCodecContext *avctx, const char *role)
     in_port_params.format.video.nFrameWidth  = avctx->width;
     in_port_params.format.video.nFrameHeight = avctx->height;
     if (avctx->framerate.den > 0 && avctx->framerate.num > 0)
-        in_port_params.format.video.xFramerate = (1LL << 16) * avctx->framerate.num / avctx->framerate.den;
+        in_port_params.format.video.xFramerate = ((unsigned long)avctx->framerate.num << 16) / (unsigned int)avctx->framerate.den;
     else
-        in_port_params.format.video.xFramerate = (1LL << 16) * avctx->time_base.den / avctx->time_base.num;
+        in_port_params.format.video.xFramerate = ((unsigned long)avctx->time_base.den << 16) / (unsigned int)avctx->time_base.num;
 
     err = OMX_SetParameter(s->handle, OMX_IndexParamPortDefinition, &in_port_params);
     CHECK(err);
@@ -542,13 +544,14 @@ static av_cold int omx_component_init(AVCodecContext *avctx, const char *role)
     if (s->rotation != 0) {
        OMX_S32 degree;
 
-       err = OMX_GetExtensionIndex (s->handle, (OMX_STRING)"OMX.android.index.setVideoEncRotAngle", &index);
+       err = OMX_GetExtensionIndex (s->handle, (OMX_STRING) "OMX.android.index.setVideoEncRotAngle", &index);
 
        if (err == OMX_ErrorUnsupportedIndex) {
           av_log(avctx, AV_LOG_ERROR, "Setting rotation: not supported by component");
        } else if (err != OMX_ErrorNone) {
           av_log(avctx, AV_LOG_ERROR, "Failed to get rotation: (0x%08x)", err);
        }
+
        degree = s->rotation;
        err = OMX_SetParameter(s->handle, index, &degree);
 
