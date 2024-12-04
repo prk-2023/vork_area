@@ -403,3 +403,73 @@ Here's a more detailed example of the flow of data:
 +---------------------+
 ```
 ---
+
+
+Genreral
+---
+static OMX_BUFFERHEADERTYPE *get_buffer(pthread_mutex_t *mutex, pthread_cond_t *cond,
+                                        int* array_size, OMX_BUFFERHEADERTYPE **array,
+                                        int wait)
+{
+    OMX_BUFFERHEADERTYPE *buffer;
+    pthread_mutex_lock(mutex);
+    if (wait) {
+        while (!*array_size)
+           pthread_cond_wait(cond, mutex);
+    }
+    if (*array_size > 0) {
+        buffer = array[0];
+        (*array_size)--;
+        memmove(&array[0], &array[1], (*array_size) * sizeof(OMX_BUFFERHEADERTYPE*));
+    } else {
+        buffer = NULL;
+    }
+    pthread_mutex_unlock(mutex);
+    return buffer;
+}
+
+
+**Code Review and Explanation**
+
+The provided C function, `get_buffer`, appears to be part of a producer-consumer problem solution, where a buffer is retrieved from a shared array. Here's a breakdown of the function:
+
+### Function Signature
+
+```c
+static OMX_BUFFERHEADERTYPE *get_buffer(pthread_mutex_t *mutex, pthread_cond_t *cond,
+                                        int* array_size, OMX_BUFFERHEADERTYPE **array,
+                                        int wait)
+```
+
+* The function takes five parameters:
+        + `mutex`: a pointer to a mutex (mutual exclusion) lock, used for synchronization.
+        + `cond`: a pointer to a condition variable, used for synchronization.
+        + `array_size`: a pointer to an integer representing the current size of the array.
+        + `array`: a pointer to an array of `OMX_BUFFERHEADERTYPE` pointers.
+        + `wait`: an integer indicating whether the function should wait for a buffer to become available.
+
+### Function Body
+
+1. **Lock the mutex**: `pthread_mutex_lock(mutex);`
+        * This ensures that only one thread can access the shared array at a time.
+2. **Wait for a buffer to become available (if necessary)**:
+        * If `wait` is non-zero, the function will wait until a buffer is available in the array.
+        * The `while` loop checks if the array is empty (`*array_size == 0`).
+        * If the array is empty, the function calls `pthread_cond_wait(cond, mutex)`, which releases the mutex and waits for a signal on the condition variable.
+3. **Retrieve a buffer from the array**:
+        * If the array is not empty (`*array_size \> 0`), the function retrieves the first buffer from the array (`buffer = array[0]`).
+        * It then decrements the array size (`(*array_size)--`) and shifts the remaining buffers down by one position using `memmove`.
+4. **Unlock the mutex**: `pthread_mutex_unlock(mutex);`
+        * This releases the mutex, allowing other threads to access the shared array.
+5. **Return the retrieved buffer (or NULL if the array was empty)**:
+        * The function returns the retrieved buffer or NULL if the array was empty.
+
+**Example Use Case**
+
+To use this function, you would need to:
+
+1. Initialize the mutex and condition variable using `pthread_mutex_init` and `pthread_cond_init`.
+2. Create an array of `OMX_BUFFERHEADERTYPE` pointers and initialize its size to 0.
+3. Call `get_buffer` with the mutex, condition variable, array size, array, and `wait` parameter set to 1 (to wait for a buffer to become available).
+
+**Note**: The `OMX_BUFFERHEADERTYPE` type is not defined in the provided code snippet. It is assumed to be a valid type, possibly defined in an external header file.

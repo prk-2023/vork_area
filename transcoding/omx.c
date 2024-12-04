@@ -151,12 +151,8 @@ static av_cold int omx_try_load(OMXContext *s, void *logctx,
 static av_cold OMXContext *omx_init(void *logctx, const char *libname, const char *prefix)
 {
     static const char * const libnames[] = {
-#if CONFIG_OMX_RPI
-        "/opt/vc/lib/libopenmaxil.so", "/opt/vc/lib/libbcm_host.so",
-#else
         "libOMX_Core.so", NULL,
         "libOmxCore.so", NULL,
-#endif
         NULL
     };
     const char* const* nameptr;
@@ -421,12 +417,28 @@ static av_cold int omx_component_init(AVCodecContext *avctx, const char *role)
         av_log(avctx, AV_LOG_ERROR, "OMX_GetHandle(%s) failed: %x\n", s->component_name, err);
         return AVERROR_UNKNOWN;
     }
+    else { av_log(avctx, AV_LOG_ERROR,"=> OMX_GetHandle(%s) %x\n",s->component_name, err); } //
 
     // This one crashes the mediaserver on qcom, if used over IOMX
     INIT_STRUCT(role_params);
     av_strlcpy(role_params.cRole, role, sizeof(role_params.cRole));
     // Intentionally ignore errors on this one
     OMX_SetParameter(s->handle, OMX_IndexParamStandardComponentRole, &role_params);
+    err = OMX_GetExtensionIndex (s->handle, (OMX_STRING) "OMX.google.android.index.storeMetaDataInBuffers", &index);
+    if (err == OMX_ErrorNone)
+    {
+       struct storeMetaDataInBuffersParams {
+          OMX_U32           nSize;
+          OMX_VERSIONTYPE   nVersion;
+          OMX_U32           nPortIndex;
+          OMX_BOOL          bStoreMetaData;
+       };
+       struct storeMetaDataInBuffersParams storeParams = {0};
+       storeParams.bStoreMetaData = OMX_FALSE;
+       OMX_SetParameter(s->handle, index, &storeParams);
+    }
+    else 
+       av_log(avctx, AV_LOG_ERROR,"Store Meta Data in Buffer is not supported by component");
 
     INIT_STRUCT(video_port_params);
     err = OMX_GetParameter(s->handle, OMX_IndexParamVideoInit, &video_port_params);
@@ -511,19 +523,94 @@ static av_cold int omx_component_init(AVCodecContext *avctx, const char *role)
     out_port_params.format.video.nFrameHeight  = avctx->height;
     out_port_params.format.video.nStride       = 0;
     out_port_params.format.video.nSliceHeight  = 0;
-    out_port_params.format.video.nBitrate      = avctx->bit_rate;
+    //out_port_params.format.video.nBitrate      = avctx->bit_rate;
     out_port_params.format.video.xFramerate    = in_port_params.format.video.xFramerate;
     out_port_params.format.video.bFlagErrorConcealment  = OMX_FALSE;
-    if (avctx->codec->id == AV_CODEC_ID_MPEG4)
-        out_port_params.format.video.eCompressionFormat = OMX_VIDEO_CodingMPEG4;
-    else if (avctx->codec->id == AV_CODEC_ID_H264)
-        out_port_params.format.video.eCompressionFormat = OMX_VIDEO_CodingAVC;
+    //if (avctx->codec->id == AV_CODEC_ID_MPEG4)
+    //    out_port_params.format.video.eCompressionFormat = OMX_VIDEO_CodingMPEG4;
+    //else if (avctx->codec->id == AV_CODEC_ID_H264)
+    //    out_port_params.format.video.eCompressionFormat = OMX_VIDEO_CodingAVC;
+    if (avctx->codec_id == AV_CODEC_ID_H265)
+       out_port_params.format.video.eCompressionFormat = OMX_VIDEO_CodingHEVC;
 
     err = OMX_SetParameter(s->handle, OMX_IndexParamPortDefinition, &out_port_params);
     CHECK(err);
     err = OMX_GetParameter(s->handle, OMX_IndexParamPortDefinition, &out_port_params);
     CHECK(err);
     s->num_out_buffers = out_port_params.nBufferCountActual;
+
+    if (s->rotation != 0) {
+       OMX_S32 degree;
+
+       err = OMX_GetExtensionIndex (s->handle, (OMX_STRING)"OMX.android.index.setVideoEncRotAngle", &index);
+
+       if (err == OMX_ErrorUnsupportedIndex) {
+          av_log(avctx, AV_LOG_ERROR, "Setting rotation: not supported by component");
+       } else if (err != OMX_ErrorNone) {
+          av_log(avctx, AV_LOG_ERROR, "Failed to get rotation: (0x%08x)", err);
+       }
+       degree = s->rotation;
+       err = OMX_SetParameter(s->handle, index, &degree);
+
+       if (err == OMX_ErrorUnsupportedIndex) {
+          av_log(avctx, AV_LOG_ERROR,"Setting rotation: not supported by component")
+       } else if ( err != OMX_ErrorNone) {
+          av_log(avctx, AV_LOG_ERROR, "Failed to set rotation: ")
+       }
+    }
+
+    if (avctx->codec->id == AV_CODEC_ID_H265) {
+        //OMX_VIDEO_PARAM_AVCTYPE avc = { 0 };
+        OMX_VIDEO_PARAM_AVCTYPE hevc = { 0 };
+        //INIT_STRUCT(avc);
+        INIT_STRUCT(hevc);
+        avc.nPortIndex = s->out_port;
+        // err = OMX_GetParameter(s->handle, OMX_IndexParamVideoAvc, &avc);
+        err = OMX_GetParameter(s->handle, OMX_IndexParamVideoAvc, &hevc);
+        CHECK(err);
+        // avc.nBFrames = 0;
+        // avc.nPFrames = avctx->gop_size - 1;
+        // switch (s->profile == AV_PROFILE_UNKNOWN ? avctx->profile : s->profile) {
+        // case AV_PROFILE_H264_BASELINE:
+        //     avc.eProfile = OMX_VIDEO_AVCProfileBaseline;
+        //     break;
+        // case AV_PROFILE_H264_MAIN:
+        //     avc.eProfile = OMX_VIDEO_AVCProfileMain;
+        //     break;
+        // case AV_PROFILE_H264_HIGH:
+        //     avc.eProfile = OMX_VIDEO_AVCProfileHigh;
+        //     break;
+        // default:
+        //     break;
+        // }
+        // err = OMX_SetParameter(s->handle, OMX_IndexParamVideoAvc, &avc);
+        // CHECK(err);
+        if(s->i_frame_interval != 0)
+        {
+           if(avctx->framerate.num !=0 && avctx->framerate.den != 0)
+              hevc.nKeyFrameInterval = (avctx->framerate.num) * (s->i_frame_interval) / (avctx->framerate.den);
+           else if(avctx->time_base.num !=0 && avctx->time_base.den != 0)
+              hevc.nKeyFrameInterval = (avctx->time_base.num) * (s->i_frame_interval) / (avctx->time_base.den);
+           //avc.nPFrames = (avctx->time_base.num) * (s->i_frame_interval) / (avctx->time_base.den);
+           }
+        else 
+           hevc.nKeyFrameInterval = avctx->gop_size - 1;
+
+        if (avctx->codec->id == AV_CODEC_ID_H265) { //-------
+          switch (s->profile == FF_PROFILE_UNKNOWN ? avctx->profile : s->profile) {
+            case FF_PROFILE_HEVC_MAIN:
+              hevc.eProfile = OMX_VIDEO_HEVCProfileMain;
+              break;
+          /*case FF_PROFILE_HEVC_MAIN_10:
+              hevc.eProfile = OMX_VIDEO_HEVCProfileMain10;
+              break; */
+            default:
+              break;
+          }
+          err = OMX_SetParameter(s->handle, OMX_IndexParamVideoHevc, &hevc);
+        } //---
+        CHECK(err);
+    }
 
     INIT_STRUCT(vid_param_bitrate);
     vid_param_bitrate.nPortIndex     = s->out_port;
@@ -532,32 +619,7 @@ static av_cold int omx_component_init(AVCodecContext *avctx, const char *role)
     err = OMX_SetParameter(s->handle, OMX_IndexParamVideoBitrate, &vid_param_bitrate);
     if (err != OMX_ErrorNone)
         av_log(avctx, AV_LOG_WARNING, "Unable to set video bitrate parameter\n");
-
-    if (avctx->codec->id == AV_CODEC_ID_H264) {
-        OMX_VIDEO_PARAM_AVCTYPE avc = { 0 };
-        INIT_STRUCT(avc);
-        avc.nPortIndex = s->out_port;
-        err = OMX_GetParameter(s->handle, OMX_IndexParamVideoAvc, &avc);
-        CHECK(err);
-        avc.nBFrames = 0;
-        avc.nPFrames = avctx->gop_size - 1;
-        switch (s->profile == AV_PROFILE_UNKNOWN ? avctx->profile : s->profile) {
-        case AV_PROFILE_H264_BASELINE:
-            avc.eProfile = OMX_VIDEO_AVCProfileBaseline;
-            break;
-        case AV_PROFILE_H264_MAIN:
-            avc.eProfile = OMX_VIDEO_AVCProfileMain;
-            break;
-        case AV_PROFILE_H264_HIGH:
-            avc.eProfile = OMX_VIDEO_AVCProfileHigh;
-            break;
-        default:
-            break;
-        }
-        err = OMX_SetParameter(s->handle, OMX_IndexParamVideoAvc, &avc);
-        CHECK(err);
-    }
-
+    
     err = OMX_SendCommand(s->handle, OMX_CommandStateSet, OMX_StateIdle, NULL);
     CHECK(err);
 
@@ -568,17 +630,28 @@ static av_cold int omx_component_init(AVCodecContext *avctx, const char *role)
     if (!s->in_buffer_headers || !s->free_in_buffers || !s->out_buffer_headers || !s->done_out_buffers)
         return AVERROR(ENOMEM);
     for (i = 0; i < s->num_in_buffers && err == OMX_ErrorNone; i++) {
-        if (s->input_zerocopy)
-            err = OMX_UseBuffer(s->handle, &s->in_buffer_headers[i], s->in_port, s, in_port_params.nBufferSize, NULL);
-        else
-            err = OMX_AllocateBuffer(s->handle, &s->in_buffer_headers[i],  s->in_port,  s, in_port_params.nBufferSize);
+       err = OMX_AllocateBuffer(s->handle, &s->in_buffer_headers[i],  s->in_port,  s, in_port_params.nBufferSize);
         if (err == OMX_ErrorNone)
             s->in_buffer_headers[i]->pAppPrivate = s->in_buffer_headers[i]->pOutputPortPrivate = NULL;
+        else 
+        {
+           av_log(avctx, AV_LOG_ERROR, "err %x (%d) on line %d\n", err,err, __LINE__);
+           s->num_in_buffers = i;
+           return AVERROR_UNKNOWN;
+        }
+        CHECK(err);
     }
     CHECK(err);
     s->num_in_buffers = i;
     for (i = 0; i < s->num_out_buffers && err == OMX_ErrorNone; i++)
+    {
         err = OMX_AllocateBuffer(s->handle, &s->out_buffer_headers[i], s->out_port, s, out_port_params.nBufferSize);
+        if (err != OMX_ErrorNone) {
+           av_log(avctx, AV_LOG_ERROR, "err %x (%d) on line %d\n", err, err, __LINE__);
+           s->num_out_buffers = i;
+           return AVERROR_UNKNOWN;
+        }
+    }
     CHECK(err);
     s->num_out_buffers = i;
 
@@ -685,16 +758,25 @@ static av_cold int omx_encode_init(AVCodecContext *avctx)
     if (!s->omx_context)
         return AVERROR_ENCODER_NOT_FOUND;
 
+    s->rma_func = rma_lib_init(avctx);
+    if (!s->rma_func)
+       return AVERROR_EXTERNAL;
+
+    pthread_mutex_init(&s->state_mutex, NULL);
+    pthread_cond_init(&s->state_cond, NULL);
+    pthread_mutex_init(&s->input_mutex, NULL);
+    pthread_cond_init(&s->input_cond, NULL);
+    pthread_mutex_init(&s->output_mutex, NULL);
+    pthread_cond_init(&s->output_cond, NULL);
+    s->mutex_cond_inited = 1;
+    
     s->avctx = avctx;
     s->state = OMX_StateLoaded;
     s->error = OMX_ErrorNone;
 
     switch (avctx->codec->id) {
-    case AV_CODEC_ID_MPEG4:
-        role = "video_encoder.mpeg4";
-        break;
-    case AV_CODEC_ID_H264:
-        role = "video_encoder.avc";
+    case AV_CODEC_ID_H265:
+        role = "video_encoder.hevc";
         break;
     default:
         return AVERROR(ENOSYS);
@@ -708,10 +790,22 @@ static av_cold int omx_encode_init(AVCodecContext *avctx)
     if ((ret = omx_component_init(avctx, role)) < 0)
         goto fail;
 
+    av_log(avctx, AV_LOG_ERROR, "=> Component: %s Init done\n",s->component_name);
     if (avctx->flags & AV_CODEC_FLAG_GLOBAL_HEADER) {
+       buffer = get_buffer(&s->input_mutex, &s->input_cond,
+             &s->num_free_in_buffers, s->free_in_buffers, 1);
+       buffer->nFlags = OMX_BUFFERFLAG_CODECCONFIG;
+       err = OMX_EmptyThisBuffer(s->handle, buffer);
+       if (err != OMX_ErrorNone) {
+          append_buffer(&s->input_mutex, &s->input_cond, &s->num_free_in_buffers, s->free_in_buffers, buffer);
+          av_log(avctx, AV_LOG_ERROR, "enc: OMX_EmptyThisBuffer fail %x\n",err);
+          return AVERROR_UNKNOWN;
+       }
+
         while (1) {
             buffer = get_buffer(&s->output_mutex, &s->output_cond,
                                 &s->num_done_out_buffers, s->done_out_buffers, 1);
+
             if (buffer->nFlags & OMX_BUFFERFLAG_CODECCONFIG) {
                 if ((ret = av_reallocp(&avctx->extradata, avctx->extradata_size + buffer->nFilledLen + AV_INPUT_BUFFER_PADDING_SIZE)) < 0) {
                     avctx->extradata_size = 0;
@@ -729,22 +823,41 @@ static av_cold int omx_encode_init(AVCodecContext *avctx)
                 ret = AVERROR_UNKNOWN;
                 goto fail;
             }
-            if (avctx->codec->id == AV_CODEC_ID_H264) {
-                // For H.264, the extradata can be returned in two separate buffers
-                // (the videocore encoder on raspberry pi does this);
-                // therefore check that we have got both SPS and PPS before continuing.
-                int nals[32] = { 0 };
-                int i;
-                for (i = 0; i + 4 < avctx->extradata_size; i++) {
+            // if (avctx->codec->id == AV_CODEC_ID_H264) {
+            //     // For H.264, the extradata can be returned in two separate buffers
+            //     // (the videocore encoder on raspberry pi does this);
+            //     // therefore check that we have got both SPS and PPS before continuing.
+            //     int nals[32] = { 0 };
+            //     int i;
+            //     for (i = 0; i + 4 < avctx->extradata_size; i++) {
+            //          if (!avctx->extradata[i + 0] &&
+            //              !avctx->extradata[i + 1] &&
+            //              !avctx->extradata[i + 2] &&
+            //              avctx->extradata[i + 3] == 1) {
+            //              nals[avctx->extradata[i + 4] & 0x1f]++;
+            //          }
+            //     }
+            //     if (nals[H264_NAL_SPS] && nals[H264_NAL_PPS])
+            //         break;
+            if (avctx->codec->id == AV_CODEC_ID_HEVC){
+               //For HEVC the extradata is returned in 2 buffers containing vps,sps,pps 
+               //check VPS SPS PPS 
+               int nals[64] = {0};
+               int i;
+               for (i=0; i+4 avctx->extradata_size; i++) {
                      if (!avctx->extradata[i + 0] &&
                          !avctx->extradata[i + 1] &&
                          !avctx->extradata[i + 2] &&
                          avctx->extradata[i + 3] == 1) {
-                         nals[avctx->extradata[i + 4] & 0x1f]++;
+                       if (avctx->extradata[i + 4] == 0x40) { nals[avctx->extradata[i + 4] ^ 0x60]++; }
+                       if (avctx->extradata[i + 4] == 0x42) { nals[avctx->extradata[i + 4] ^ 0x63]++; }
+                       if (avctx->extradata[i + 4] == 0x44) { nals[avctx->extradata[i + 4] ^ 0x66]++; }
                      }
                 }
-                if (nals[H264_NAL_SPS] && nals[H264_NAL_PPS])
-                    break;
+                if (nals[HEVC_NAL_VPS] && nals[HEVC_NAL_SPS] && nals[HEVC_NAL_PPS]){ 
+                  av_log(NULL, AV_LOG_ERROR,"VPS,SPS,PPS Checked\n"); 
+                  break;
+                }
             } else {
                 if (avctx->extradata_size > 0)
                     break;
@@ -754,6 +867,7 @@ static av_cold int omx_encode_init(AVCodecContext *avctx)
 
     return 0;
 fail:
+    av_log(avctx, AV_LOG_ERROR, "=> OMX component Init Fail <= %s:%d \n",__func__, __LINE__);
     return ret;
 }
 
@@ -1045,11 +1159,11 @@ const FFCodec ff_h265_omx_encoder = {
     .p.type           = AVMEDIA_TYPE_VIDEO,
     .p.id             = AV_CODEC_ID_H265,
     .priv_data_size   = sizeof(OMXCodecContext),
-    .init             = omx_encode_init,
+    .init             = omx_encode_init, //
     FF_CODEC_ENCODE_CB(omx_encode_frame),
     .close            = omx_encode_end,
     .p.pix_fmts       = omx_encoder_pix_fmts,
     .p.capabilities   = AV_CODEC_CAP_DELAY,
     .caps_internal    = FF_CODEC_CAP_INIT_CLEANUP,
-    .p.priv_class     = &omx_h264enc_class,
+    .p.priv_class     = &omx_h265enc_class,
 };
