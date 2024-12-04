@@ -13,12 +13,19 @@ if wezterm.config_builder then
 end
 ---local config = wezterm.config_builder()
 
+-- Opacity
+-- config.window_background_opacity = 1.0
 -- This is where you actually apply your config choices
 config.scrollback_lines = 5000
 config.enable_scroll_bar = true
 config.audible_bell = "Disabled"
 config.initial_cols = 207
 config.initial_rows = 45
+-- Weight: `"Thin, ExtraLight,Light,DemiLight,Book,Regular,Medium,DemiBold,Bold,ExtraBold,Black,ExtraBlack"
+-- stretch:
+-- "UltraCondensed,ExtraCondensed, Condensed,SemiCondensed, Normal, SemiExpanded, Expanded,ExtraExpanded"`
+--  UltraExpanded"`
+--  style: Normal,Italic,Qbluque
 -- config.font = '~/.fonts/v/VictorMonoNerdFontMono_Regular'
 --config.font = wezterm.font("Fira Code", { weight = 450, stretch = "Normal", style = "Normal" }) -- weight : Regular, Bold, Thin, ExtraLight, Light, Medium, DemiBold
 --config.font = wezterm.font("Fira Code", { weight = "Medium", stretch = "Normal" }) -- weight : Regular, Bold, Thin, ExtraLight, Light, Medium, DemiBold
@@ -32,34 +39,37 @@ config.initial_rows = 45
 -- config.font = wezterm.font("LiberationMono", { weight = "Regular" })
 -- config.font = wezterm.font("UbuntuMono NFM", { weight = "Regular", stretch = "Normal", style = "Normal" })
 --config.font = wezterm.font("JetBrains Mono", { weight = "DemiBold", stretch = "Normal", style = "Normal" })
---config.font = wezterm.font("JetBrains Mono", { weight = 549, stretch = "Normal", style = "Normal" })
+config.font = wezterm.font("JetBrains Mono", { weight = 549, stretch = "Normal", style = "Normal" })
 -- config.font = wezterm.font("JetBrains Mono", { weight = 450, stretch = "Normal", style = "Normal" })
--- config.font = wezterm.font("IBM Plex Mono", { weight = 450, stretch = "Normal", style = "Normal" })
--- config.font = wezterm.font("IBM Plex Mono", { weight = 450, stretch = "Normal", style = "Normal" })
+-- config.font = wezterm.font("JetBrains Mono", { weight = 549, stretch = "SemiCondensed", style = "Normal" }) -- (AKA: JetBrains Mono Medium) <built-in>, BuiltIn
+--config.font = wezterm.font("IBM Plex Mono", { weight = 450, stretch = "Normal", style = "Normal" })
 --config.font = wezterm.font("FiraCode Nerd Font Mono", { weight = "Regular", stretch = "Normal", style = "Normal" })
 -- config.font = wezterm.font("Fira Code", { weight = 450, stretch = "Normal", style = "Normal" })
 --config.font = wezterm.font("FiraCode NF", { weight = "Regular", stretch = "Normal", style = "Normal" })
 -- config.font = wezterm.font("Go Mono", { weight = "Regular", stretch = "Normal", style = "Normal" })
 -- config.font = wezterm.font("Noto Sans Mono", { weight = "Regular", stretch = "Normal", style = "Normal" })
 -- config.font = wezterm.font("Roboto Mono", { weight = "Regular", stretch = "Normal", style = "Normal" })
+-- config.font = wezterm.font("VictorMono Nerd Font Propo", { weight = 549, stretch = "Normal", style = "Normal" })
 -- config.font = wezterm.font("VictorMono Nerd Font Propo", { weight = "Medium", stretch = "Normal", style = "Normal" })
 -- config.font = wezterm.font("VictorMono Nerd Font Mono", { weight = "Medium", stretch = "Normal", style = "Normal" })
 -- config.font = wezterm.font("Source Code Pro", { weight = "Medium", stretch = "Normal", style = "Normal" })
 -- config.font = wezterm.font("Noto Color Emoji", { weight = "Regular", stretch = "Normal", style = "Normal" })
--- config.font = wezterm.font("JetBrains Mono", { weight = 450, stretch = "SemiCondensed", style = "Normal" }) -- (AKA: JetBrains Mono Medium) <built-in>, BuiltIn
 -- config.font = wezterm.font("FuraMono Nerd Font", { weight = 450, stretch = "Normal", style = "Oblique" })
 -- config.font = wezterm.font("FuraMono Nerd Font", { weight = 450, stretch = "Normal", style = "Normal" })
 --config.font = wezterm.font("DaddyTimeMono Nerd Font", { weight = "Regular", stretch = "Condensed", style = "Normal" })
 --config.font =wezterm.font("DaddyTimeMono Nerd Font Mono",{weight="Regular",stretch="Condensed",style="Normal"})
 --config.font =wezterm.font("DaddyTimeMono Nerd Font Propo", { weight = "Regular", stretch = "Condensed", style = "Normal" })
 --config.font=wezterm.font("ComicShannsMono Nerd Font Propo", { weight = "Regular", stretch = "Normal", style = "Normal" })
---config.font = wezterm.font("SpaceMono Nerd Font", { weight = "Regular", stretch = "Normal", style = "Normal" })
+-- config.font = wezterm.font("SpaceMono Nerd Font", { weight = "Regular", stretch = "Normal", style = "Normal" })
 -- config.font = wezterm.font("SpaceMono Nerd Font Mono", { weight = "Regular", stretch = "Condensed", style = "Normal" })
-config.font = wezterm.font("CodeNewRoman Nerd Font", { weight = "Regular", stretch = "Normal", style = "Normal" })
+-- config.font = wezterm.font("CodeNewRoman Nerd Font", { weight = "Regular", stretch = "Normal", style = "Normal" })
+-- config.font = wezterm.font("CodeNewRoman Nerd Font", { weight = 549, stretch = "Normal", style = "Normal" })
+-- config.font = wezterm.font("DejaVu Sans Mono", { weight = "Book", stretch = "SemiCondensed", style = "Normal" })
 
-config.font_size = 12.00
+config.font_size = 10.8
 config.line_height = 1.0
 config.use_fancy_tab_bar = true
+-- config.use_fancy_tab_bar = false
 font_shaper = "Harfbuzz" --- Harfbuzz, AllSorts
 font_antialias = "Subpixel" --- `None`, `Greyscale`, `Subpixel`.
 --config.freetype_load_target = "Light"
@@ -70,23 +80,31 @@ front_end = "WebGpu" -- OpenGL , WebGpu, Software
 
 --- Select Colur schemes for terminal:
 -- For example, changing the color scheme:
---config.color_scheme = "AdventureTime"
+-- config.color_scheme = "AdventureTime"
 -- config.color_scheme = "Gruber (base16)"
---config.color_scheme = "Gruvbox Dark (Gogh)"
---config.color_scheme = "Gruvbox dark, hard (base16)"
+-- config.color_scheme = "Gruvbox Dark (Gogh)"
+----config.color_scheme = "Gruvbox dark, hard (base16)"
 -- config.color_scheme = 'Gruvbox dark, soft (base16)'
---config.color_scheme = "GruvboxDark"
---config.color_scheme = "Guezwhoz"
+-- config.color_scheme = "GruvboxDark"
+config.color_scheme = "GruvboxDarkHard"
+-- config.color_scheme = "Guezwhoz"
 -- config.color_scheme = 'dayfox'
 -- config.color_scheme = "Dotshare (terminal.sexy)"
---config.color_scheme = "Kasugano (terminal.sexy)"
---config.color_scheme = "Kanagawa Dragon (Gogh)"
---- config.color_scheme = "Kanagawa (Gogh)"
----config.color_scheme = "One Half Black (Gogh)"
---config.color_scheme = "VisiBone (terminal.sexy)"
+-- config.color_scheme = "Kasugano (terminal.sexy)"
+-- config.color_scheme = "Kanagawa Dragon (Gogh)"
+-- config.color_scheme = "Kanagawa (Gogh)"
+-- config.color_scheme = "Kanagawa Dragon (Gogh)"
+-- config.color_scheme = "Kolorit"
+-- config.color_scheme = "One Half Black (Gogh)"
+-- config.color_scheme = "VisiBone (terminal.sexy)"
 -- config.color_scheme = "Derp (terminal.sexy)"
 -- config.color_scheme = "Bamboo Multiplex"
-config.color_scheme = "Night Owl (Gogh)"
+-- config.color_scheme = "Night Owl (Gogh)"
+-- config.color_scheme = "Terminix Dark (Gogh)"
+-- config.color_scheme = "thwump (terminal.sexy)"
+-- config.color_scheme = "tokyonight_moon"
+-- config.color_scheme = "Tomorrow Night Bright"
+-- config.color_scheme = "zenburn (terminal.sexy)"
 
 -- local key_tables = {
 -- 	resize_font = {
@@ -118,13 +136,13 @@ config.keys = {
 	{
 		-- mods = "LEADER",
 		mods = "CTRL|SHIFT",
-		key = "(",
+		key = ")",
 		action = wezterm.action.SplitVertical({ domain = "CurrentPaneDomain" }),
 	},
 	{
 		-- mods = "LEADER",
 		mods = "CTRL|SHIFT",
-		key = ")",
+		key = "(",
 		action = wezterm.action.SplitHorizontal({ domain = "CurrentPaneDomain" }),
 	},
 	{
@@ -213,6 +231,7 @@ config.keys = {
 	-- },
 	-- CLose current tab:
 	{ key = "w", mods = "CTRL|CMD", action = wezterm.action.CloseCurrentTab({ confirm = true }) },
+	{ key = "Z", mods = "CTRL", action = wezterm.action.TogglePaneZoomState },
 }
 --- Slit windows navigation
 
@@ -353,6 +372,14 @@ config.ssh_domains = {
 		username = "pulumati",
 	},
 }
+-- tab bar possition at bottom:
+config.window_decorations = "TITLE|RESIZE" -- "INTEGRATED_BUTTONS|RESIZE"
+config.tab_bar_at_bottom = true
+config.hide_tab_bar_if_only_one_tab = true
+
+-- fix window size with change the font
+config.adjust_window_size_when_changing_font_size = false
+
 return config
 
 -- My Notes: https://www.florianbellmann.com/blog/switch-from-tmux-to-wezterm#introduction
