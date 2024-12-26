@@ -419,7 +419,9 @@ NOTE: [
     // cpu_addr is the virtual address for CPU access
     // dma_handle is the physical address for the DMA engine
    ```
-   - **`dma_alloc_coherent()`** allocates both the virtual address (`cpu_addr`) and the physical address (`dma_handle`) of the buffer. The **virtual address** is used by the CPU, and the **physical address** is used by the DMA engine to directly access the buffer.
+   - **`dma_alloc_coherent()`** allocates both the virtual address (`cpu_addr`) and the physical address 
+   (`dma_handle`) of the buffer. The **virtual address** is used by the CPU, and the **physical address** 
+   is used by the DMA engine to directly access the buffer.
 
    B. **`dma_alloc_attrs()`**
    - **Used for**: Allocating DMA memory with additional attributes, which can be used for fine-grained 
@@ -468,7 +470,10 @@ NOTE: [
    - Memory is often **more constrained** in embedded systems, so DMA buffers are typically allocated with 
    careful consideration to size, alignment, and location in memory.
 
-   - Additionally, embedded systems often have specialized **I/O peripherals** (e.g., **camera modules**, **display controllers**, **video processing units**) that require **direct memory access** to buffers.
+   - Additionally, embedded systems often have specialized **I/O peripherals** 
+   (e.g., **camera modules**, **display controllers**, **video processing units**) that require 
+   **direct memory access** to buffers.
+
 - In both embedded and non-embedded systems, the same **DMA API** 
 (`dma_alloc_coherent()`, `dma_alloc_attrs()`, etc.) is used to allocate buffers that can be directly 
 accessed by the DMA engine, but embedded systems often deal with stricter memory constraints and may have 
@@ -554,8 +559,10 @@ provided by the producer. Once imported, the consumer can map the buffer into it
 to/from hardware. This is because DMA engines often require physically contiguous memory regions to operate 
 efficiently.
 
-- In Linux, functions like `dma_alloc_coherent()` or `dma_alloc_attrs()` are used by kernel modules to allocate such buffers.
-- **Shared Memory**: The kernel may allocate a buffer using one of these memory allocation functions, and then share it using the `dma-buf` framework.
+- In Linux, functions like `dma_alloc_coherent()` or `dma_alloc_attrs()` are used by kernel modules to 
+  allocate such buffers.
+- **Shared Memory**: The kernel may allocate a buffer using one of these memory allocation functions, 
+  and then share it using the `dma-buf` framework.
 
 ---
 
@@ -615,45 +622,64 @@ By using the **`dma-buf` framework**, you can efficiently share memory between d
 software components without copying data, allowing for high-performance applications in areas like 
 **graphics rendering**, **video processing**, or **networking**.
 
-
-
-
 -------------------------
 Explain how to use DMA buff from user space to pass a shared buffer memory from one stack to other.
-
-
 
 In a SBC running linux, Create a user-space library that can access the dma buffers 
 
 
 ### 1. **What Are DMA Engines?**
 
-A **DMA (Direct Memory Access) engine** is a hardware component or controller that facilitates the transfer of data directly between **memory** and **peripheral devices** (such as **GPUs**, **network cards**, **storage devices**, etc.) without involving the **CPU**. This allows for **faster** and **more efficient data transfers**, offloading the work from the CPU and enabling it to perform other tasks while data is being moved in the background.
+A **DMA (Direct Memory Access) engine** is a hardware component or controller that facilitates the transfer 
+of data directly between **memory** and **peripheral devices** (such as **GPUs**, **network cards**, 
+**storage devices**, etc.) without involving the **CPU**. This allows for **faster** and **more efficient 
+data transfers**, offloading the work from the CPU and enabling it to perform other tasks while data is 
+being moved in the background.
 
 #### Key Characteristics of DMA Engines:
-- **Direct Memory Access**: The DMA engine allows peripherals to access system memory (RAM) directly, bypassing the CPU, which improves data transfer speeds and reduces CPU load.
+- **Direct Memory Access**: The DMA engine allows peripherals to access system memory (RAM) directly, 
+bypassing the CPU, which improves data transfer speeds and reduces CPU load.
   
-- **Autonomous Operation**: Once the DMA engine is programmed, it can perform the data transfer independently of the CPU. The CPU typically only needs to configure the DMA engine and handle completion interrupts.
+- **Autonomous Operation**: Once the DMA engine is programmed, it can perform the data transfer 
+independently of the CPU. The CPU typically only needs to configure the DMA engine and handle completion 
+interrupts.
 
-- **Efficient Data Transfer**: DMA engines are commonly used in high-speed data transfer scenarios where the CPU would otherwise become a bottleneck. For example, when a camera module needs to capture large frames of image data and send them to the memory, the DMA engine facilitates this transfer without CPU intervention.
+- **Efficient Data Transfer**: DMA engines are commonly used in high-speed data transfer scenarios where 
+the CPU would otherwise become a bottleneck. For example, when a camera module needs to capture large 
+frames of image data and send them to the memory, the DMA engine facilitates this transfer without 
+CPU intervention.
 
-- **Peripheral and Memory Communication**: DMA engines are typically used for communication between **I/O devices (peripherals)** and **system memory** (RAM), but can also be used for communication between different memory areas (e.g., memory-to-memory).
+- **Peripheral and Memory Communication**: DMA engines are typically used for communication between 
+**I/O devices (peripherals)** and **system memory** (RAM), but can also be used for communication between 
+different memory areas (e.g., memory-to-memory).
 
 #### Types of DMA Engines:
-- **Memory-to-Device**: Data is transferred from system memory to a device (e.g., CPU writes data to a network interface card or a GPU).
-- **Device-to-Memory**: Data is transferred from a device into system memory (e.g., when receiving network data from a network card or reading from a disk).
-- **Memory-to-Memory**: Data is moved between two memory regions (e.g., memory copies initiated by the DMA engine).
+- **Memory-to-Device**: 
+Data is transferred from system memory to a device (e.g., CPU writes data to a network interface card or a GPU).
+- **Device-to-Memory**: 
+Data is transferred from a device into system memory (e.g., when receiving network data from a network 
+card or reading from a disk).
+- **Memory-to-Memory**: 
+Data is moved between two memory regions (e.g., memory copies initiated by the DMA engine).
 
 ### 2. **How Are DMA Buffers Allocated and Accessed in Linux (Embedded and Non-Embedded)?**
 
-In Linux (both embedded and non-embedded systems), DMA buffers are allocated through the kernel's **DMA API** to allow peripherals to access memory directly. These buffers are typically allocated in a way that makes them suitable for DMA operations, meaning they need to be **physically contiguous** and **aligned** in memory, and **cache-coherent** to avoid synchronization issues.
+In Linux (both embedded and non-embedded systems), DMA buffers are allocated through the kernel's 
+**DMA API** to allow peripherals to access memory directly. 
+
+These buffers are typically allocated in a way that makes them suitable for DMA operations, meaning they 
+need to be **physically contiguous** and **aligned** in memory, and **cache-coherent** to avoid 
+synchronization issues.
 
 #### A. **Buffer Allocation for DMA in Linux**
 
 ##### 1. **`dma_alloc_coherent()`**
    - **Used for**: Allocating physically contiguous memory that can be directly accessed by DMA engines.
-   - **Behavior**: Allocates memory that is **cache-coherent**, meaning the CPU and DMA engine can safely access it without cache-related issues.
-   - **Use cases**: This is most commonly used for buffers that will be used for high-speed, CPU-independent transfers like video streaming, networking, or any I/O operation that involves peripherals and needs zero-copy access.
+   - **Behavior**: Allocates memory that is **cache-coherent**, meaning the CPU and DMA engine can safely 
+   access it without cache-related issues.
+   - **Use cases**: This is most commonly used for buffers that will be used for high-speed, 
+   CPU-independent transfers like video streaming, networking, or any I/O operation that involves 
+   peripherals and needs zero-copy access.
    
    **Example:**
    ```c
@@ -673,11 +699,15 @@ In Linux (both embedded and non-embedded systems), DMA buffers are allocated thr
    // dma_handle is the physical address for the DMA engine
    ```
 
-   - **`dma_alloc_coherent()`** allocates both the virtual address (`cpu_addr`) and the physical address (`dma_handle`) of the buffer. The **virtual address** is used by the CPU, and the **physical address** is used by the DMA engine to directly access the buffer.
+   - **`dma_alloc_coherent()`** allocates both the virtual address (`cpu_addr`) and the physical address 
+   (`dma_handle`) of the buffer. The **virtual address** is used by the CPU, and the **physical address** 
+   is used by the DMA engine to directly access the buffer.
 
 ##### 2. **`dma_alloc_attrs()`**
-   - **Used for**: Allocating DMA memory with additional attributes, which can be used for fine-grained control over the allocation (e.g., setting caching behavior).
-   - **Behavior**: Similar to `dma_alloc_coherent()`, but more flexible in terms of setting attributes that might control cacheability, alignment, or memory type (normal, uncached, etc.).
+   - **Used for**: Allocating DMA memory with additional attributes, which can be used for fine-grained 
+   control over the allocation (e.g., setting caching behavior).
+   - **Behavior**: Similar to `dma_alloc_coherent()`, but more flexible in terms of setting attributes that 
+   might control cacheability, alignment, or memory type (normal, uncached, etc.).
    - **Use cases**: When you need specific control over memory access characteristics or alignment.
 
    **Example:**
@@ -696,54 +726,87 @@ In Linux (both embedded and non-embedded systems), DMA buffers are allocated thr
    ```
 
 ##### 3. **`dma_alloc_noncoherent()`**
-   - **Used for**: Allocating memory that does not need to be cache-coherent. This type of allocation may be useful when the buffer will only be accessed by the device and not the CPU or when cache management is handled manually.
-   - **Use cases**: Typically used for non-coherent devices like some network cards, where you manage cache coherency yourself.
+   - **Used for**: Allocating memory that does not need to be cache-coherent. This type of allocation may 
+   be useful when the buffer will only be accessed by the device and not the CPU or when cache management 
+   is handled manually.
+   - **Use cases**: Typically used for non-coherent devices like some network cards, where you manage cache 
+   coherency yourself.
 
 ##### 4. **`dma_buf` for Shared Buffers (e.g., for GPUs or Video Processing)**:
-   - **`dma-buf`** is a special Linux framework used for **sharing memory buffers** between different devices or subsystems (e.g., CPU, GPU, VPU, camera, etc.) without needing to copy data. These buffers are often allocated in kernel space but are shared with user space via file descriptors.
-   - The kernel uses the **`dma-buf` framework** to export a buffer to another device or subsystem that can directly access the buffer.
+   - **`dma-buf`** is a special Linux framework used for **sharing memory buffers** between different 
+   devices or subsystems (e.g., CPU, GPU, VPU, camera, etc.) without needing to copy data. 
+   These buffers are often allocated in kernel space but are shared with user space via file descriptors.
+   - The kernel uses the **`dma-buf` framework** to export a buffer to another device or subsystem that can
+   directly access the buffer.
 
-   The framework allows one device or driver to **export** the buffer and another to **import** it, facilitating **zero-copy** memory sharing between subsystems.
+   The framework allows one device or driver to **export** the buffer and another to **import** it, 
+   facilitating **zero-copy** memory sharing between subsystems.
 
 ---
 
 #### B. **Allocating DMA Buffers in Non-Embedded vs Embedded Linux Systems**
 
-The method of allocating and using DMA buffers is mostly **identical** between embedded and non-embedded systems from the perspective of the kernel, as they both utilize the same **DMA API**. However, there are some practical differences:
+The method of allocating and using DMA buffers is mostly **identical** between embedded and non-embedded 
+systems from the perspective of the kernel, as they both utilize the same **DMA API**. However, there are 
+some practical differences:
 
 ##### 1. **Non-Embedded Linux Systems (General-Purpose Systems)**
-   - On **non-embedded systems** (e.g., desktops, laptops), the DMA engine typically works with higher-level components like **network adapters**, **storage devices**, and **GPUs**.
-   - Here, DMA buffers might be used for activities like **disk I/O**, **network transfers**, and **graphics rendering**. These systems often rely on more generic, flexible memory allocation methods.
-   - In such systems, memory is generally less constrained, so large DMA buffers are often created from system RAM.
+   - On **non-embedded systems** (e.g., desktops, laptops), the DMA engine typically works with higher-level
+   components like **network adapters**, **storage devices**, and **GPUs**.
+   - Here, DMA buffers might be used for activities like **disk I/O**, **network transfers**, and 
+   **graphics rendering**. These systems often rely on more generic, flexible memory allocation methods.
+   - In such systems, memory is generally less constrained, so large DMA buffers are often created from 
+   system RAM.
 
 ##### 2. **Embedded Linux Systems**
-   - In **embedded systems**, DMA buffers need to be **contiguous** and located in a specific **physical address space** to meet hardware requirements. This is especially important for devices like **video decoders**, **network interfaces**, or **display buffers**, which need to operate with very specific memory layouts.
-   - Memory is often **more constrained** in embedded systems, so DMA buffers are typically allocated with careful consideration to size, alignment, and location in memory.
-   - Additionally, embedded systems often have specialized **I/O peripherals** (e.g., **camera modules**, **display controllers**, **video processing units**) that require **direct memory access** to buffers.
+   - In **embedded systems**, DMA buffers need to be **contiguous** and located in a specific 
+   **physical address space** to meet hardware requirements. 
+   This is especially important for devices like **video decoders**, **network interfaces**, 
+   or **display buffers**, which need to operate with very specific memory layouts.
+   - Memory is often **more constrained** in embedded systems, so DMA buffers are typically allocated with 
+   careful consideration to size, alignment, and location in memory.
+   - Additionally, embedded systems often have specialized **I/O peripherals** (e.g., **camera modules**, 
+   **display controllers**, **video processing units**) that require **direct memory access** to buffers.
 
-In both embedded and non-embedded systems, the same **DMA API** (`dma_alloc_coherent()`, `dma_alloc_attrs()`, etc.) is used to allocate buffers that can be directly accessed by the DMA engine, but embedded systems often deal with stricter memory constraints and may have custom memory regions optimized for DMA.
+In both embedded and non-embedded systems, the same **DMA API** 
+(`dma_alloc_coherent()`, `dma_alloc_attrs()`, etc.) is used to allocate buffers that can be directly 
+accessed by the DMA engine, but embedded systems often deal with stricter memory constraints and may have 
+custom memory regions optimized for DMA.
 
 ---
 
 ### 3. **How DMA Buffers Are Accessed Directly by Devices**
 
-- **Mapping Physical Memory**: DMA buffers are allocated in **physically contiguous memory**. For DMA engines to use these buffers, the **physical address** of the buffer (i.e., `dma_handle` obtained during buffer allocation) is passed to the DMA engine, so it knows where the buffer is located in memory.
+- **Mapping Physical Memory**: 
+DMA buffers are allocated in **physically contiguous memory**. 
+For DMA engines to use these buffers, the **physical address** of the buffer 
+(i.e., `dma_handle` obtained during buffer allocation) is passed to the DMA engine, so it knows where the 
+buffer is located in memory.
 
-- **CPU vs. Device Access**: The **CPU** accesses the DMA buffer through the **virtual address** (`cpu_addr`), which can be mapped via `mmap()` in user space, while the **DMA engine** accesses the buffer through the **physical address** (`dma_handle`).
+- **CPU vs. Device Access**: The **CPU** accesses the DMA buffer through the **virtual address** 
+(`cpu_addr`), which can be mapped via `mmap()` in user space, while the **DMA engine** accesses the buffer 
+through the **physical address** (`dma_handle`).
 
-- **Cache Coherency**: DMA engines often operate in environments where memory **cache coherency** is critical. When using a buffer with DMA engines, the kernel ensures that the memory used for DMA is **cache-coherent**, meaning there is no risk of data inconsistency between CPU and device access. This is why `dma_alloc_coherent()` is frequently used.
+- **Cache Coherency**: DMA engines often operate in environments where memory **cache coherency** is 
+critical. When using a buffer with DMA engines, the kernel ensures that the memory used for DMA is 
+**cache-coherent**, meaning there is no risk of data inconsistency between CPU and device access. 
+This is why `dma_alloc_coherent()` is frequently used.
 
 ### Conclusion
 
-1. **DMA Engines** are hardware components that allow peripherals to access system memory directly, bypassing the CPU, which improves efficiency and performance for data transfer.
+1. **DMA Engines** are hardware components that allow peripherals to access system memory directly, 
+bypassing the CPU, which improves efficiency and performance for data transfer.
   
-2. **DMA Buffers** are allocated in Linux using specific functions from the **DMA API** (`dma_alloc_coherent()`, `dma_alloc_attrs()`, etc.) that ensure the buffer is physically contiguous, cache-coherent, and suitable for direct access by the DMA engine.
+2. **DMA Buffers** are allocated in Linux using specific functions from the **DMA API** 
+(`dma_alloc_coherent()`, `dma_alloc_attrs()`, etc.) that ensure the buffer is physically contiguous, 
+cache-coherent, and suitable for direct access by the DMA engine.
 
-3. **Accessing DMA Buffers**: Devices access these buffers using **physical addresses** while the CPU can access them via **virtual addresses**. In embedded systems, strict memory constraints often lead to careful buffer allocation and management.
+3. **Accessing DMA Buffers**: Devices access these buffers using **physical addresses** while the CPU can 
+access them via **virtual addresses**. In embedded systems, strict memory constraints often lead to careful 
+buffer allocation and management.
 
-In both embedded and non-embedded systems, the kernel provides the necessary tools to allocate, access, and share DMA buffers between subsystems and devices in an efficient manner.
-
-
+In both embedded and non-embedded systems, the kernel provides the necessary tools to allocate, access, 
+and share DMA buffers between subsystems and devices in an efficient manner.
 
 ============================
 In Linux, when working with **System-on-Chip (SoC)** systems, the **DMA buffers** themselves are not typically described directly 
@@ -755,17 +818,26 @@ buffers often require **DMA-related configuration** in the Device Tree.
 ### Key Points about Device Tree and DMA Buffers:
 
 1. **Device Tree Overview**:  
-   The **Device Tree** is a data structure used by the Linux kernel to describe the hardware in a system. This includes describing devices, their properties, and how the kernel should interact with them. The Device Tree is particularly important in **embedded systems** and **SoCs**, where hardware may vary widely from platform to platform.
+   The **Device Tree** is a data structure used by the Linux kernel to describe the hardware in a system. 
+   This includes describing devices, their properties, and how the kernel should interact with them. 
+   The Device Tree is particularly important in **embedded systems** and **SoCs**, where hardware may vary 
+   widely from platform to platform.
 
 2. **DMA in the Device Tree**:  
-   While **DMA buffers** themselves are not explicitly described in the Device Tree, the **DMA controllers** and devices that will utilize DMA buffers are typically described. This allows the kernel to know how to configure DMA channels, manage memory regions, and interact with specific peripherals that require DMA.
+   While **DMA buffers** themselves are not explicitly described in the Device Tree, 
+   the **DMA controllers** and devices that will utilize DMA buffers are typically described. 
+   This allows the kernel to know how to configure DMA channels, manage memory regions, and interact with 
+   specific peripherals that require DMA.
 
-   The DMA controllers (or engines) in the SoC are defined as part of the **Device Tree** to ensure that the kernel knows where to find the DMA controller and how to interface with it.
+   The DMA controllers (or engines) in the SoC are defined as part of the **Device Tree** to ensure that 
+   the kernel knows where to find the DMA controller and how to interface with it.
 
 ### What Needs to be Included in the Device Tree:
 
 1. **DMA Controllers**:
-   The Device Tree must describe the DMA controller hardware (or DMA engines) present in the SoC. The controller is responsible for managing the transfer of data between memory and peripheral devices, and it often interacts with the DMA-capable devices.
+   The Device Tree must describe the DMA controller hardware (or DMA engines) present in the SoC. 
+   The controller is responsible for managing the transfer of data between memory and peripheral devices, 
+   and it often interacts with the DMA-capable devices.
 
    Example (in a device tree fragment):
    ```dts
@@ -778,7 +850,9 @@ buffers often require **DMA-related configuration** in the Device Tree.
    ```
 
 2. **DMA-Capable Devices**:
-   Devices such as **GPU**, **camera**, **video processor**, **network adapters**, etc., that make use of DMA need to be specified in the device tree as well. These devices may have their own DMA channels and need to specify the appropriate **DMA controller** they use.
+   Devices such as **GPU**, **camera**, **video processor**, **network adapters**, etc., that make use of 
+   DMA need to be specified in the device tree as well. These devices may have their own DMA channels and 
+   need to specify the appropriate **DMA controller** they use.
 
    Example for a device that uses DMA:
    ```dts
@@ -790,7 +864,10 @@ buffers often require **DMA-related configuration** in the Device Tree.
    ```
 
 3. **Memory Regions for DMA**:
-   For **DMA buffers**, the kernel needs to know which **physical memory regions** are available for DMA. In some cases, the **memory regions** for DMA buffers may need to be specified in the Device Tree, particularly if the SoC has **special memory regions** that are reserved for DMA (e.g., video buffers or memory for network data).
+   For **DMA buffers**, the kernel needs to know which **physical memory regions** are available for DMA. 
+   In some cases, the **memory regions** for DMA buffers may need to be specified in the Device Tree, 
+   particularly if the SoC has **special memory regions** that are reserved for DMA 
+   (e.g., video buffers or memory for network data).
 
    Example (describing a memory region for DMA buffers):
    ```dts
@@ -800,7 +877,8 @@ buffers often require **DMA-related configuration** in the Device Tree.
    };
    ```
 
-   In some systems, **`reserved-memory`** nodes in the Device Tree can be used to specify areas of memory that are designated for use by DMA-capable devices.
+   In some systems, **`reserved-memory`** nodes in the Device Tree can be used to specify areas of memory 
+   that are designated for use by DMA-capable devices.
 
    Example (using `reserved-memory`):
    ```dts
@@ -816,35 +894,51 @@ buffers often require **DMA-related configuration** in the Device Tree.
    ```
 
 4. **DMA Buffers in User Space**:
-   While the device tree may define memory regions for DMA-capable devices, **user-space applications** don't directly interact with the Device Tree for DMA buffers. Instead, user space requests DMA buffers through **kernel APIs** like `dma_alloc_coherent()`, `dma_alloc_attrs()`, or through the **dma-buf framework** for sharing buffers between devices.
+   While the device tree may define memory regions for DMA-capable devices, **user-space applications** 
+   don't directly interact with the Device Tree for DMA buffers. Instead, user space requests DMA buffers 
+   through **kernel APIs** like `dma_alloc_coherent()`, `dma_alloc_attrs()`, or 
+   through the **dma-buf framework** for sharing buffers between devices.
 
-   However, the **kernel** will reference these memory regions and allocate DMA buffers within the bounds of the defined memory regions (e.g., using `dma_alloc_coherent()` for memory regions described in the device tree).
+   However, the **kernel** will reference these memory regions and allocate DMA buffers within the bounds 
+   of the defined memory regions (e.g., using `dma_alloc_coherent()` for memory regions described in the 
+   device tree).
 
 ### Do DMA Buffers Need to be Defined in the Device Tree?
 
 #### Direct Answer:  
-**No, DMA buffers themselves are not directly defined in the Device Tree.** The **Device Tree** typically describes the devices that use DMA (e.g., the GPU, camera, or video processor), the **DMA controllers**, and the **memory regions** that could be used by DMA-capable devices. The actual **DMA buffer allocation** is handled by the kernel using appropriate APIs, often based on the available memory regions defined in the Device Tree.
+**No, DMA buffers themselves are not directly defined in the Device Tree.** The **Device Tree** typically 
+describes the devices that use DMA (e.g., the GPU, camera, or video processor), the **DMA controllers**, 
+and the **memory regions** that could be used by DMA-capable devices. The actual **DMA buffer allocation** 
+is handled by the kernel using appropriate APIs, often based on the available memory regions defined in the 
+Device Tree.
 
 ### Example Workflow:
 
 1. **Device Tree Setup**:
-   - The Device Tree will describe the DMA controller (`dma@address`) and any **memory regions** reserved for DMA (e.g., `reserved-memory` nodes).
+   - The Device Tree will describe the DMA controller (`dma@address`) and any **memory regions** reserved 
+   for DMA (e.g., `reserved-memory` nodes).
    - Devices that use DMA (like a GPU or camera) will be linked to these DMA controllers.
 
 2. **DMA Buffer Allocation**:
-   - During initialization, the **driver** for the device (such as the GPU driver) will request a **DMA buffer** using kernel APIs (`dma_alloc_coherent()`, etc.).
-   - The **kernel** will ensure that the buffer is allocated in a **DMA-compatible memory region** and is usable by the hardware.
+   - During initialization, the **driver** for the device (such as the GPU driver) will request 
+   a **DMA buffer** using kernel APIs (`dma_alloc_coherent()`, etc.).
+   - The **kernel** will ensure that the buffer is allocated in a **DMA-compatible memory region** and is 
+   usable by the hardware.
 
 3. **User Space Interaction**:
-   - If the DMA buffer needs to be shared between subsystems, the **dma-buf framework** might be used, allowing user-space applications to map the buffer via a file descriptor.
+   - If the DMA buffer needs to be shared between subsystems, the **dma-buf framework** might be used, 
+   allowing user-space applications to map the buffer via a file descriptor.
 
 ### Summary:
 - DMA buffers themselves are not typically described in the **Device Tree**.
 - The **Device Tree** primarily describes **DMA controllers** and **DMA-capable devices**.
 - The **DMA memory regions** (such as reserved memory for devices) can be defined in the Device Tree.
-- The **kernel** handles the allocation and management of DMA buffers, while user-space applications interact with these buffers through appropriate system calls and kernel APIs.
+- The **kernel** handles the allocation and management of DMA buffers, while user-space applications 
+  interact with these buffers through appropriate system calls and kernel APIs.
 
-If you are working with a custom SoC or device, you might need to ensure that the device tree reflects the correct configuration for the **DMA controllers** and any **reserved memory regions** that are required for DMA operations.
+If you are working with a custom SoC or device, you might need to ensure that the device tree reflects the 
+correct configuration for the **DMA controllers** and any **reserved memory regions** that are required for
+DMA operations.
 
 ===============
 
@@ -1026,7 +1120,8 @@ int main() {
     return 0;
 }
 ```
-Note that this is a simplified example, and in practice, you may need to handle errors and exceptions more robustly. 
+Note that this is a simplified example, and in practice, you may need to handle errors and exceptions more 
+robustly. 
 Additionally, the dma-buf API may vary depending on the specific Linux kernel version and configuration.
 
 
@@ -1040,7 +1135,7 @@ multiple device drivers and subsystems, and for synchronizing asynchronous hardw
 This is used, for example, by drm "prime" multi-GPU support, but is of course not limited to GPU use cases.
 
 The three main components of this are: 
-    (1) dma-buf, representing a sg_table and exposed to userspace as a file descriptor to allow passing between devices, 
+    (1) dma-buf, representing a sg_table and exposed to userspace as a fd to allow passing between devices, 
     (2) fence, which provides a mechanism to signal when one device has finished access, and 
     (3) reservation, which manages the shared or exclusive fence(s) associated with the buffer.
     
@@ -1074,7 +1169,8 @@ The buffer-user:
       This interface is provided by :c:type:`structdma_buf_attachment <dma_buf_attachment>`.
 
 
-Any exporters or users of the dma-buf buffer sharing framework must have a 'select DMA_SHARED_BUFFER' in their respective Kconfigs.
+Any exporters or users of the dma-buf buffer sharing framework must have a 'select DMA_SHARED_BUFFER' in 
+their respective Kconfigs.
 
 
 ## Userspace Interface Notes:
@@ -1082,7 +1178,8 @@ Any exporters or users of the dma-buf buffer sharing framework must have a 'sele
 Mostly a DMA buffer file descriptor is simply an opaque object for userspace, and hence the generic interface 
 exposed is very minimal. There's a few things to consider though:
 
-- Since kernel 3.12 the dma-buf FD supports the llseek system call, but only with offset=0 and whence=SEEK_END|SEEK_SET. 
+- Since kernel 3.12 the dma-buf FD supports the llseek system call, 
+  but only with offset=0 and whence=SEEK_END|SEEK_SET. 
   SEEK_SET is supported to allow the usual size discover pattern size = SEEK_END(0); SEEK_SET(0). 
   Every other llseek operation will report -EINVAL.
   
@@ -1090,16 +1187,18 @@ exposed is very minimal. There's a few things to consider though:
   Userspace can use this to detect support for discovering the dma-buf size using llseek.
   
 - In order to avoid fd leaks on exec, the FD_CLOEXEC flag must be set on the file descriptor.  
-  This is not just a resource leak, but a potential security hole.  It could give the newly exec'd application access to 
-  buffers, via the leaked fd, to which it should otherwise not be permitted access.
+  This is not just a resource leak, but a potential security hole.  It could give the newly exec'd 
+  application access to buffers, via the leaked fd, to which it should otherwise not be permitted access.
   
-  The problem with doing this via a separate fcntl() call, versus doing it atomically when the fd is created, is that this is
-  inherently racy in a multi-threaded app[3].  The issue is made worse when it is library code opening/creating the 
-  file descriptor, as the application may not even be aware of the fd's.
+  The problem with doing this via a separate fcntl() call, versus doing it atomically when the fd is 
+  created, is that this is inherently racy in a multi-threaded app[3].  
+  The issue is made worse when it is library code opening/creating the file descriptor, as the application 
+  may not even be aware of the fd's.
   
-  To avoid this problem, userspace must have a way to request O_CLOEXEC flag be set when the dma-buf fd is created.  
-  So any API provided by the exporting driver to create a dmabuf fd must provide a way to let userspace control setting of 
-  O_CLOEXEC flag passed in to dma_buf_fd().
+  To avoid this problem, userspace must have a way to request O_CLOEXEC flag be set when the dma-buf fd is 
+  created.  
+  So any API provided by the exporting driver to create a dmabuf fd must provide a way to let userspace 
+  control setting of O_CLOEXEC flag passed in to dma_buf_fd().
 
 - Memory mapping the contents of the DMA buffer is also supported. 
   See the discussion below on CPU Access to DMA Buffer Objects for the full details.
@@ -1108,4 +1207,3 @@ exposed is very minimal. There's a few things to consider though:
 
 - The DMA buffer FD also supports a few dma-buf-specific ioctls, see DMA Buffer ioctls below for details.
 
-- 
