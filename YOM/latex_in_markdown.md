@@ -19,6 +19,32 @@ If you're working in a web-based Markdown renderer that supports MathJax or KaTe
   $$ 
   ```
 
+### Center Alignment (default)
+```
+$$
+E = mc^2
+$$
+```
+
+### Left Alignment
+```
+<div style="text-align:left;">
+$$
+E = mc^2
+$$
+</div>
+```
+
+### Right Alignment
+
+```
+<div style="text-align:right;">
+$$
+E = mc^2
+$$
+</div>
+```
+
 ### 2. **GitHub and other platforms that support MathJax**
 In platforms like GitHub, they don't natively render LaTeX in Markdown files (e.g., `README.md`), but services like GitHub Pages (with Jekyll) or other Markdown engines that use MathJax can render LaTeX.
 
