@@ -10,7 +10,6 @@ Study roadmap for each of the key topics you've mentioned, structured according 
     
 ---
 
-
 ### **Foundational Topics** (2-3 weeks)
 #### 1. Useful topics to understand containerization: 
     - Context Switching
@@ -20,6 +19,7 @@ Study roadmap for each of the key topics you've mentioned, structured according 
     - Resource for profiling and tracing
     - How does linux support containerization.
 
+---
 These topics cover the basic Docker knowledge that serves as the foundation for deeper learning.
 ### **Docker**
 
@@ -57,7 +57,6 @@ These topics cover the basic Docker knowledge that serves as the foundation for 
      - Bridge, host, and overlay networks.
    - **Port Mapping**:
      - Map container ports to host ports to expose containerized applications.
-
 ---
 
 ### **Intermediate Topics** (3-4 weeks)
@@ -93,7 +92,6 @@ These topics provide a deeper understanding of Docker orchestration, service man
 #### 5. **Docker Secrets** (1 week)
    - **Managing Sensitive Data**:
      - Learn how Docker Swarm uses secrets to securely store and manage sensitive information like passwords and API keys.
-
 ---
 
 ### **Advanced Topics** (4-5 weeks)
@@ -162,7 +160,6 @@ This stage introduces Kubernetes, Rancher, and Docker's orchestration capabiliti
 #### 5. **Docker Trusted Registry (DTR)** (1 week)
    - **Managing and Securing Docker Images**:
      - Learn to use DTR to secure, manage, and store Docker images in a private registry.
-
 ---
 
 ### **Best Practices and Troubleshooting** (2-3 weeks)
@@ -181,7 +178,6 @@ These topics provide essential troubleshooting skills and best practices for Doc
 #### 3. **Docker Debugging** (1 week)
    - **Debugging Containers and Applications**:
      - Use advanced debugging tools like `docker logs`, `docker exec`, and Docker debug mode to troubleshoot containers.
-
 ---
 
 ### **Real-World Applications and Use Cases** (4 weeks)
@@ -206,7 +202,6 @@ Apply Docker in various contexts to develop practical skills.
 #### 5. **DevOps and CI/CD** (1 week)
    - **Docker in CI/CD Pipelines**:
      - Integrate Docker into DevOps workflows, building CI/CD pipelines using tools like Jenkins and GitLab.
-
 ---
 
 ### **Certification and Career Development** (2-3 weeks)
@@ -221,7 +216,6 @@ Prepare for Docker-related certifications and explore career opportunities.
 #### 3. **Docker Career Development** (Ongoing)
    - Look into roles like **DevOps Engineer**, **Site Reliability Engineer**, or **Cloud Infrastructure Engineer**.
    - Stay updated on Docker trends and technologies.
-
 ---
 
 By following this roadmap, you’ll systematically learn and master **Docker** and its orchestration 
