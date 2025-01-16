@@ -427,3 +427,10 @@ Here’s how the timeline might look when broken down:
 
 ### Final Notes:
 The timeline can vary depending on your familiarity with related concepts (e.g., Ethereum, smart contracts, or decentralized finance). It's important to practice coding frequently and interact with the community (e.g., through GitHub or developer forums) to accelerate your learning.
+
+
+
+ToDo:
+---
+
+- Check the decoder and encoder drivers.
