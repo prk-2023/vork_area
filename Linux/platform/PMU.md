@@ -409,6 +409,39 @@ read(fd, &count, sizeof(count));  // Read the current counter value
 printf("Counter value: %lu\n", count);
 ```
 
+```c
+// Example bcc to load the above program to attach and run 
+
+//Step 1:
+from bcc import BPF
+
+# Define the eBPF program in C (to be attached to perf event)
+prog = """
+#include <uapi/linux/ptrace.h>
+
+int on_perf_event(struct pt_regs *ctx) {
+    // Collect data for CPU cycles, for example
+    bpf_trace_printk("CPU cycle event triggered\\n");
+    return 0;
+}
+"""
+
+# Initialize the BPF program
+b = BPF(text=prog)
+
+# Attach eBPF program to the hardware performance event (CPU cycles)
+b.attach_perf_event(event="cycles", group=0)
+
+# Print the trace output
+print("Tracing CPU cycle events... Ctrl-C to end.")
+b.trace_print(fmt="{0}")
+
+//Step 2:
+$ sudo python3 bcc_perf_event.py
+
+//Step 3: templet for using bpftrace:
+$ sudo bpftrace -e 'tracepoint:perf_event:cpu-cycles { printf("CPU Cycles: %d\\n", args->count); }'
+```
 ### Conclusion: Managing PMU Counters with eBPF
 
 While **eBPF itself does not directly manage the PMU**, it provides a powerful way to **interact with PMU
