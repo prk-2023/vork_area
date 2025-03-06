@@ -1,0 +1,19 @@
+diff --git a/Android.mk b/Android.mk
+index 52d4404..9c7113c 100755
+--- a/Android.mk
++++ b/Android.mk
+@@ -73,6 +73,13 @@ LOCAL_SRC_FILES += \
+     common/IPC/generate/src/system/VideoRPC_System_xdr.c \
+     common/IPC/generate/src/system/VideoRPCBaseDS_xdr.c
+ 
++LOCAL_SRC_FILES += \
++    common/IPC/generate/src/system/VencRPC_Agent_svc.c \
++    common/IPC/generate/src/system/VencRPC_System_clnt.c \
++    common/IPC/generate/src/system/VencRPC_Agent_xdr.c \
++    common/IPC/generate/src/system/VencRPC_System_xdr.c \
++    common/IPC/generate/src/system/VencRPCBaseDS_xdr.c
++
+ #LOCAL_SRC_FILES += \
+ #      common/IPC/script/video/VideoRPC_System_fakeClnt.c  \
+ #      common/IPC/script/video/VideoRPC_System_fakeSvc.c
+

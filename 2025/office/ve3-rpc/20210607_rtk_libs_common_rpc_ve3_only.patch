@@ -1,0 +1,445 @@
+diff --git a/IPC/include/rpcapi.h b/IPC/include/rpcapi.h
+index cfa4e6f..757f721 100644
+--- a/IPC/include/rpcapi.h
++++ b/IPC/include/rpcapi.h
+@@ -8,6 +8,7 @@
+ //#define SEND_VIDEO_CPU	0x00
+ #define SEND_VIDEO_CPU	0x00
+ #define SEND_AUDIO_CPU	0x04
++#define SEND_VE3_CPU	0x08
+ 
+ #ifdef __cplusplus
+ extern "C" {
+diff --git a/IPC/include/rpcstubapi.h b/IPC/include/rpcstubapi.h
+index 21bd2d8..7eaa369 100644
+--- a/IPC/include/rpcstubapi.h
++++ b/IPC/include/rpcstubapi.h
+@@ -8,6 +8,7 @@
+ //#define SEND_VIDEO_CPU	0x00
+ #define SEND_VIDEO_CPU	0x00
+ #define SEND_AUDIO_CPU	0x04
++#define SEND_VE3_CPU	0x08
+ 
+ #ifdef __cplusplus
+ extern "C" {
+diff --git a/IPC/src/RPCProxy.c b/IPC/src/RPCProxy.c
+index 62c7244..03a6227 100644
+--- a/IPC/src/RPCProxy.c
++++ b/IPC/src/RPCProxy.c
+@@ -12,6 +12,8 @@
+ #include <RPCProxy.h>
+ #include <SVCFunc.h>
+ #include <AudioRPC_Agent.h>
++#include <VencRPC_Agent.h>
++
+ 
+ #include <sys/ioctl.h>
+ #define RPC_IOCQTIMEOUT _IO(RPC_IOC_MAGIC,  1)
+@@ -23,13 +25,21 @@ int pli_setThreadName(char *str);
+ 
+ #define NUM_HANDLER_THREADS 3
+ int RPC_user_count = 0;
++int RPC_ve3_user_count = 0;
++
+ static pthread_mutex_t user_count_lock = PTHREAD_MUTEX_INITIALIZER;
++static pthread_mutex_t user_count_ve3_lock = PTHREAD_MUTEX_INITIALIZER;
+ 
+ struct THREAD_STRUCT *g_pStruct_a = NULL;
+ struct THREAD_STRUCT *g_pStruct_v = NULL;
++struct THREAD_STRUCT *g_pStruct_ve3 = NULL;
++
+ int g_RPCThreadRunning = 0;
++int ve3_g_RPCThreadRunning = 0;
++
+ pthread_t g_p_threads_a[NUM_HANDLER_THREADS];
+ pthread_t g_p_threads_v[NUM_HANDLER_THREADS];
++pthread_t g_p_threads_ve3[NUM_HANDLER_THREADS];
+ 
+ /*
+  * Dispatch Function
+@@ -84,11 +94,15 @@ void RPCProxy_loop(struct THREAD_STRUCT * pData){
+ #if defined(ANDROID) || defined(__LINUX_MEDIA_NAS__) || defined(__LINARO_SDK__)
+     if (pData->flag == SEND_AUDIO_CPU)
+         pthread_setname_np(pthread_self(), "RPC_thread_A");
+-    else
++	else if (pData->flag == SEND_VE3_CPU)
++        pthread_setname_np(pthread_self(), "RPC_thread_VE3");
++	else
+         pthread_setname_np(pthread_self(), "RPC_thread_V");
+ #else
+     if (pData->flag == SEND_AUDIO_CPU)
+         pli_setThreadName("RPC_thread_A");
++	else if (pData->flag == SEND_VE3_CPU)
++        pli_setThreadName("RPC_thread_VE3");
+     else
+         pli_setThreadName("RPC_thread_V");
+ #endif
+@@ -133,7 +147,7 @@ void RPCProxy_loop(struct THREAD_STRUCT * pData){
+ }
+ 
+ #ifdef ANDROID
+-int initRPCProxy() {
++int initRPCProxy() { /*ACPU, VCPU*/
+ #else
+ int initRPCProxy(struct REG_STRUCT *reg) {
+ #endif
+@@ -211,7 +225,7 @@ int initRPCProxy(struct REG_STRUCT *reg) {
+ }
+ 
+ 
+-int DeInitRPCProxy() {
++int DeInitRPCProxy() { /*ACPU, VCPU*/
+     int i;
+ 
+     pthread_mutex_lock(&user_count_lock);
+@@ -252,3 +266,163 @@ int DeInitRPCProxy() {
+     pthread_mutex_unlock(&user_count_lock);
+     return 1;
+ }
++
++
++/*
++ *  The entry of Server Proxy
++ *  responsible for reading from INTERRUPT & POLL ring-buffer
++ *  then call dispatch
++ */
++void RPCProxy_loop2(struct THREAD_STRUCT * pData){
++
++    char * buf = malloc(sizeof(RPC_STRUCT));
++    int cnt;
++    struct sched_param param;
++
++#if defined(ANDROID) || defined(__LINUX_MEDIA_NAS__) || defined(__LINARO_SDK__)
++    if (pData->flag == SEND_VE3_CPU)
++        pthread_setname_np(pthread_self(), "RPC_thread_VE3");
++
++#else
++
++	if (pData->flag == SEND_VE3_CPU)
++        pli_setThreadName("RPC_thread_VE3");
++#endif
++
++    // boost its priority
++    param.sched_priority = 1;
++    if (sched_setscheduler(0, SCHED_FIFO, &param) != 0)
++        perror("error in sched_setscheduler");
++
++    while (ve3_g_RPCThreadRunning) {
++
++        pthread_mutex_lock(pData->pMutex);
++
++		while (ve3_g_RPCThreadRunning) {
++			// check INTR ring buffer first
++			if ((cnt = readRingBuf(USE_INTR_BUF | BLOCK_MODE | pData->flag, (char *)buf, sizeof(RPC_STRUCT))) > 0) {
++			    RPCDEBUG("read from intr ring buffer %d bytes\n", cnt);
++
++				DispatchRPCRequest(pData->pReg, buf, USE_INTR_BUF | BLOCK_MODE | pData->flag, pData->pMutex);
++				break;
++			}
++			RPCDEBUG("***waiting timeout...\n");
++		}
++
++    }
++
++    if (buf)
++        free(buf);
++
++    pthread_mutex_unlock(pData->pMutex);
++    pthread_exit(NULL);
++
++    //closeRPC();
++}
++
++
++#ifdef ANDROID
++int initRPCProxy2() {/*ACPU, VCPU, VE3*/
++#else
++int initRPCProxy2(struct REG_STRUCT *reg) {
++#endif
++    int i=0;
++
++    pthread_mutex_lock(&user_count_ve3_lock);
++    if(RPC_ve3_user_count)
++    {
++        RPC_ve3_user_count++;
++        //ALOGD("initRPCProxy RPC_user_count %d\n", RPC_user_count);
++        pthread_mutex_unlock(&user_count_ve3_lock);
++        return 1;
++    }
++
++#ifdef ANDROID
++
++	static pthread_mutex_t request_mutex_ve3 = PTHREAD_MUTEX_INITIALIZER;//PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP;
++
++    struct REG_STRUCT *reg = NULL;
++    //rnode = (struct REG_STRUCT *)R_PROGRAM_0_register(rnode);
++
++	reg = (struct REG_STRUCT *)VENC_AGENT_0_register(reg);
++    reg = (struct REG_STRUCT *)ReplyHandler_register(reg); // Reply Handler
++#else
++	static pthread_mutex_t request_mutex_ve3 = PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP;
++#endif
++
++
++#ifndef DISABLE_VE3
++    g_pStruct_ve3 = (THREAD_STRUCT *)malloc(sizeof(THREAD_STRUCT));
++    if (!g_pStruct_ve3)
++        exit(1);
++    memset(g_pStruct_ve3, 0, sizeof(THREAD_STRUCT));
++#endif
++
++	if (openVE3RPC())
++        exit(1);
++
++	if (openVE3StubRPC())
++        exit(1);
++
++#ifdef RPC_PROGRAM_REGISTER
++    struct REG_STRUCT *rnode;
++    for (rnode = reg ; rnode != NULL ; rnode = rnode->next) {
++        if(registerVE3RPC(rnode->programID)){
++            exit(1);
++        }
++    }
++#endif
++
++    ve3_g_RPCThreadRunning = 1;
++
++#ifndef DISABLE_VE3
++	g_pStruct_ve3->pReg = reg;
++	g_pStruct_ve3->pMutex = &request_mutex_ve3;
++	g_pStruct_ve3->flag = SEND_VE3_CPU;
++	for (i=0; i<NUM_HANDLER_THREADS; i++)
++		pthread_create(&g_p_threads_ve3[i], NULL, (void *)RPCProxy_loop2, g_pStruct_ve3);
++#endif
++
++    RPC_ve3_user_count++;
++    //ALOGD("initRPCProxy RPC_user_count %d\n", RPC_user_count);
++    pthread_mutex_unlock(&user_count_ve3_lock);
++
++    return 1;
++}
++
++
++int DeInitRPCProxy2() {/*ACPU, VCPU, VE3*/
++    int i;
++
++    pthread_mutex_lock(&user_count_ve3_lock);
++    RPC_ve3_user_count--;
++    //ALOGD("DeInitRPCProxy RPC_user_count %d\n", RPC_user_count);
++    if(RPC_ve3_user_count > 0)
++    {
++        pthread_mutex_unlock(&user_count_ve3_lock);
++        return 1;
++    }
++
++    ve3_g_RPCThreadRunning = 0;
++
++	stopVE3RpcProxy();
++
++#ifndef DISABLE_VE3
++    for (i = 0; i<NUM_HANDLER_THREADS;i++)
++        pthread_join(g_p_threads_ve3[i], 0);
++#endif
++
++#ifndef DISABLE_VE3
++		if (g_pStruct_ve3){
++			free(g_pStruct_ve3);
++			g_pStruct_ve3 = NULL;
++		}
++#endif
++
++	closeVE3RPC();
++    closeVE3StubRPC();
++
++    pthread_mutex_unlock(&user_count_ve3_lock);
++    return 1;
++}
++
+diff --git a/IPC/src/rpcapi.c b/IPC/src/rpcapi.c
+index 0042d28..3c8b112 100644
+--- a/IPC/src/rpcapi.c
++++ b/IPC/src/rpcapi.c
+@@ -27,10 +27,13 @@ int tkill(pid_t tid, int sig);
+ 
+ int			rfdp_a, rfdi_a;
+ int			rfdp_v, rfdi_v;
++int			rfdi_ve3;
+ const char *read_poll_dev_a = "rpc2";
+ const char *read_intr_dev_a = "rpc3";
+ const char *read_poll_dev_v = "rpc6";
+ const char *read_intr_dev_v = "rpc7";
++const char *read_intr_dev_ve3 = "rpc9";
++
+ 
+ /****************************************************************************
+ //	Initialize RPC
+@@ -61,6 +64,19 @@ int			closeRPC()
+ 	return 0;
+ }
+ 
++int openVE3RPC()
++{
++	rfdi_ve3 = open_rpc_dev(read_intr_dev_ve3, O_RDONLY | O_CLOEXEC);
++	return 0;
++}
++
++int closeVE3RPC()
++{
++	close(rfdi_ve3);
++	return 0;
++}
++
++
+ /****************************************************************************
+ //     Register RPC
+ ****************************************************************************/
+@@ -84,6 +100,21 @@ err:
+ 	ALOGE("%s: failed to register program handler: %s\n", __func__, strerror(errno));
+ 	return 1;
+ }
++
++int registerVE3RPC(unsigned long programID)
++{
++	int ret = 0;
++
++	ret = ioctl(rfdi_ve3, RPC_IOCTHANDLER, programID);
++	if(ret == -1) goto err;
++
++	return 0;
++
++err:
++	ALOGE("%s: failed to register ve3 program handler: %s\n", __func__, strerror(errno));
++	return 1;
++}
++
+ #endif
+ 
+ /****************************************************************************
+@@ -116,11 +147,13 @@ int			readRingBuf(int opt, char *buf, int size)
+ 	if (opt & SEND_AUDIO_CPU) {
+ 		rfdp = rfdp_a;
+ 		rfdi = rfdi_a;
++	} else if (opt & SEND_VE3_CPU) {
++		rfdi = rfdi_ve3;
+ 	} else {
+ 		rfdp = rfdp_v;
+ 		rfdi = rfdi_v;
+ 	}
+-		
++
+ 	if (opt & USE_INTR_BUF) {
+ 		// interrupt mode
+ 		if (opt & BLOCK_MODE)
+@@ -174,6 +207,13 @@ int stopRpcProxy()
+     return 0;
+ }
+ 
++int stopVE3RpcProxy()
++{
++    ioctl(rfdi_ve3, RPC_IOCTEXITLOOP);
++    return 0;
++}
++
++
+ /****************************************************************************
+ //	Notify a specified task that its reply is available
+ //
+diff --git a/IPC/src/rpcstubapi.c b/IPC/src/rpcstubapi.c
+index 09bdea3..2dd4aba 100644
+--- a/IPC/src/rpcstubapi.c
++++ b/IPC/src/rpcstubapi.c
+@@ -28,10 +28,13 @@
+ 
+ int			wfdp_a = -1, wfdi_a = -1;
+ int			wfdp_v = -1, wfdi_v = -1;
++int 		wfdi_ve3 = -1;
+ const char *write_poll_dev_a = "rpc0";
+ const char *write_intr_dev_a = "rpc1";
+ const char *write_poll_dev_v = "rpc4";
+ const char *write_intr_dev_v = "rpc5";
++const char *write_intr_dev_ve3 = "rpc8";
++
+ 
+ /****************************************************************************
+ //	Initialize RPC
+@@ -39,7 +42,7 @@ const char *write_intr_dev_v = "rpc5";
+ //	return value:	=0	open successfully
+ //					<0	some error condition happen
+ ****************************************************************************/
+-int			openStubRPC()
++int openStubRPC()
+ {
+ 	wfdp_a = open_rpc_dev(write_poll_dev_a, O_WRONLY | O_CLOEXEC);
+ 	wfdi_a = open_rpc_dev(write_intr_dev_a, O_WRONLY | O_CLOEXEC);
+@@ -53,7 +56,7 @@ int			openStubRPC()
+ /****************************************************************************
+ //	Close RPC
+ ****************************************************************************/
+-int			closeStubRPC()
++int closeStubRPC()
+ {
+ 	close(wfdp_a);
+ 	close(wfdi_a);
+@@ -64,10 +67,28 @@ int			closeStubRPC()
+ 	return 0;
+ }
+ 
++
++int openVE3StubRPC()
++{
++	wfdi_ve3 = open_rpc_dev(write_intr_dev_ve3, O_WRONLY | O_CLOEXEC);
++
++	return 0;
++}
++
++int closeVE3StubRPC()
++{
++
++	close(wfdi_ve3);
++
++	wfdi_ve3 = -1;
++	return 0;
++}
++
++
+ /****************************************************************************
+ //	Get the current task's ID
+ ****************************************************************************/
+-long		getTaskID()
++long getTaskID()
+ {
+ 	//return (int)getpid();
+ 	return (int)gettid();
+@@ -82,7 +103,7 @@ long		getTaskID()
+ //
+ //	note: BLOCK_MODE can be used with both polling buffer and interrupt buffer.
+ ****************************************************************************/
+-int			writeRingBuf(int opt, char *buf, int size)
++int writeRingBuf(int opt, char *buf, int size)
+ {
+ 	int cnt;
+ 	int	wfdp, wfdi;
+@@ -90,11 +111,12 @@ int			writeRingBuf(int opt, char *buf, int size)
+ 	if (opt & SEND_AUDIO_CPU) {
+ 		wfdp = wfdp_a;
+ 		wfdi = wfdi_a;
++	} else if (opt & SEND_VE3_CPU) {
++		wfdi = wfdi_ve3;
+ 	} else {
+ 		wfdp = wfdp_v;
+ 		wfdi = wfdi_v;
+ 	}
+-
+     CONTEXT_STRUCT *ctx = getContext();
+     ctx->ack = 0;
+ 
+@@ -135,7 +157,7 @@ int writeRingBuf_ACPU_INTR(int opt, char *buf, int size)
+ //
+ //	note: This function is used in blocking mode.
+ ****************************************************************************/
+-void		waitReply()
++void waitReply()
+ {
+ 	CONTEXT_STRUCT *ctx = getContext();
+     pthread_mutex_lock(&ctx->mtx);

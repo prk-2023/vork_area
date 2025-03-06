@@ -1,0 +1,905 @@
+diff --git a/arch/arm64/boot/dts/realtek/rtd16xxb.dtsi b/arch/arm64/boot/dts/realtek/rtd16xxb.dtsi
+index 2476fdda8aec..0667e975037f 100644
+--- a/arch/arm64/boot/dts/realtek/rtd16xxb.dtsi
++++ b/arch/arm64/boot/dts/realtek/rtd16xxb.dtsi
+@@ -307,6 +307,15 @@
+ 				ranges = <0x0 0x7000 0x1000>;
+ 			};
+ 
++			ve3: syscon@48c00 {
++				compatible = "syscon", "simple-mfd";
++				reg = <0x48c00 0x100>;
++				reg-io-width = <4>;
++				#address-cells = <1>;
++				#size-cells = <1>;
++				ranges = <0x0 0x48c00 0x100>;
++			};
++
+ 			u2drd: usb_port0_u2drd@13200 {
+ 				compatible = "realtek,dwc3";
+ 				reg = <0x13200 0x200>;
+@@ -1087,8 +1096,10 @@
+ 	rpc: rpc@a80 {
+ 		compatible = "realtek,rpc";
+ 		reg = <0xa80 0xc>; /* interrupt enable */
++		syscon = <&ve3>;
+ 		interrupts = <0 33 4>,
+-			     <0 92 4>;
++			     <0 92 4>,
++			     <0 55 4>;
+ 		realtek,refclk = <&refclk>;
+ 	};
+ 
+diff --git a/drivers/soc/realtek/common/rpc/rtk_rpc.c b/drivers/soc/realtek/common/rpc/rtk_rpc.c
+index e799a50719bd..cfaf2104cae9 100644
+--- a/drivers/soc/realtek/common/rpc/rtk_rpc.c
++++ b/drivers/soc/realtek/common/rpc/rtk_rpc.c
+@@ -32,6 +32,9 @@
+ #include <soc/realtek/rtk_ipc_shm.h>
+ #include <soc/realtek/uapi/ion_rtk.h>
+ #include <soc/realtek/uapi/ion.h>
++#include <linux/mfd/syscon.h>
++#include <linux/regmap.h>
++
+ 
+ #include "rtk_rpc.h"
+ #include "mem_allocator/ion.h"
+@@ -41,6 +44,9 @@
+ void __iomem *rpc_int_base;
+ void __iomem *rpc_acpu_int_flag;
+ void __iomem *rpc_vcpu_int_flag;
++void __iomem *rpc_ve3_int_flag;
++struct regmap *rpc_ve3_base;
++
+ 
+ struct refclk_device *refclk;
+ struct device *rpc_dev;
+@@ -52,6 +58,8 @@ EXPORT_SYMBOL(chip_id);
+ static int rpc_major;
+ static int rpc_acpu_irq;
+ static int rpc_vcpu_irq;
++static int rpc_ve3_irq;
++
+ 
+ #ifdef SHOW_TASKS_ON_DEBUGFS
+ static int rpc_debug_node_show(struct seq_file *s, void *unused)
+@@ -158,10 +166,13 @@ void rpc_set_flag(int type, uint32_t flag)
+ 	if (type == RPC_AUDIO)
+ 		writel(__cpu_to_be32(flag), &(ipc->audio_rpc_flag));
+ 
+-		/* video RPC flag */
++	/* video RPC flag */
+ 	if (type == RPC_VIDEO)
+ 		writel(__cpu_to_be32(flag), &(ipc->video_rpc_flag));
+ 
++	if (type == RPC_VE3)
++		writel(__cpu_to_be32(flag), &(ipc->ve3_rpc_flag));
++
+ }
+ 
+ uint32_t rpc_get_flag(int type)
+@@ -175,6 +186,9 @@ uint32_t rpc_get_flag(int type)
+ 	if (type == RPC_VIDEO)
+ 		return __be32_to_cpu(readl(&(ipc->video_rpc_flag)));
+ 
++	if (type == RPC_VE3)
++		return __be32_to_cpu(readl(&(ipc->ve3_rpc_flag)));
++
+ 	dev_err(rpc_dev, "rpc_get_flag type error!\n");
+ 
+ 	return 0xdeaddead;
+@@ -198,6 +212,14 @@ void rpc_send_interrupt(int type)
+ 		dev_dbg(rpc_dev, "send video interrupt\n");
+ 		writel_relaxed((RPC_INT_SV | RPC_INT_WRITE_1), rpc_int_base + RPC_SB2_INT);
+ 
++		break;
++	case RPC_VE3:
++		if (rpc_ve3_int_flag != NULL && RPC_HAS_BIT(rpc_ve3_int_flag, VE3_RPC_SET_NOTIFY))
++			RPC_SET_BIT(rpc_ve3_int_flag, VE3_RPC_FEEDBACK_NOTIFY);
++
++		dev_dbg(rpc_dev, "send ve3 interrupt\n");
++		regmap_write(rpc_ve3_base, 0x78, RPC_INT_SVE3);
++
+ 		break;
+ 	default:
+ 		break;
+@@ -371,43 +393,47 @@ irqreturn_t rpc_isr(int irq, void *dev_id)
+ 		itr = readl_relaxed(rpc_int_base + RPC_SB2_INT_ST);
+ 	}
+ 
++	return IRQ_HANDLED;
++}
+ 
+-	itr = readl_relaxed(rpc_int_base + RPC_SB2_INT);
+-	if (!RPC_HAS_BIT(rpc_acpu_int_flag, RPC_AUDIO_FEEDBACK_NOTIFY)) {
+-		/* to clear interrupt, set bit[0] to 0 then we can clear A2S int */
+-		if (itr & (1 << 3))
+-			writel_relaxed(1 << 3, rpc_int_base + RPC_SB2_INT);
+-		return IRQ_HANDLED;
++irqreturn_t rpc_ve3_isr(int irq, void *dev_id)
++{
++	int itr;
++
++	regmap_read(rpc_ve3_base, 0x88, &itr);
++
++	if (RPC_HAS_BIT(rpc_ve3_int_flag, RPC_VE3_FEEDBACK_NOTIFY)) {
++		RPC_RESET_BIT(rpc_ve3_int_flag, RPC_VE3_FEEDBACK_NOTIFY);
+ 	} else {
+-		RPC_RESET_BIT(rpc_acpu_int_flag, RPC_AUDIO_FEEDBACK_NOTIFY);
++		/* to clear interrupt, set bit[0] to 0 then we can clear A2S int */
++		if (itr & RPC_INT_VE3S_ST)
++			regmap_write(rpc_ve3_base, 0x88, RPC_INT_VE3S_ST);
++			return IRQ_HANDLED;
+ 	}
+ 
+-	if (itr & (1 << 3)) {
+-		while (itr & (1 << 3)) {
+-			/* ack the interrupt */
+-			if (itr & 1 << 3) {
+-				/* to clear interrupt, set bit[0] to 0 then we can clear A2S int */
+-				writel_relaxed(1 << 3, rpc_int_base + RPC_SB2_INT);
++	while (itr & RPC_INT_VE3S_ST) {
++
++		/* to clear interrupt, set bit[0] to 0 then we can clear A2S int */
++		regmap_write(rpc_ve3_base, 0x88, RPC_INT_VE3S_ST);
+ 
+-				if (rpc_intr_devices[RPC_INTR_DEV_AS_ID1].ringIn !=
+-				    rpc_intr_devices[RPC_INTR_DEV_AS_ID1].ringOut) {
+-					tasklet_schedule(&(rpc_intr_extra[RPC_INTR_DEV_AS_ID1].tasklet));
+-				}
++		if (rpc_intr_ve3_devices[RPC_INTR_DEV_VE3S_ID1].ringIn !=
++			rpc_intr_ve3_devices[RPC_INTR_DEV_VE3S_ID1].ringOut) {
++			tasklet_schedule(&(rpc_intr_extra[RPC_INTR_DEV_VE3S_ID1 + RPC_INTR_DEV_TOTAL].tasklet));
++		}
+ 
+-				if (rpc_kern_devices[RPC_KERN_DEV_AS_ID1].ringIn !=
+-				    rpc_kern_devices[RPC_KERN_DEV_AS_ID1].ringOut) {
+-					wake_up_interruptible(&(rpc_kern_devices[RPC_KERN_DEV_AS_ID1].ptrSync->waitQueue));
+-				}
+-			}
+-			itr = readl_relaxed(rpc_int_base + RPC_SB2_INT);
++		if (rpc_kern_ve3_devices[RPC_KERN_DEV_VE3S_ID1].ringIn !=
++			rpc_kern_ve3_devices[RPC_KERN_DEV_VE3S_ID1].ringOut) {
++			wake_up_interruptible(&(rpc_kern_ve3_devices[RPC_KERN_DEV_AS_ID1].ptrSync->waitQueue));
+ 		}
+-	} else {
+-		return IRQ_HANDLED;
++
++
++		regmap_read(rpc_ve3_base, 0x88, &itr);
+ 	}
+ 
+ 	return IRQ_HANDLED;
+ }
+ 
++
+ static char *rpc_devnode(struct device *dev, umode_t *mode)
+ {
+ 	*mode = 0666;
+@@ -434,10 +460,19 @@ static int rpc_interrupt_init(struct device_node *np)
+ 
+ 	RPC_SET_BIT(rpc_vcpu_int_flag, RPC_VIDEO_SET_NOTIFY);
+ 
++	if (chip_id == CHIP_ID_RTD1619B) {
++		RPC_SET_BIT(rpc_ve3_int_flag, RPC_VE3_SET_NOTIFY);
++	}
++
+ 	spin_unlock_irq(&gASLock);
+ 
+-	writel_relaxed(RPC_INT_SA | RPC_INT_SV | RPC_INT_WRITE_1,
++	if (chip_id == CHIP_ID_RTD1619B) {
++		writel_relaxed(RPC_INT_SA | RPC_INT_SV | RPC_INT_WRITE_1,
+ 		       rpc_int_base + RPC_SB2_INT_EN);
++	} else {
++		writel_relaxed(RPC_INT_SA | RPC_INT_SV | RPC_INT_WRITE_1,
++		       rpc_int_base + RPC_SB2_INT_EN);
++	}
+ 
+ 	rpc_acpu_irq = irq_of_parse_and_map(np, 0);
+ 	if (WARN_ON(!rpc_acpu_irq))
+@@ -490,6 +525,41 @@ static int rpc_interrupt_init(struct device_node *np)
+ 
+ 	dev_warn(rpc_dev, "%s (RPC_VIDEO FLAG = 0x%08x)\n",
+ 		(max_count > 0) ? "OK" : "timeout", rpc_get_flag(RPC_VIDEO));
++
++	if (chip_id == CHIP_ID_RTD1619B) {
++
++		rpc_ve3_irq = irq_of_parse_and_map(np, 2);
++		if (WARN_ON(!rpc_ve3_irq))
++			dev_warn(rpc_dev, "can not parse VE3 irq\n");
++
++		dev_info(rpc_dev, "ve3 irq: %d\n", rpc_ve3_irq);
++
++		ret = request_irq(rpc_ve3_irq,
++				rpc_ve3_isr, IRQF_SHARED | IRQF_NO_SUSPEND,
++				"ve3_rpc",
++				(void *)RPC_ID);
++		if (ret) {
++			dev_err(rpc_dev, "register ve3 irq handler failed\n");
++			goto exit;
++		}
++
++		rpc_send_interrupt(RPC_VE3);
++		rpc_set_flag(RPC_VE3, 0xffffffff);
++
++		dev_warn(rpc_dev, "wait ve3 ready");
++
++		while ((rpc_get_flag(RPC_VE3) == 0xffffffff) && ((max_count--) > 0)) {
++			mdelay(1);
++			if ((++wait_time) == 10)
++				wait_time = 0;
++		}
++
++		while ((--wait_time) > 0)
++			dev_warn(rpc_dev, ".");
++
++		dev_warn(rpc_dev, "%s (RPC_VE3 FLAG = 0x%08x)\n",
++			(max_count > 0) ? "OK" : "timeout", rpc_get_flag(RPC_VE3));
++	}
+ exit:
+ 	return ret;
+ }
+@@ -500,6 +570,7 @@ static int rpc_fs_init(RPC_DEV_EXTRA *extra)
+ 	int ret = -1;
+ 	struct device *dev;
+ 	int i = 0;
++	int node_num;
+ 
+ #ifdef SHOW_TASKS_ON_DEBUGFS
+ 	struct dentry *rpcnode;
+@@ -538,10 +609,22 @@ static int rpc_fs_init(RPC_DEV_EXTRA *extra)
+ 	rpcroot = debugfs_create_dir("rpc", NULL);
+ #endif /* SHOW_TASKS_ON_DEBUGFS */
+ 
+-	for (i = 0; i < RPC_NR_DEVS; i++) {
+-		extra = ((i % RPC_NR_PAIR) == 0) ?
++	if (chip_id == CHIP_ID_RTD1619B)
++		node_num = RPC_NR_DEVS + 2;
++	else
++		node_num = RPC_NR_DEVS;
++
++	for (i = 0; i < node_num; i++) {
++		if (i >= RPC_NR_DEVS) {
++			if (i % RPC_NR_PAIR == 0)
++				extra = &rpc_intr_extra[i / RPC_NR_PAIR];
++			else
++				extra = &rpc_intr_extra[i / RPC_NR_PAIR + 1];
++		} else {
++			extra = ((i % RPC_NR_PAIR) == 0) ?
+ 			&rpc_poll_extra[i / RPC_NR_PAIR] :
+ 			&rpc_intr_extra[i / RPC_NR_PAIR];
++		}
+ 
+ 		dev = device_create(rpc_class,
+ 				    NULL,
+@@ -579,6 +662,7 @@ static int rtk_rpc_probe(struct platform_device *pdev)
+ 	RPC_DEV_EXTRA *extra;
+ 	struct device_node *np = pdev->dev.of_node;
+ 	struct rtk_ipc_shm __iomem *ipc = (void __iomem *) IPC_SHM_VIRT;
++	struct device_node *syscon_np;
+ 
+ 	rpc_dev = &pdev->dev;
+ 	chip_id = get_rtd_chip_id();
+@@ -611,6 +695,19 @@ static int rtk_rpc_probe(struct platform_device *pdev)
+ 
+ 	rpc_vcpu_int_flag = (void __iomem *)&ipc->video_int_sync;
+ 
++	if (chip_id == CHIP_ID_RTD1619B) {
++		rpc_ve3_int_flag = (void __iomem *)&ipc->ve3_int_sync;
++		syscon_np = of_parse_phandle(np, "syscon", 0);
++		if (IS_ERR_OR_NULL(syscon_np))
++			return -ENODEV;
++
++		rpc_ve3_base = syscon_node_to_regmap(syscon_np);
++		if (IS_ERR_OR_NULL(rpc_ve3_base)) {
++			of_node_put(syscon_np);
++			return -EINVAL;
++		}
++	}
++
+ 	ret = rpc_poll_init();
+ 	ret = rpc_intr_init();
+ 	ret = rpc_kern_init();
+diff --git a/drivers/soc/realtek/common/rpc/rtk_rpc.h b/drivers/soc/realtek/common/rpc/rtk_rpc.h
+index ea1e8a42402f..b0ae9b0f5ad8 100644
+--- a/drivers/soc/realtek/common/rpc/rtk_rpc.h
++++ b/drivers/soc/realtek/common/rpc/rtk_rpc.h
+@@ -43,6 +43,9 @@ extern void __iomem *rpc_ringbuf_base;
+  */
+ #define RPC_INT_VS (1 << 2)
+ #define RPC_INT_SV (1 << 2)
++#define RPC_INT_SVE3 0x1
++#define RPC_INT_VE3S_ST (1 << 4)
++
+ 
+ #if 0
+ #define __read_32bit_caller_register() \
+@@ -61,12 +64,13 @@ __res; \
+ #define AUDIO_SYSTEM 201
+ #define AUDIO_AGENT 202
+ #define VIDEO_AGENT 300
++#define VENC_AGENT 400
+ 
+ #define KERNELID 98
+ #define REPLYID 99
+ #define RPC_AUDIO 0x0
+ #define RPC_VIDEO 0x1
+-#define RPC_VIDEO2 0x2
++#define RPC_VE3 0x2
+ #define RPC_KCPU 0x3
+ #define RPC_OK 0
+ #define RPC_FAIL -1
+@@ -109,6 +113,13 @@ typedef enum {
+ 	RPC_INTR_DEV_TOTAL
+ } NUM_INTR_DEV;
+ 
++typedef enum {
++	RPC_INTR_DEV_SVE3_ID0, /* intr VE3 write */
++	RPC_INTR_DEV_VE3S_ID1, /*intr VE3s read */
++	RPC_INTR_VE3_DEV_TOTAL
++} NUM_INTR_VE3_DEV;
++
++
+ /* total ring buffer number */
+ #define RPC_NR_DEVS (RPC_POLL_DEV_TOTAL + RPC_INTR_DEV_TOTAL)
+ #endif /* RPC_NR_DEVS */
+@@ -136,6 +147,13 @@ typedef enum {
+ 	RPC_NR_KERN_DEVS	/* total ring buffer number */
+ } NUM_KERN_DEV;
+ 
++typedef enum {
++	RPC_KERN_DEV_SVE3_ID0, /* kern VE3 write */
++	RPC_KERN_DEV_VE3S_ID1, /* kern VE3 read */
++	RPC_NR_KERN_VE3_DEVS	/* total ring buffer number */
++} NUM_KERN_VE3_DEV;
++
++
+ //#define RPC_NR_KERN_DEVS 6	/* total ring buffer number */
+ #endif /* RPC_NR_KERN_DEVS */
+ 
+@@ -207,6 +225,20 @@ AVCPU2SCPU(addr) = val; \
+ #define RPC_KERN_RECORD_ADDR (AVCPU_NOCACHE + 0x04100a00)
+ #endif	/* RPC_KERN_RECORD_ADDR */
+ 
++#ifndef RPC_INTR_VE3_RECORD_ADDR
++#define RPC_INTR_VE3_RECORD_ADDR (AVCPU_NOCACHE + 0x04101800)
++#endif	/* RPC_INTR_VE3_RECORD_ADDR */
++#ifndef RPC_INTR_VE3_DEV_ADDR
++#define RPC_INTR_VE3_DEV_ADDR (AVCPU_NOCACHE + 0x04101000)
++#endif	/* RPC_INTR_VE3_DEV_ADDR */
++
++#ifndef RPC_KERN_VE3_RECORD_ADDR
++#define RPC_KERN_VE3_RECORD_ADDR (AVCPU_NOCACHE + 0x04101880)
++#endif	/* RPC_KERN_VE3_RECORD_ADDR */
++#ifndef RPC_KERN_VE3_DEV_ADDR
++#define RPC_KERN_VE3_DEV_ADDR (AVCPU_NOCACHE + 0x04101400)
++#endif	/* RPC_KERN_VE3_DEV_ADDR */
++
+ extern struct file_operations rpc_poll_fops;	/* for poll mode */
+ extern struct file_operations rpc_intr_fops;	/* for intr mode */
+ extern struct file_operations rpc_ctrl_fops;	/* for ctrl mode */
+@@ -376,7 +408,7 @@ typedef struct RPC_DBG_FLAG {
+ } RPC_DBG_FLAG;
+ 
+ extern int pid_max;
+-extern RPC_DEV_EXTRA rpc_intr_extra[RPC_NR_DEVS/RPC_NR_PAIR];
++extern RPC_DEV_EXTRA rpc_intr_extra[6];
+ extern RPC_DEV_EXTRA rpc_poll_extra[RPC_NR_DEVS/RPC_NR_PAIR];
+ void rpc_dispatch(unsigned long data);
+ 
+@@ -773,7 +805,9 @@ typedef unsigned long (*FUNC_PTR)(unsigned long, unsigned long);
+ 
+ extern volatile RPC_DEV *rpc_poll_devices;
+ extern volatile RPC_DEV *rpc_intr_devices;
++extern volatile RPC_DEV *rpc_intr_ve3_devices;
+ extern volatile RPC_DEV *rpc_kern_devices;
++extern volatile RPC_DEV *rpc_kern_ve3_devices;
+ extern void __iomem *rpc_int_base;
+ extern void rpc_set_flag(int, uint32_t);
+ 
+@@ -818,6 +852,9 @@ struct S_RPC_IOC_PROCESS_CONFIG_0 {
+ #define AUDIO_RPC_FEEDBACK_NOTIFY (__cpu_to_be32(1U << 25))
+ #define VIDEO_RPC_SET_NOTIFY (__cpu_to_be32(1U << 0)) /* VCPU write */
+ #define VIDEO_RPC_FEEDBACK_NOTIFY (__cpu_to_be32(1U << 1))
++#define VE3_RPC_SET_NOTIFY (__cpu_to_be32(1U << 0)) /* VE3 write */
++#define VE3_RPC_FEEDBACK_NOTIFY (__cpu_to_be32(1U << 1))
++
+ 
+ #define DC_VO_SET_NOTIFY (__cpu_to_be32(1U << 0)) /* SCPU write */
+ #define DC_VO_FEEDBACK_NOTIFY (__cpu_to_be32(1U << 1))
+@@ -825,6 +862,8 @@ struct S_RPC_IOC_PROCESS_CONFIG_0 {
+ #define RPC_AUDIO_FEEDBACK_NOTIFY (__cpu_to_be32(1U << 9))
+ #define RPC_VIDEO_SET_NOTIFY (__cpu_to_be32(1U << 2)) /* SCPU write */
+ #define RPC_VIDEO_FEEDBACK_NOTIFY (__cpu_to_be32(1U << 3))
++#define RPC_VE3_SET_NOTIFY (__cpu_to_be32(1U << 2)) /* SCPU write */
++#define RPC_VE3_FEEDBACK_NOTIFY (__cpu_to_be32(1U << 3))
+ 
+ #ifdef CONFIG_FB_RTK
+ extern spinlock_t gASLock;
+diff --git a/drivers/soc/realtek/common/rpc/rtk_rpc_intr.c b/drivers/soc/realtek/common/rpc/rtk_rpc_intr.c
+index daf9130acf3e..ca1a0a127467 100644
+--- a/drivers/soc/realtek/common/rpc/rtk_rpc_intr.c
++++ b/drivers/soc/realtek/common/rpc/rtk_rpc_intr.c
+@@ -187,12 +187,14 @@ struct release_process_lists release_proc_lists;
+ 
+ 
+ volatile RPC_DEV *rpc_intr_devices;
++volatile RPC_DEV *rpc_intr_ve3_devices;
++
+ int rpc_intr_is_paused;
+ int rpc_intr_is_suspend;
+ 
+ int timeout = HZ; //HZ / 40; /* jiffies */
+ 
+-RPC_DEV_EXTRA rpc_intr_extra[RPC_NR_DEVS / RPC_NR_PAIR];
++RPC_DEV_EXTRA rpc_intr_extra[6];
+ 
+ extern struct device *rpc_dev;
+ extern int chip_id;
+@@ -209,6 +211,11 @@ struct task_struct *vcpu_r_program_kthread;
+ wait_queue_head_t vcpu_r_program_waitQueue;
+ int vcpu_r_program_flag = 0;
+ 
++struct task_struct *ve3_r_program_kthread;
++wait_queue_head_t ve3_r_program_waitQueue;
++int ve3_r_program_flag = 0;
++
++
+ ssize_t r_program_read(RPC_DEV_EXTRA *extra, RPC_DEV *dev, char *buf, size_t count)
+ {
+ 	int temp, size;
+@@ -400,10 +407,9 @@ ssize_t r_program_write(int opt, RPC_DEV_EXTRA *extra, RPC_DEV *dev, char *buf,
+ 	rtk_rpc_wmb(AVCPU2SCPU(dev->ringStart),
+ 			PAGE_ALIGN(rpc_ring_size));
+ 
+-	if (opt == RPC_AUDIO)
+-		rpc_send_interrupt(RPC_AUDIO);
+-	else if (opt == RPC_VIDEO)
+-		rpc_send_interrupt(RPC_VIDEO);
++
++	rpc_send_interrupt(opt);
++
+ 
+ 	up_write(&dev->ptrSync->writeSem);
+ 	return ret;
+@@ -506,6 +512,11 @@ bool is_Video1IntrRead(const RPC_DEV_EXTRA *extra)
+ 	return (!strcmp(extra->name, "Video1IntrRead")) ? true : false;
+ }
+ 
++bool is_VE3IntrRead(const RPC_DEV_EXTRA *extra)
++{
++	return (!strcmp(extra->name, "VE3IntrRead")) ? true : false;
++}
++
+ RPC_DEV_EXTRA * get_write_extra(const RPC_DEV_EXTRA *extra)
+ {
+ 	RPC_DEV_EXTRA * ret = NULL;
+@@ -513,6 +524,8 @@ RPC_DEV_EXTRA * get_write_extra(const RPC_DEV_EXTRA *extra)
+ 		ret = &rpc_intr_extra[0];
+ 	} else if (is_Video1IntrRead(extra)) {
+ 		ret = &rpc_intr_extra[2];
++	}  else if (is_VE3IntrRead(extra)) {
++		ret = &rpc_intr_extra[4];
+ 	}
+ 	return ret;
+ }
+@@ -523,6 +536,8 @@ int get_opt(const RPC_DEV_EXTRA *extra)
+ 		return RPC_AUDIO;
+ 	else if (is_Video1IntrRead(extra))
+ 		return RPC_VIDEO;
++	else if (is_VE3IntrRead(extra))
++		return RPC_VE3;
+ 	return 0;//RPC_FAIL;
+ }
+ 
+@@ -1074,6 +1089,9 @@ void handle_dead_process_reply(RPC_STRUCT rpc, RPC_DEV_EXTRA *extra)
+ 	} else if (!strcmp(extra->name, "Video1IntrRead")){
+ 		extra_w = &rpc_intr_extra[2];
+ 		opt = RPC_VIDEO;
++	} else if (!strcmp(extra->name, "VE3IntrRead")){
++		extra_w = &rpc_intr_extra[4];
++		opt = RPC_VE3;
+ 	}
+ 	/*Reply RPC*/
+ 	rrpc = (RPC_STRUCT *)replybuf;
+@@ -1147,6 +1165,29 @@ static int vcpu_remote_alloc_thread(void * p)
+ 	return 0;
+ }
+ 
++static int ve3_remote_alloc_thread(void * p)
++{
++	RPC_DEV_EXTRA *extra = &rpc_intr_extra[5];
++
++	while (1) {
++		if (wait_event_interruptible(ve3_r_program_waitQueue, ve3_r_program_flag || kthread_should_stop())) {
++			pr_notice("%s got signal or should stop...\n", current->comm);
++			continue;
++		}
++
++		if (kthread_should_stop()) {
++			pr_notice("%s exit...\n", current->comm);
++			break;
++		}
++		spin_lock_bh(&extra->lock);
++		ve3_r_program_flag = 0;
++		spin_unlock_bh(&extra->lock);
++		rpc_ion_handler(extra);
++	}
++	return 0;
++}
++
++
+ /*
+  * This function may be called by tasklet and rpc_intr_read(),
+  * rpc_poll_read()
+@@ -1226,6 +1267,7 @@ void rpc_dispatch(unsigned long data)
+ 		return;
+ 	case AUDIO_AGENT:
+ 	case VIDEO_AGENT:
++	case VENC_AGENT:
+ 		proc = NULL;
+ 		/* use sysPID directly */
+ 		if (rpc.sysPID > 0 && rpc.sysPID < pid_max) {
+@@ -1394,6 +1436,65 @@ int rpc_intr_init(void)
+ 			}
+ 		}
+ 	}
++
++
++	if (chip_id == CHIP_ID_RTD1619B) {
++		rpc_intr_ve3_devices = (RPC_DEV *) AVCPU2SCPU(RPC_INTR_VE3_RECORD_ADDR);
++
++		for (i = 0; i < 2; i++) {
++			pr_debug("rpc_intr_ve3_device %d addr: %p\n", i, &rpc_intr_ve3_devices[i]);
++			rpc_intr_ve3_devices[i].ringBuf = RPC_INTR_VE3_DEV_ADDR +
++				i * RPC_RING_SIZE;
++
++		/* Initialize pointers... */
++		rpc_intr_ve3_devices[i].ringStart = rpc_intr_ve3_devices[i].ringBuf;
++		rpc_intr_ve3_devices[i].ringEnd = rpc_intr_ve3_devices[i].ringBuf
++				+ RPC_RING_SIZE;
++		rpc_intr_ve3_devices[i].ringIn = rpc_intr_ve3_devices[i].ringBuf;
++		rpc_intr_ve3_devices[i].ringOut = rpc_intr_ve3_devices[i].ringBuf;
++
++		pr_debug("The %dth intr dev:\n", i + RPC_INTR_DEV_TOTAL);
++		pr_debug("RPC ringStart: %p\n",
++				AVCPU2SCPU(rpc_intr_ve3_devices[i].ringStart));
++		pr_debug("RPC ringEnd:   %p\n",
++				AVCPU2SCPU(rpc_intr_ve3_devices[i].ringEnd));
++		pr_debug("RPC ringIn:    %p\n",
++				AVCPU2SCPU(rpc_intr_ve3_devices[i].ringIn));
++		pr_debug("RPC ringOut:   %p\n",
++				AVCPU2SCPU(rpc_intr_ve3_devices[i].ringOut));
++
++		rpc_intr_extra[i + RPC_INTR_DEV_TOTAL].nextRpc = rpc_intr_ve3_devices[i].ringOut;
++		rpc_intr_extra[i + RPC_INTR_DEV_TOTAL].currProc = NULL;
++
++		if (!is_init) {
++			rpc_intr_ve3_devices[i].ptrSync = kmalloc(sizeof(RPC_SYNC_Struct),
++					GFP_KERNEL);
++			kmemleak_not_leak(rpc_intr_ve3_devices[i].ptrSync);
++
++			/* Initialize wait queue... */
++			init_waitqueue_head(&(rpc_intr_ve3_devices[i].ptrSync->waitQueue));
++
++			/* Initialize sempahores... */
++			init_rwsem(&rpc_intr_ve3_devices[i].ptrSync->readSem);
++			init_rwsem(&rpc_intr_ve3_devices[i].ptrSync->writeSem);
++
++			rpc_intr_extra[i + RPC_INTR_DEV_TOTAL].dev = (void *) &rpc_intr_ve3_devices[i];
++			INIT_LIST_HEAD(&rpc_intr_extra[i + RPC_INTR_DEV_TOTAL].tasks);
++			tasklet_init(&rpc_intr_extra[i + RPC_INTR_DEV_TOTAL].tasklet, rpc_dispatch,
++					(unsigned long) &rpc_intr_extra[i + RPC_INTR_DEV_TOTAL]);
++			spin_lock_init(&rpc_intr_extra[i + RPC_INTR_DEV_TOTAL].lock);
++			switch (i) {
++			case 0:
++				rpc_intr_extra[i + RPC_INTR_DEV_TOTAL].name = "VE3IntrWrite";
++				break;
++			case 1:
++				rpc_intr_extra[i + RPC_INTR_DEV_TOTAL].name = "VE3IntrRead";
++				break;
++			}
++		}
++		}
++	}
++
+ 	init_waitqueue_head(&acpu_r_program_waitQueue);
+ 	acpu_r_program_kthread = kthread_run(acpu_remote_alloc_thread, (void *)&j, "acpu_r_program");
+ 
+@@ -1402,6 +1503,9 @@ int rpc_intr_init(void)
+ 	vcpu_r_program_kthread = kthread_run(vcpu_remote_alloc_thread, (void *)&j, "vcpu_r_program");
+ 
+ 
++	init_waitqueue_head(&ve3_r_program_waitQueue);
++	ve3_r_program_kthread = kthread_run(ve3_remote_alloc_thread, (void *)&j, "ve3_r_program");
++
+ 	is_init = 1;
+ 	rpc_intr_is_paused = 0;
+ 	rpc_intr_is_suspend = 0;
+@@ -1556,8 +1660,16 @@ int rpc_intr_open(struct inode *inode, struct file *filp)
+ 			return -ENOMEM;
+ 		}
+ 
+-		proc->dev = (RPC_DEV *)&rpc_intr_devices[minor / RPC_NR_PAIR];
+-		proc->extra = &rpc_intr_extra[minor / RPC_NR_PAIR];
++		if (minor < 8) {
++			proc->extra = &rpc_intr_extra[minor / RPC_NR_PAIR];
++		} else {
++			if (minor == 8) {
++				proc->extra = &rpc_intr_extra[4];
++			} else if (minor == 9) {
++				proc->extra = &rpc_intr_extra[5];
++			}
++		}
++		proc->dev = proc->extra->dev;
+ 		/* current->tgid = process id, current->pid = thread id */
+ 		proc->pid = current->tgid;
+ 		proc->bStayActive = false;
+@@ -1579,6 +1691,8 @@ int rpc_intr_open(struct inode *inode, struct file *filp)
+ 			ret = update_rpc_release_lists(RPC_AUDIO);
+ 		else if (rpc_type == 3)
+ 			ret = update_rpc_release_lists(RPC_VIDEO);
++		else if (rpc_type == 5)
++			ret = update_rpc_release_lists(RPC_VE3);
+ 		if (ret) {
+ 			pr_err("%s: update_rpc_release_lists failed err:%d\n", __func__, ret);
+ 			return ret;
+@@ -1738,6 +1852,8 @@ static int rpc_intr_flush(struct file *filp, fl_owner_t id)
+ 		rpc_release_entry = rpc_find_release_list(RPC_AUDIO, proc->pid);
+ 	else if (rpc_type == 3)
+ 		rpc_release_entry = rpc_find_release_list(RPC_VIDEO, proc->pid);
++	else if (rpc_type == 5)
++		rpc_release_entry = rpc_find_release_list(RPC_VE3, proc->pid);
+ 	spin_unlock_bh(&rpc_release_lock);
+ 	if (rpc_intr_is_paused) {
+ 		pr_err("rpc is paused, no self destroy: %s\n", proc->pid);
+@@ -1961,6 +2077,7 @@ ssize_t rpc_intr_write(struct file *filp, const char *buf, size_t count,
+ 	uint32_t ptmp;
+ 	int rpc_ring_size = dev->ringEnd - dev->ringStart;
+ 
++
+ 	//pr_debug("%s:%d buf:%p count:%u\n", __func__, __LINE__, buf, count);
+ 
+ 	if (rpc_intr_is_paused) {
+@@ -2088,6 +2205,8 @@ ssize_t rpc_intr_write(struct file *filp, const char *buf, size_t count,
+ 		rpc_send_interrupt(RPC_AUDIO);
+ 	} else if (temp == 5) {
+ 		rpc_send_interrupt(RPC_VIDEO);
++	} else if (temp == 8) {
++		rpc_send_interrupt(RPC_VE3);
+ 	} else {
+ 		pr_err("error device number...");
+ 	}
+diff --git a/drivers/soc/realtek/common/rpc/rtk_rpc_kern.c b/drivers/soc/realtek/common/rpc/rtk_rpc_kern.c
+index cb71fc24dbfa..e514801bbba3 100644
+--- a/drivers/soc/realtek/common/rpc/rtk_rpc_kern.c
++++ b/drivers/soc/realtek/common/rpc/rtk_rpc_kern.c
+@@ -25,11 +25,15 @@
+ #include <linux/io.h>
+ #include <linux/uaccess.h>
+ #include <linux/kmemleak.h>
++#include <soc/realtek/rtk_chip.h>
++
+ 
+ #include "rtk_rpc.h"
+ 
+ #define TIMEOUT (5*HZ)
+ 
++extern int chip_id;
++
+ static struct radix_tree_root kernel_rpc_tree = RADIX_TREE_INIT(RPC, GFP_ATOMIC);
+ //static struct semaphore kernel_rpc_sem;
+ DECLARE_RWSEM(kernel_rpc_sem);
+@@ -37,13 +41,14 @@ DECLARE_RWSEM(kernel_rpc_sem);
+ //static DECLARE_MUTEX(kernel_rpc_sem);
+ 
+ volatile RPC_DEV *rpc_kern_devices;
+-struct task_struct *rpc_kthread[RPC_NR_KERN_DEVS/RPC_NR_PAIR] = {NULL};
+-static wait_queue_head_t rpc_wq[RPC_NR_KERN_DEVS/RPC_NR_PAIR];
+-static uint32_t *rpc_retval[RPC_NR_KERN_DEVS/RPC_NR_PAIR] = {NULL};
++volatile RPC_DEV *rpc_kern_ve3_devices;
++struct task_struct *rpc_kthread[(RPC_NR_KERN_DEVS + RPC_NR_KERN_VE3_DEVS)/RPC_NR_PAIR] = {NULL};
++static wait_queue_head_t rpc_wq[(RPC_NR_KERN_DEVS + RPC_NR_KERN_VE3_DEVS)/RPC_NR_PAIR];
++static uint32_t *rpc_retval[(RPC_NR_KERN_DEVS + RPC_NR_KERN_VE3_DEVS)/RPC_NR_PAIR] = {NULL};
+ int rpc_kern_is_paused;
+ int rpc_kern_is_suspend;
+-static int complete_condition[RPC_NR_KERN_DEVS/RPC_NR_PAIR];
+-static struct mutex rpc_kern_lock[RPC_NR_KERN_DEVS/RPC_NR_PAIR];
++static int complete_condition[(RPC_NR_KERN_DEVS + RPC_NR_KERN_VE3_DEVS)/RPC_NR_PAIR];
++static struct mutex rpc_kern_lock[(RPC_NR_KERN_DEVS + RPC_NR_KERN_VE3_DEVS)/RPC_NR_PAIR];
+ static int rpc_kernel_thread(void *p);
+ 
+ extern void rpc_send_interrupt(int type);
+@@ -102,8 +107,57 @@ int rpc_kern_init(void)
+ 								(void *)i, "rpc-%lu", i);
+ 		}
+ 	}
++
++	if (chip_id == CHIP_ID_RTD1619B) {
++		/* Create corresponding structures for each device. */
++		rpc_kern_ve3_devices = (RPC_DEV *)AVCPU2SCPU(RPC_KERN_VE3_RECORD_ADDR);
++
++		num = RPC_NR_KERN_VE3_DEVS;
++		for (i = 0; i < num; i++) {
++			pr_debug("rpc_kern_device %lu addr: %p\n", i, &rpc_kern_ve3_devices[i]);
++			rpc_kern_ve3_devices[i].ringBuf = RPC_KERN_VE3_DEV_ADDR + i*RPC_RING_SIZE;
++
++			/* Initialize pointers... */
++			rpc_kern_ve3_devices[i].ringStart = rpc_kern_ve3_devices[i].ringBuf;
++			rpc_kern_ve3_devices[i].ringEnd =
++					rpc_kern_ve3_devices[i].ringBuf + RPC_RING_SIZE;
++			rpc_kern_ve3_devices[i].ringIn = rpc_kern_ve3_devices[i].ringBuf;
++			rpc_kern_ve3_devices[i].ringOut = rpc_kern_ve3_devices[i].ringBuf;
++
++			pr_debug("The %luth kern dev:\n", i + RPC_NR_KERN_DEVS);
++			pr_debug("RPC ringStart: %p\n",
++				AVCPU2SCPU(rpc_kern_ve3_devices[i].ringStart));
++			pr_debug("RPC ringEnd:   %p\n",
++				AVCPU2SCPU(rpc_kern_ve3_devices[i].ringEnd));
++			pr_debug("RPC ringIn:	%p\n",
++				AVCPU2SCPU(rpc_kern_ve3_devices[i].ringIn));
++			pr_debug("RPC ringOut:   %p\n",
++				AVCPU2SCPU(rpc_kern_ve3_devices[i].ringOut));
++			pr_debug("\n");
++
++			if (!is_init) {
++				rpc_kern_ve3_devices[i].ptrSync =
++						kmalloc(sizeof(RPC_SYNC_Struct), GFP_KERNEL);
++				kmemleak_not_leak(rpc_kern_ve3_devices[i].ptrSync);
++
++				/* Initialize wait queue... */
++				init_waitqueue_head(&(rpc_kern_ve3_devices[i].ptrSync->waitQueue));
++
++				/* Initialize sempahores... */
++				init_rwsem(&rpc_kern_ve3_devices[i].ptrSync->readSem);
++				init_rwsem(&rpc_kern_ve3_devices[i].ptrSync->writeSem);
++			}
++
++			if (i%RPC_NR_PAIR == 1) {
++				if (rpc_kthread[(i + RPC_NR_KERN_DEVS)/RPC_NR_PAIR] == NULL)
++					rpc_kthread[(i + RPC_NR_KERN_DEVS)/RPC_NR_PAIR] =
++							kthread_run(rpc_kernel_thread,
++									(void *)((i + RPC_NR_KERN_DEVS)/RPC_NR_PAIR), "rpc-%lu", (i + RPC_NR_KERN_DEVS)/RPC_NR_PAIR);
++			}
++		}
++	}
+ 	if (!is_init) {
+-		for (i = 0; i < RPC_NR_KERN_DEVS/RPC_NR_PAIR; i++) {
++		for (i = 0; i < (RPC_NR_KERN_DEVS+RPC_NR_KERN_VE3_DEVS)/RPC_NR_PAIR; i++) {
+ 			init_waitqueue_head(&(rpc_wq[i]));
+ 			mutex_init(&rpc_kern_lock[i]);
+ 		}
+@@ -141,7 +195,12 @@ ssize_t rpc_kern_read(int opt, char *buf, size_t count)
+ 	ssize_t ret = 0;
+ 	uint32_t ptmp;
+ 
+-	dev = (RPC_DEV *)&rpc_kern_devices[opt*RPC_NR_PAIR+1];
++	if (opt == RPC_VE3) {
++		dev = (RPC_DEV *)&rpc_kern_ve3_devices[1];
++	} else {
++		dev = (RPC_DEV *)&rpc_kern_devices[opt*RPC_NR_PAIR+1];
++	}
++
+ 	pr_debug("read rpc_kern_device: %p\n", dev);
+ 	down_write(&dev->ptrSync->readSem);
+ 
+@@ -220,7 +279,12 @@ ssize_t rpc_kern_write(int opt, const char *buf, size_t count)
+ 	ssize_t ret = 0;
+ 	uint32_t ptmp;
+ 
+-	dev = (RPC_DEV *)&rpc_kern_devices[opt*RPC_NR_PAIR];
++	if (opt == RPC_VE3) {
++		dev = (RPC_DEV *)&rpc_kern_ve3_devices[0];
++	} else {
++		dev = (RPC_DEV *)&rpc_kern_devices[opt*RPC_NR_PAIR];
++	}
++
+ 	pr_debug("write rpc_kern_device: %p\n", dev);
+ 	//pr_debug("[rpc_kern_write] write rpc_kern_device: caller%x, *buf:0x%x\n",
+ 	//		(unsigned int) __read_32bit_caller_register(),
+@@ -356,7 +420,10 @@ static int rpc_kernel_thread(void *p)
+ 
+ 	//daemonize(current->comm);
+ 
+-	dev = (RPC_DEV *)&rpc_kern_devices[idx];
++	if (idx >= 4)
++		dev = (RPC_DEV *)&rpc_kern_ve3_devices[idx - 4];
++	else
++		dev = (RPC_DEV *)&rpc_kern_devices[idx];
+ 	while (1) {
+ 		//if (current->flags & PF_FREEZE)
+ 		//refrigerator(PF_FREEZE);
+@@ -378,7 +445,7 @@ static int rpc_kernel_thread(void *p)
+ 		/* read the reply data... */
+ 		if (rpc_kern_read(opt, readbuf, sizeof(RPC_STRUCT)) !=
+ 				sizeof(RPC_STRUCT)) {
+-			pr_err("ERROR in read kernel RPC...\n");
++			pr_err("ERROR in read opt(%d) kernel RPC...\n", opt);
+ 			continue;
+ 		}
+ 
+@@ -477,6 +544,27 @@ int dump_kern_rpc(void)
+         }
+     }
+ 
++	for(j = 0; j < RPC_NR_KERN_VE3_DEVS; j++){
++		dev = (RPC_DEV *)&rpc_kern_ve3_devices[j];
++		pr_info("\nname: %sKern%s\n","VE3", (j % RPC_NR_PAIR == 0) ? "Write" : "Read");
++		pr_info("RingBuf: %x\n", dev->ringBuf);
++		pr_info("RingStart: %x\n", dev->ringStart);
++		pr_info("RingIn: %x\n", dev->ringIn);
++		pr_info("RingOut: %x\n", dev->ringOut);
++		pr_info("RingEnd: %x\n", dev->ringEnd);
++
++		pr_info("RingBuffer:\n");
++		for (i = 0; i < RPC_RING_SIZE; i += 16) {
++			uint32_t *addr = (uint32_t *)(AVCPU2SCPU(dev->ringStart) + i);
++			pr_info("%x: %08x %08x %08x %08x\n",
++					dev->ringStart + i,
++					ntohl(*(addr + 0)),
++					ntohl(*(addr + 1)),
++					ntohl(*(addr + 2)),
++					ntohl(*(addr + 3)));
++		}
++	}
++
+ 	for(j = 0; j < RPC_INTR_DEV_TOTAL; j++){
+         dev = (RPC_DEV *)&rpc_intr_devices[j];
+         pr_info("\nname: %sIntr%s\n", (j<2) ? "Audio" : "Video", (j % RPC_NR_PAIR == 0) ? "Write" : "Read");
+@@ -496,7 +584,28 @@ int dump_kern_rpc(void)
+                     ntohl(*(addr + 2)),
+                     ntohl(*(addr + 3)));
+         }
++
+     }
++	for(j = 0; j < RPC_INTR_VE3_DEV_TOTAL; j++){
++        dev = (RPC_DEV *)&rpc_intr_ve3_devices[j];
++        pr_info("\nname: %sIntr%s\n", "VE3", (j % RPC_NR_PAIR == 0) ? "Write" : "Read");
++        pr_info("RingBuf: %x\n", dev->ringBuf);
++        pr_info("RingStart: %x\n", dev->ringStart);
++        pr_info("RingIn: %x\n", dev->ringIn);
++        pr_info("RingOut: %x\n", dev->ringOut);
++        pr_info("RingEnd: %x\n", dev->ringEnd);
++
++        pr_info("RingBuffer:\n");
++        for (i = 0; i < RPC_RING_SIZE; i += 16) {
++            uint32_t *addr = (uint32_t *)(AVCPU2SCPU(dev->ringStart) + i);
++            pr_info("%x: %08x %08x %08x %08x\n",
++                    dev->ringStart + i,
++                    ntohl(*(addr + 0)),
++                    ntohl(*(addr + 1)),
++                    ntohl(*(addr + 2)),
++                    ntohl(*(addr + 3)));
++        }
++	}
+     return 0;
+ }
+ 
+diff --git a/drivers/soc/realtek/common/rpc/rtk_rpc_poll.c b/drivers/soc/realtek/common/rpc/rtk_rpc_poll.c
+index 39421f61c2c1..335d858d5966 100644
+--- a/drivers/soc/realtek/common/rpc/rtk_rpc_poll.c
++++ b/drivers/soc/realtek/common/rpc/rtk_rpc_poll.c
+@@ -349,6 +349,10 @@ int rpc_poll_open(struct inode *inode, struct file *filp)
+ 	 * If private data is not valid, we are not using devfs
+ 	 * so use the minor number to select a new f_op
+ 	 */
++	if (!filp->private_data && (minor >= RPC_NR_DEVS)) {
++		filp->f_op = rpc_fop_array[1];
++		return filp->f_op->open(inode, filp);
++	}
+ 	if (!filp->private_data && (minor%RPC_NR_PAIR != 0)) {
+ 		filp->f_op = rpc_fop_array[minor%RPC_NR_PAIR];
+ 		return filp->f_op->open(inode, filp); /* dispatch to specific open */
+diff --git a/include/soc/realtek/rtk_ipc_shm.h b/include/soc/realtek/rtk_ipc_shm.h
+index 1adc896f8138..55eb490cb3e9 100644
+--- a/include/soc/realtek/rtk_ipc_shm.h
++++ b/include/soc/realtek/rtk_ipc_shm.h
+@@ -55,6 +55,8 @@ struct rtk_ipc_shm {
+ 	volatile unsigned char video_printk_buffer[24];
+ 	volatile uint32_t video_suspend_mask;
+ 	volatile uint32_t video_suspend_flag;
++	volatile uint32_t ve3_rpc_flag;
++	volatile uint32_t ve3_int_sync;
+ };
+ 
+ struct avcpu_syslog_struct{
