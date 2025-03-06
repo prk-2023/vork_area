@@ -805,3 +805,95 @@ performance optimization.
 
 ---
 
+## Raspberry pi PMU:
+
+ref: https://web.eece.maine.edu/~vweaver/projects/perf_events/rasp-pi/paradis_ece599.pdf 
+
+Few posts show that it seems to work on a 32 bit system:
+
+ex: 
+perf list
+
+List of pre-defined events (to be used in -e):
+
+  branch-instructions OR branches                    [Hardware event]
+  branch-misses                                      [Hardware event]
+  bus-cycles                                         [Hardware event]
+  cache-misses                                       [Hardware event]
+  cache-references                                   [Hardware event]
+  cpu-cycles OR cycles                               [Hardware event]
+  instructions                                       [Hardware event]
+
+  alignment-faults                                   [Software event]
+  bpf-output                                         [Software event]
+  cgroup-switches                                    [Software event]
+  context-switches OR cs                             [Software event]
+  cpu-clock                                          [Software event]
+  cpu-migrations OR migrations                       [Software event]
+  dummy                                              [Software event]
+  emulation-faults                                   [Software event]
+  major-faults                                       [Software event]
+  minor-faults                                       [Software event]
+  page-faults OR faults                              [Software event]
+  task-clock                                         [Software event]
+
+  duration_time                                      [Tool event]
+
+  L1-dcache-load-misses                              [Hardware cache event]
+  L1-dcache-loads                                    [Hardware cache event]
+  L1-dcache-store-misses                             [Hardware cache event]
+  L1-dcache-stores                                   [Hardware cache event]
+  L1-icache-load-misses                              [Hardware cache event]
+  L1-icache-loads                                    [Hardware cache event]
+  LLC-load-misses                                    [Hardware cache event]
+  LLC-loads                                          [Hardware cache event]
+  LLC-store-misses                                   [Hardware cache event]
+  LLC-stores                                         [Hardware cache event]
+  branch-load-misses                                 [Hardware cache event]
+  branch-loads                                       [Hardware cache event]
+  dTLB-load-misses                                   [Hardware cache event]
+  dTLB-store-misses                                  [Hardware cache event]
+  iTLB-load-misses                                   [Hardware cache event]
+
+  br_immed_retired OR armv7_cortex_a7/br_immed_retired/ [Kernel PMU event]
+  br_mis_pred OR armv7_cortex_a7/br_mis_pred/        [Kernel PMU event]
+  br_pred OR armv7_cortex_a7/br_pred/                [Kernel PMU event]
+  br_return_retired OR armv7_cortex_a7/br_return_retired/ [Kernel PMU event]
+  bus_access OR armv7_cortex_a7/bus_access/          [Kernel PMU event]
+  bus_cycles OR armv7_cortex_a7/bus_cycles/          [Kernel PMU event]
+  cid_write_retired OR armv7_cortex_a7/cid_write_retired/ [Kernel PMU event]
+  cpu_cycles OR armv7_cortex_a7/cpu_cycles/          [Kernel PMU event]
+  exc_return OR armv7_cortex_a7/exc_return/          [Kernel PMU event]
+  exc_taken OR armv7_cortex_a7/exc_taken/            [Kernel PMU event]
+  inst_retired OR armv7_cortex_a7/inst_retired/      [Kernel PMU event]
+  inst_spec OR armv7_cortex_a7/inst_spec/            [Kernel PMU event]
+  l1d_cache OR armv7_cortex_a7/l1d_cache/            [Kernel PMU event]
+  l1d_cache_refill OR armv7_cortex_a7/l1d_cache_refill/ [Kernel PMU event]
+  l1d_cache_wb OR armv7_cortex_a7/l1d_cache_wb/      [Kernel PMU event]
+  l1d_tlb_refill OR armv7_cortex_a7/l1d_tlb_refill/  [Kernel PMU event]
+  l1i_cache OR armv7_cortex_a7/l1i_cache/            [Kernel PMU event]
+  l1i_cache_refill OR armv7_cortex_a7/l1i_cache_refill/ [Kernel PMU event]
+  l1i_tlb_refill OR armv7_cortex_a7/l1i_tlb_refill/  [Kernel PMU event]
+  l2d_cache OR armv7_cortex_a7/l2d_cache/            [Kernel PMU event]
+  l2d_cache_refill OR armv7_cortex_a7/l2d_cache_refill/ [Kernel PMU event]
+  l2d_cache_wb OR armv7_cortex_a7/l2d_cache_wb/      [Kernel PMU event]
+  ld_retired OR armv7_cortex_a7/ld_retired/          [Kernel PMU event]
+  mem_access OR armv7_cortex_a7/mem_access/          [Kernel PMU event]
+  memory_error OR armv7_cortex_a7/memory_error/      [Kernel PMU event]
+  pc_write_retired OR armv7_cortex_a7/pc_write_retired/ [Kernel PMU event]
+  st_retired OR armv7_cortex_a7/st_retired/          [Kernel PMU event]
+  sw_incr OR armv7_cortex_a7/sw_incr/                [Kernel PMU event]
+  ttbr_write_retired OR armv7_cortex_a7/ttbr_write_retired/ [Kernel PMU event]
+  unaligned_ldst_retired OR armv7_cortex_a7/unaligned_ldst_retired/ [Kernel PMU event]
+
+  rNNN                                               [Raw hardware event descriptor]
+  cpu/t1=v1[,t2=v2,t3 ...]/modifier                  [Raw hardware event descriptor]
+   (see 'man perf-list' on how to encode it)
+
+  mem:<addr>[/len][:access]                          [Hardware breakpoint]
+
+
+Metric Groups:
+
+- Everything works in bullseye, and is only not working in Buster.
+
