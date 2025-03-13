@@ -61,4 +61,18 @@
       level of volatility is clearly back to the days of Great Depression. 
 
 
-
+- Since 2000 onwards what we notice is the devaluation of all the global currencies, w.r.t Au and a
+  restatement of wealth on a global scale. As is both presently and historically evident the attempt to
+  restate wealth to lower level becomes a competitive  event in its own right as nations fight to devalue
+  their currencies with each other, to reduce the burden of indebtedness, its to be recalled when FDR
+  recalled the value of $ with Au in 1933 America was the 9th nation to do that in a 3 year period. 
+  Falsely stated and assumed wealth  largely created and added the assumption of debts, that can not be
+  born, must eventually be reset at a lower level. Populations bare the restatement of wealth through the
+  expansion of monitory aggregates causing a de-valuing of a national currency that denominates their
+  wealth, this happens to all currency holders regardless if they personally assume any debt. Au raises as
+  Au is the monitory  proxy inversely related to a nations currency, the burden of indebtedness is reduced
+  along with the standard of living. Commodity prices increase and debt deflation has become currency
+  inflation, they are one and the same. We can be close to the time where Au will restate Falsely created
+  or stated wealth. 
+  Since 2000's we notice Au has outperformed indexes and bonds ( this is what we do not hear in the news
+  often in mainstream financial press. )
