@@ -111,7 +111,7 @@ culminating in Maxwell’s equations.
     understanding of **light, radio waves, microwaves**, and other forms of electromagnetic radiation.
 
   - **Speed of Light**: Maxwell’s equations predicted that the speed of electromagnetic waves (light) was 
-    related to the electric and magnetic constants (\(\epsilon_0\) and \(\mu_0\)). 
+    related to the electric and magnetic constants ($ (\\epsilon_0\) $ and $ (\\mu_0\) $).
 
     He calculated the speed of these waves to be approximately **300,000 km/s**, which closely matched the 
     observed speed of light, thereby linking light with electromagnetic theory.
@@ -199,8 +199,8 @@ what the characteristics of such waves would be.
 
 ### Maxwell's Unification of Electricity and Magnetism
 
-Maxwell's great insight was that the electric field (\(\mathbf{E}\)) and the magnetic field 
-(\(\mathbf{B}\)) are not independent but are components of the same entity: the **electromagnetic field**. 
+Maxwell's great insight was that the electric field ($ (\\mathbf{E}\) $) and the magnetic field
+($ (\\mathbf{B}\) $) are not independent but are components of the same entity: the **electromagnetic field**.
 
 He synthesized the earlier work of scientists like **Coulomb**, **Faraday**, **Ampère**, and **Lenz**, and 
 through his mathematical work, he showed that:
@@ -226,7 +226,7 @@ radio waves, microwaves, and other electromagnetic phenomena work.
    - Maxwell's equations predict that **electric and magnetic fields** can propagate as **waves** through 
      space.
 
-   - These electromagnetic waves move at the speed of light (\(c\)) in a vacuum, and light itself is a type 
+   - These electromagnetic waves move at the speed of light ($ (\c\) $) in a vacuum, and light itself is a type
      of electromagnetic wave.
 
    - The unification of electricity, magnetism, and optics (the study of light) into a single framework was 
@@ -252,12 +252,12 @@ radio waves, microwaves, and other electromagnetic phenomena work.
 
    - Using Maxwell's equations, the **speed of light** can be derived from the fundamental constants of 
      electricity and magnetism: 
-     the **electric constant** (\(\epsilon_0\)) and the **magnetic constant** (\(\mu_0\)).
+     the **electric constant** ($ (\\epsilon_0\) $) and the **magnetic constant** ($ (\\mu_0\) $).
 
-   - The speed of light (\(c\)) in a vacuum is given by:
-     \[
+   - The speed of light ($ (\c\) $) in a vacuum is given by:
+     $$ \[
      c = \frac{1}{\sqrt{\mu_0 \epsilon_0}}
-     \]
+     \] $$
    - This discovery revealed that light is not a separate phenomenon but rather an electromagnetic wave.
 
 ### The Four Maxwell Equations
@@ -268,10 +268,10 @@ Maxwell formulated four key equations that govern the behavior of electric and m
 
    - Describes how electric charges produce electric fields.
    - **Mathematical form**: 
-     \[
+     $$ \[
      \nabla \cdot \mathbf{E} = \frac{\rho}{\epsilon_0}
-     \]
-   - \(\rho\) is the charge density, and \(\epsilon_0\) is the permittivity of free space.
+     \] $$
+   - $ (\\rho\) $ is the charge density, and $ (\\epsilon_0\) $ is the permittivity of free space.
 
 2. **Gauss’s Law for Magnetism**:
 
@@ -279,28 +279,28 @@ Maxwell formulated four key equations that govern the behavior of electric and m
      are always closed loops.
 
    - **Mathematical form**:
-     \[
+     $$ \[
      \nabla \cdot \mathbf{B} = 0
-     \]
-   - \(\mathbf{B}\) is the magnetic field.
+     \] $$
+   - $ (\\mathbf{B}\) $ is the magnetic field.
 
 3. **Faraday's Law of Induction**:
 
    - Describes how a changing magnetic field creates an electric field.
    - **Mathematical form**:
-     \[
+     $$ \[
      \nabla \times \mathbf{E} = - \frac{\partial \mathbf{B}}{\partial t}
-     \]
+     \] $$
    - This is the principle behind electric generators and transformers.
 
 4. **Ampère's Law (with Maxwell's correction)**:
 
    - Describes how electric currents and changing electric fields create magnetic fields.
    - **Mathematical form**:
-     \[
+     $$ \[
      \nabla \times \mathbf{B} = \mu_0 \mathbf{J} + \mu_0 \epsilon_0 \frac{\partial \mathbf{E}}{\partial t}
-     \]
-   - \(\mathbf{J}\) is the current density, and \(\mu_0\) is the permeability of free space.
+     \] $$
+   - $ (\\mathbf{J}\) $ is the current density, and $ (\\mu_0\) $ is the permeability of free space.
 
 ### Electromagnetic Waves and the Speed of Light
 
@@ -341,20 +341,20 @@ achievements in physics.
 ---
 ### Derivation of Maxwell's First Equation: **Gauss’s Law for Electricity**
 
-Maxwell's first equation, **Gauss's Law for Electricity**, relates the electric field (\(\mathbf{E}\)) to 
+Maxwell's first equation, **Gauss's Law for Electricity**, relates the electric field ($ (\\mathbf{E}\) $) to
 the distribution of electric charge. This law states that the electric flux through a closed surface is 
 proportional to the enclosed electric charge.
 
 Mathematically, Gauss's Law for electricity is expressed as:
 
-\[
+$$ \[
 \nabla \cdot \mathbf{E} = \frac{\rho}{\epsilon_0}
-\]
+\] $$
 
 Where:
-- \(\nabla \cdot \mathbf{E}\) is the **divergence** of the electric field (\(\mathbf{E}\)),
-- \(\rho\) is the charge density (the amount of charge per unit volume),
-- \(\epsilon_0\) is the permittivity of free space.
+- $ (\\nabla \cdot \mathbf{E}\) $ is the **divergence** of the electric field ($ (\\mathbf{E}\) $),
+- $ (\\rho\) $ is the charge density (the amount of charge per unit volume),
+- $ (\\epsilon_0\) $ is the permittivity of free space.
 
 Let’s derive this equation step by step, starting with the basic physical concepts.
 
@@ -362,29 +362,29 @@ Let’s derive this equation step by step, starting with the basic physical conc
 First, let's define **electric flux**. Electric flux through a surface represents the number of electric 
 field lines passing through that surface. Mathematically, it’s the surface integral of the electric field:
 
-\[
+$$ \[
 \Phi_E = \int_S \mathbf{E} \cdot d\mathbf{A}
-\]
+\] $$
 
 Where:
-- \(\Phi_E\) is the electric flux through a surface \(S\),
-- \(\mathbf{E}\) is the electric field vector,
-- \(d\mathbf{A}\) is the infinitesimal area vector on the surface, which points normal to the surface.
+- $ (\\Phi_E\) $ is the electric flux through a surface $ (\S\) $,
+- $ (\\mathbf{E}\) $ is the electric field vector,
+- $ (\d\mathbf{A}\) $ is the infinitesimal area vector on the surface, which points normal to the surface.
 
-The flux depends on both the magnitude of the electric field \(\mathbf{E}\) and the area \(d\mathbf{A}\) 
+The flux depends on both the magnitude of the electric field $ (\\mathbf{E}\) $ and the area $ (\d\mathbf{A}\) $
 of the surface.
 
 #### 2. **Concept of Charge and Electric Flux**
 Gauss’s Law asserts that the total electric flux through a closed surface is proportional to the total 
 charge enclosed within that surface. That is:
 
-\[
+$$ \[
 \Phi_E = \frac{Q_{\text{enc}}}{\epsilon_0}
-\]
+\] $$
 
 Where:
-- \(Q_{\text{enc}}\) is the total charge enclosed by the surface,
-- \(\epsilon_0\) is the permittivity of free space, a constant that describes how electric fields interact
+- $ (\Q_{\text{enc}}\) $ is the total charge enclosed by the surface,
+- $ (\\epsilon_0\) $ is the permittivity of free space, a constant that describes how electric fields interact
   with matter.
 
 This equation tells us that the total electric flux passing through any closed surface depends on the 
@@ -395,22 +395,22 @@ a negative charge, the flux will be inward (negative).
 
 #### 3. **Relating Flux to Charge Density**
 
-Next, we relate the total enclosed charge \(Q_{\text{enc}}\) to the **charge density** \(\rho\), which is 
+Next, we relate the total enclosed charge $ (\Q_{\text{enc}}\) $ to the **charge density** $ (\\rho\) $, which is
 the charge per unit volume. 
 
-If we have a small volume element \(dV\) with charge density \(\rho\), the amount of charge in that small 
+If we have a small volume element $ (\dV\) $ with charge density $ (\\rho\) $, the amount of charge in that small
 volume is:
 
-\[
+$$ \[
 dq = \rho dV
-\]
+\] $$
 
 Now, to find the total charge inside a volume, we integrate the charge density over the entire volume 
 enclosed by the surface:
 
-\[
+$$ \[
 Q_{\text{enc}} = \int_V \rho \, dV
-\]
+\] $$
 
 Thus, the total charge enclosed by the surface is the integral of the charge density over the volume inside 
 the surface.
@@ -420,57 +420,57 @@ the surface.
 We now apply the **divergence theorem**, which is a mathematical tool that relates a volume integral to a 
 surface integral. The divergence theorem states:
 
-\[
+$$ \[
 \int_V (\nabla \cdot \mathbf{E}) \, dV = \oint_S \mathbf{E} \cdot d\mathbf{A}
-\]
+\] $$
 
 Where:
-- \(\nabla \cdot \mathbf{E}\) is the **divergence** of the electric field,
-- The left-hand side of the equation is the volume integral of the divergence of \(\mathbf{E}\) over the volume \(V\),
-- The right-hand side is the surface integral of the electric field over the closed surface \(S\).
+- $ (\\nabla \cdot \mathbf{E}\) $ is the **divergence** of the electric field,
+- The left-hand side of the equation is the volume integral of the divergence of $ (\\mathbf{E}\) $ over the volume $ (\V\) $,
+- The right-hand side is the surface integral of the electric field over the closed surface $ (\S\) $.
 
-The divergence theorem essentially says that the flux of \(\mathbf{E}\) through a closed surface \(S\) is 
-equal to the total "source" of the field inside the surface, integrated over the volume \(V\).
+The divergence theorem essentially says that the flux of $ (\\mathbf{E}\) $ through a closed surface $ (\S\) $ is
+equal to the total "source" of the field inside the surface, integrated over the volume $ (\V\) $.
 
 #### 5. **Connecting to Gauss’s Law**
 
 We now combine the results:
 - From Gauss’s Law, the total flux through a closed surface is proportional to the enclosed charge:
-  \[
+  $$ \[
   \Phi_E = \frac{Q_{\text{enc}}}{\epsilon_0}
-  \]
+  \] $$
 - Using the divergence theorem, the flux through a surface can be written as:
-  \[
+  $$ \[
   \oint_S \mathbf{E} \cdot d\mathbf{A} = \int_V (\nabla \cdot \mathbf{E}) \, dV
-  \]
+  \] $$
 
-Substitute the expression for the enclosed charge \(Q_{\text{enc}}\):
+Substitute the expression for the enclosed charge $ (\Q_{\text{enc}}\) $:
 
-\[
+$$ \[
 \int_V (\nabla \cdot \mathbf{E}) \, dV = \int_V \frac{\rho}{\epsilon_0} \, dV
-\]
+\] $$
 
 Since this equation must hold for any arbitrary volume, the integrands must be equal at every point in space. 
 Therefore, we obtain the local form of Gauss’s Law:
 
-\[
+$$ \[
 \nabla \cdot \mathbf{E} = \frac{\rho}{\epsilon_0}
-\]
+\] $$
 
 This is the **differential form** of Gauss's Law for electricity, which states that the divergence of the 
 electric field at any point is proportional to the charge density at that point.
 
 #### 6. **Physics at Each Step**
 
-- **Electric Flux (\(\Phi_E\))**: 
+- **Electric Flux ($ (\\Phi_E\) $)**:
     This represents how many electric field lines pass through a given surface. 
     It's a measure of how the electric field interacts with that surface.
 
-- **Charge Density (\(\rho\))**: 
+- **Charge Density ($ (\\rho\) $)**:
     This is the amount of electric charge per unit volume, which serves as the source of the electric field.
 
-- **Divergence of the Electric Field (\(\nabla \cdot \mathbf{E}\))**: 
-    The divergence of a vector field, like \(\mathbf{E}\), measures how much the field "spreads out" from a 
+- **Divergence of the Electric Field ($ (\\nabla \cdot \mathbf{E}\) $)**:
+    The divergence of a vector field, like $ (\\mathbf{E}\) $, measures how much the field "spreads out" from a
     point. 
     A positive divergence indicates a source (positive charge), and a negative divergence indicates a 
     sink (negative charge).
@@ -480,9 +480,9 @@ electric field at any point is proportional to the charge density at that point.
     the surface. It allows us to connect the total flux with the charge enclosed.
 
 - **Final Equation**: 
-    \(\nabla \cdot \mathbf{E} = \frac{\rho}{\epsilon_0}\) tells us that the electric field at a point 
+    $ (\\nabla \cdot \mathbf{E} = \frac{\rho}{\epsilon_0}\) $ tells us that the electric field at a point
     is determined by the charge density at that point, and it is proportional to it, with the 
-    constant \(\epsilon_0\) determining the strength of the field.
+    constant $ (\\epsilon_0\) $ determining the strength of the field.
 
 #### Summary
 
@@ -492,7 +492,7 @@ space to the charge density at that point.
 It tells us that the electric field is created by charges, and the total electric flux through a closed 
 surface is proportional to the total charge enclosed within that surface. 
 
-The final form of this law, \(\nabla \cdot \mathbf{E} = \frac{\rho}{\epsilon_0}\), is a key part of 
+The final form of this law, $ (\\nabla \cdot \mathbf{E} = \frac{\rho}{\epsilon_0}\) $, is a key part of
 **Maxwell's equations**, which describe the behavior of electric and magnetic fields.
 
 ---
@@ -502,16 +502,16 @@ The final form of this law, \(\nabla \cdot \mathbf{E} = \frac{\rho}{\epsilon_0}\
 It states that there are no magnetic monopoles (isolated magnetic charges) and that magnetic field lines 
 always form closed loops. Mathematically, this law is expressed as:
 
-\[
+$$ \[
 \nabla \cdot \mathbf{B} = 0
-\]
+\] $$
 
 Where:
 
-- \(\nabla \cdot \mathbf{B}\) is the **divergence** of the magnetic field \(\mathbf{B}\), representing the 
+- $ (\\nabla \cdot \mathbf{B}\) $ is the **divergence** of the magnetic field $ (\\mathbf{B}\) $, representing the
   net magnetic flux density originating from a point.
 
-- \(\mathbf{B}\) is the magnetic field.
+- $ (\\mathbf{B}\) $ is the magnetic field.
 
 #### Physics Behind Gauss's Law for Magnetism
 Gauss’s law for magnetism essentially states that magnetic field lines do not have any starting or ending 
@@ -528,17 +528,17 @@ another (e.g., from the North pole to the South pole of a magnet).
 
 ##### Step 1: Start with the concept of the magnetic flux
 
-Magnetic flux through a surface is the integral of the magnetic field \(\mathbf{B}\) passing through that 
-surface. Mathematically, the magnetic flux through a closed surface \(S\) is:
+Magnetic flux through a surface is the integral of the magnetic field $ (\\mathbf{B}\) $ passing through that
+surface. Mathematically, the magnetic flux through a closed surface $ (\S\) $ is:
 
-\[
+$$ \[
 \Phi_B = \oint_S \mathbf{B} \cdot d\mathbf{A}
-\]
+\] $$
 
 Where:
-- \(\Phi_B\) is the total magnetic flux through the surface.
-- \(\mathbf{B}\) is the magnetic field.
-- \(d\mathbf{A}\) is an infinitesimal vector element of the surface \(S\), with direction normal to the surface.
+- $ (\\Phi_B\) $ is the total magnetic flux through the surface.
+- $ (\\mathbf{B}\) $ is the magnetic field.
+- $ (\d\mathbf{A}\) $ is an infinitesimal vector element of the surface $ (\S\) $, with direction normal to the surface.
 
 The flux represents the total number of magnetic field lines passing through the surface. 
 If the magnetic field lines are perfectly symmetric, you can think of this as how many "lines" pass through 
@@ -550,23 +550,23 @@ The **divergence theorem** (also known as Gauss's theorem) states that the flux 
 closed surface is equal to the volume integral of the divergence of the field over the region enclosed by 
 the surface. 
 
-For the magnetic field \(\mathbf{B}\), we can apply this theorem:
+For the magnetic field $ (\\mathbf{B}\) $, we can apply this theorem:
 
-\[
+$$ \[
 \oint_S \mathbf{B} \cdot d\mathbf{A} = \int_V (\nabla \cdot \mathbf{B}) \, dV
-\]
+\] $$
 
 Where:
-- \(S\) is a closed surface (a boundary of volume \(V\)).
-- \(dV\) is the differential volume element inside the surface.
+- $ (\S\) $ is a closed surface (a boundary of volume $ (\V\) $).
+- $ (\dV\) $ is the differential volume element inside the surface.
 
 So, the total magnetic flux through a closed surface is related to the integral of the 
-**divergence of the magnetic field** \(\nabla \cdot \mathbf{B}\) over the volume \(V\) 
-enclosed by the surface \(S\).
+**divergence of the magnetic field** $ (\\nabla \cdot \mathbf{B}\) $ over the volume $ (\V\) $
+enclosed by the surface $ (\S\) $.
 
 ##### Step 3: Physical Interpretation
 
-The divergence \(\nabla \cdot \mathbf{B}\) measures the net magnetic flux density at a point. 
+The divergence $ (\\nabla \cdot \mathbf{B}\) $ measures the net magnetic flux density at a point.
 If the divergence is non-zero, it means that there is a net **source** (positive divergence) or 
 **sink** (negative divergence) of magnetic flux at that point. 
 
@@ -577,15 +577,15 @@ However, **no magnetic monopoles have been discovered** in nature (as of current
 Magnetic field lines always form closed loops. So, there is no net source or sink of magnetic flux anywhere 
 in space.
 
-##### Step 4: Setting the divergence of \(\mathbf{B}\) to zero
+##### Step 4: Setting the divergence of $ (\\mathbf{B}\) $ to zero
 
 Because we observe that magnetic field lines always form closed loops (i.e., there is no net "beginning" or 
-"end" of the field lines, and no magnetic monopoles), the divergence of the magnetic field \(\mathbf{B}\) 
+"end" of the field lines, and no magnetic monopoles), the divergence of the magnetic field $ (\\mathbf{B}\) $
 must be **zero** everywhere in space:
 
-\[
+$$ \[
 \nabla \cdot \mathbf{B} = 0
-\]
+\] $$
 
 This is Gauss’s law for magnetism, and it expresses the idea that there are no magnetic monopoles.
 
@@ -610,9 +610,9 @@ This is Gauss’s law for magnetism, and it expresses the idea that there are no
 
 - **Mathematically**, the law is expressed as:
 
-  \[
+  $$ \[
   \nabla \cdot \mathbf{B} = 0
-  \]
+  \] $$
 
   This equation expresses the fact that there is no net creation or destruction of magnetic field lines at 
   any point in space.
@@ -638,18 +638,18 @@ electrical engineering.
 
 Mathematically, Faraday's Law is given by:
 
-\[
+$$ \[
 \nabla \times \mathbf{E} = -\frac{\partial \mathbf{B}}{\partial t}
-\]
+\] $$
 
 Where:
 
-- \(\nabla \times \mathbf{E}\) is the **curl of the electric field** \(\mathbf{E}\), representing the 
+- $ (\\nabla \times \mathbf{E}\) $ is the **curl of the electric field** $ (\\mathbf{E}\) $, representing the
   rotational behavior of the electric field.
 
-- \(\mathbf{B}\) is the magnetic field.
+- $ (\\mathbf{B}\) $ is the magnetic field.
 
-- \(\frac{\partial \mathbf{B}}{\partial t}\) is the **time derivative of the magnetic field**, representing 
+- $ (\\frac{\partial \mathbf{B}}{\partial t}\) $ is the **time derivative of the magnetic field**, representing
   how the magnetic field changes over time.
 
 #### Physics Behind Faraday's Law of Induction
@@ -686,20 +686,20 @@ This current depends on the **rate of change of the magnetic field**.
 Faraday’s Law in its integral form relates the induced electromotive force (emf) around a closed loop to 
 the time rate of change of the magnetic flux through the loop. The integral form of Faraday’s Law is:
 
-\[
+$$ \[
 \oint_{\mathcal{C}} \mathbf{E} \cdot d\mathbf{l} = -\frac{d}{dt} \int_S \mathbf{B} \cdot d\mathbf{A}
-\]
+\] $$
 
 Where:
 
-- \(\oint_{\mathcal{C}} \mathbf{E} \cdot d\mathbf{l}\) is the **line integral** of the electric field
-  \(\mathbf{E}\) around a closed loop \(\mathcal{C}\), which represents the induced electromotive force (emf).
+- $ (\\oint_{\mathcal{C}} \mathbf{E} \cdot d\mathbf{l}\) $ is the **line integral** of the electric field
+  $ (\\mathbf{E}\) $ around a closed loop $ (\\mathcal{C}\) $, which represents the induced electromotive force (emf).
 
-- \(\frac{d}{dt} \int_S \mathbf{B} \cdot d\mathbf{A}\) is the **time rate of change of the magnetic flux** 
-  through the surface \(S\) bounded by the closed loop \(\mathcal{C}\).
+- $ (\\frac{d}{dt} \int_S \mathbf{B} \cdot d\mathbf{A}\) $ is the **time rate of change of the magnetic flux**
+  through the surface $ (\S\) $ bounded by the closed loop $ (\\mathcal{C}\) $.
 
 The right-hand side of the equation represents the rate at which the magnetic flux 
-\(\Phi_B = \int_S \mathbf{B} \cdot d\mathbf{A}\) changes with time.
+$ (\\Phi_B = \int_S \mathbf{B} \cdot d\mathbf{A}\) $ changes with time.
 
 ##### Step 3: Apply Stokes' Theorem
 
@@ -709,35 +709,35 @@ surface integral of the curl of a vector field over the surface enclosed by the 
 
 Stokes' theorem states:
 
-\[
+$$ \[
 \oint_{\mathcal{C}} \mathbf{E} \cdot d\mathbf{l} = \int_S (\nabla \times \mathbf{E}) \cdot d\mathbf{A}
-\]
+\] $$
 
 Where:
 
-- \(\oint_{\mathcal{C}} \mathbf{E} \cdot d\mathbf{l}\) is the circulation (line integral) of the electric 
-  field \(\mathbf{E}\) around the closed loop \(\mathcal{C}\).
+- $ (\\oint_{\mathcal{C}} \mathbf{E} \cdot d\mathbf{l}\) $ is the circulation (line integral) of the electric
+  field $ (\\mathbf{E}\) $ around the closed loop $ (\\mathcal{C}\) $.
 
-- \(\int_S (\nabla \times \mathbf{E}) \cdot d\mathbf{A}\) is the surface integral of the **curl of the 
-  electric field** \(\nabla \times \mathbf{E}\) over the surface \(S\) bounded by \(\mathcal{C}\).
+- $ (\\int_S (\nabla \times \mathbf{E}) \cdot d\mathbf{A}\) $ is the surface integral of the **curl of the
+  electric field** $ (\\nabla \times \mathbf{E}\) $ over the surface $ (\S\) $ bounded by $ (\\mathcal{C}\) $.
 
 ##### Step 4: Relating the Time-Varying Magnetic Flux to the Curl of the Electric Field
 
 Now, using the above relations and substituting into Faraday's Law in its integral form:
 
-\[
+$$ \[
 \int_S (\nabla \times \mathbf{E}) \cdot d\mathbf{A} = -\frac{d}{dt} \int_S \mathbf{B} \cdot d\mathbf{A}
-\]
+\] $$
 
-Because the integrals are over the same surface \(S\), we can drop the integrals and simply equate the integrands:
+Because the integrals are over the same surface $ (\S\) $, we can drop the integrals and simply equate the integrands:
 
-\[
+$$ \[
 \nabla \times \mathbf{E} = -\frac{\partial \mathbf{B}}{\partial t}
-\]
+\] $$
 
 This is the **differential form of Faraday’s Law of Induction**, which expresses the relationship between 
-the time-varying magnetic field \(\frac{\partial \mathbf{B}}{\partial t}\) and the induced electric field 
-\(\nabla \times \mathbf{E}\).
+the time-varying magnetic field $ (\\frac{\partial \mathbf{B}}{\partial t}\) $ and the induced electric field
+$ (\\nabla \times \mathbf{E}\) $.
 
 #### Physics at Each Step
 
@@ -763,7 +763,7 @@ This allows us to express Faraday’s law in terms of the **curl of the electric
 
 4. **Time-Varying Magnetic Field and Induced Electric Field**: 
 
-The final result, \(\nabla \times \mathbf{E} = -\frac{\partial \mathbf{B}}{\partial t}\), tells us that the 
+The final result, $ (\\nabla \times \mathbf{E} = -\frac{\partial \mathbf{B}}{\partial t}\) $, tells us that the
 curl of the electric field is related to the **time rate of change of the magnetic field**. 
 This means that a **spatially-varying magnetic field** (one that changes with time) generates an electric 
 field that circulates around the changing magnetic field. This is the essence of **electromagnetic induction**.
@@ -773,7 +773,7 @@ field that circulates around the changing magnetic field. This is the essence of
 - **Faraday’s Law**: A time-varying magnetic field generates a circulating electric field. 
   The magnitude of this induced electric field depends on how fast the magnetic field changes over time.
 
-- **Equation**: \(\nabla \times \mathbf{E} = -\frac{\partial \mathbf{B}}{\partial t}\)
+- **Equation**: $ (\\nabla \times \mathbf{E} = -\frac{\partial \mathbf{B}}{\partial t}\) $
 
 - **Physical Interpretation**: A changing magnetic field produces a non-conservative electric field. 
   This induced electric field can drive electric currents, which is the principle behind electric generators 
@@ -789,8 +789,8 @@ part of the theory that describes how electric and magnetic fields interact.
 
 ##  Maxwell's fourth equation is **Ampère's Law (with Maxwell's correction)**, 
 
-Ampere law: relates the magnetic field \(\mathbf{B}\) to the electric current \(\mathbf{J}\) and the time
-rate of change of the electric field \(\mathbf{E}\). 
+Ampere law: relates the magnetic field $ (\\mathbf{B}\) $ to the electric current $ (\\mathbf{J}\) $ and the time
+rate of change of the electric field $ (\\mathbf{E}\) $.
 
 The equation includes a correction introduced by James Clerk Maxwell to account for the displacement current,
 which was essential for the consistency of the theory of electromagnetism.
@@ -800,24 +800,24 @@ which was essential for the consistency of the theory of electromagnetism.
 
 The **differential form** of Ampère's Law (with Maxwell's correction) is:
 
-\[
+$$ \[
 \nabla \times \mathbf{B} = \mu_0 \left( \mathbf{J} + \epsilon_0 \frac{\partial \mathbf{E}}{\partial t} \right)
-\]
+\] $$
 
 Where:
 
-- \(\nabla \times \mathbf{B}\) is the **curl of the magnetic field** \(\mathbf{B}\), representing the 
+- $ (\\nabla \times \mathbf{B}\) $ is the **curl of the magnetic field** $ (\\mathbf{B}\) $, representing the
   rotational behavior of the magnetic field.
 
-- \(\mathbf{J}\) is the **current density**, which describes the flow of electric charge per unit area.
+- $ (\\mathbf{J}\) $ is the **current density**, which describes the flow of electric charge per unit area.
 
-- \(\epsilon_0\) is the **permittivity of free space**, a constant that characterizes the ability of a 
+- $ (\\epsilon_0\) $ is the **permittivity of free space**, a constant that characterizes the ability of a
   vacuum to permit electric field lines.
 
-- \(\frac{\partial \mathbf{E}}{\partial t}\) is the **time rate of change** of the electric field 
-  \(\mathbf{E}\), which accounts for the displacement current.
+- $ (\\frac{\partial \mathbf{E}}{\partial t}\) $ is the **time rate of change** of the electric field
+  $ (\\mathbf{E}\) $, which accounts for the displacement current.
 
-- \(\mu_0\) is the **permeability of free space**, a constant that characterizes the ability of a vacuum to 
+- $ (\\mu_0\) $ is the **permeability of free space**, a constant that characterizes the ability of a vacuum to
   permit magnetic field lines.
 
 ### Physics Behind Ampère’s Law with Maxwell’s Correction
@@ -829,7 +829,7 @@ However, Maxwell noticed that this law was incomplete because it did not account
 electric field was changing in time, such as in capacitors. 
 
 A changing electric field could also create a magnetic field, and Maxwell added the **displacement current 
-term** \(\epsilon_0 \frac{\partial \mathbf{E}}{\partial t}\) to make the equation applicable in all 
+term** $ (\\epsilon_0 \frac{\partial \mathbf{E}}{\partial t}\) $ to make the equation applicable in all
 situations, including those involving time-varying electric fields.
 
 Thus, Maxwell’s correction ensures that Ampère’s Law holds in both static and dynamic situations, allowing 
@@ -842,13 +842,13 @@ changing over time.
 
 Ampère’s original law, before the inclusion of Maxwell’s correction, was:
 
-\[
+$$ \[
 \nabla \times \mathbf{B} = \mu_0 \mathbf{J}
-\]
+\] $$
 
-This equation tells us that a **current density** \(\mathbf{J}\) produces a magnetic field. 
+This equation tells us that a **current density** $ (\\mathbf{J}\) $ produces a magnetic field.
 The curl of the magnetic field at a point is proportional to the local current density at that point. 
-This equation, however, only applies to situations where the current density \(\mathbf{J}\) is steady 
+This equation, however, only applies to situations where the current density $ (\\mathbf{J}\) $ is steady
 (i.e., constant with time) and does not account for time-varying electric fields.
 
 ##### Step 2: The Need for Maxwell’s Correction
@@ -860,16 +860,16 @@ with alternating currents (AC) and was observed in the phenomenon of **displacem
 To account for this, Maxwell added a term involving the **rate of change of the electric field** to 
 Ampère’s Law, leading to the modified equation:
 
-\[
+$$ \[
 \nabla \times \mathbf{B} = \mu_0 \left( \mathbf{J} + \epsilon_0 \frac{\partial \mathbf{E}}{\partial t} \right)
-\]
+\] $$
 
 Where:
 
-- The term \(\epsilon_0 \frac{\partial \mathbf{E}}{\partial t}\) represents the **displacement current** 
+- The term $ (\\epsilon_0 \frac{\partial \mathbf{E}}{\partial t}\) $ represents the **displacement current**
   term, which corresponds to the effect of a time-varying electric field.
   Lawbbbb
-- The term \(\mu_0 \mathbf{J}\) still represents the magnetic field produced by the **real current**.
+- The term $ (\\mu_0 \mathbf{J}\) $ still represents the magnetic field produced by the **real current**.
 
 ##### Step 3: Physical Meaning of the Displacement Current
 
@@ -883,38 +883,38 @@ charges or discharges, leading to a changing electric flux.
 
 The displacement current term is defined as:
 
-\[
+$$ \[
 \mathbf{J}_d = \epsilon_0 \frac{\partial \mathbf{E}}{\partial t}
-\]
+\] $$
 
 This term behaves mathematically as if it were a **current density**, and it contributes to the curl of the 
-magnetic field in the same way as real current \(\mathbf{J}\). 
+magnetic field in the same way as real current $ (\\mathbf{J}\) $.
 
 This is crucial because, without it, we would not be able to describe the magnetic field created by a 
 time-varying electric field, such as in electromagnetic waves or alternating currents.
 
 ##### Step 4: Final Form of Ampère’s Law with Maxwell’s Correction
 
-Combining the real current term \(\mathbf{J}\) and the displacement current term 
-\(\epsilon_0 \frac{\partial \mathbf{E}}{\partial t}\), the full equation is:
+Combining the real current term $ (\\mathbf{J}\) $ and the displacement current term
+$ (\\epsilon_0 \frac{\partial \mathbf{E}}{\partial t}\) $, the full equation is:
 
-\[
+$$ \[
 \nabla \times \mathbf{B} = \mu_0 \left( \mathbf{J} + \epsilon_0 \frac{\partial \mathbf{E}}{\partial t} \right)
-\]
+\] $$
 
 This equation describes the generation of the magnetic field:
 
-1. By steady electric currents, \(\mu_0 \mathbf{J}\), which is the original Ampère’s Law.
+1. By steady electric currents, $ (\\mu_0 \mathbf{J}\) $, which is the original Ampère’s Law.
 
-2. By time-varying electric fields, \(\mu_0 \epsilon_0 \frac{\partial \mathbf{E}}{\partial t}\), which 
+2. By time-varying electric fields, $ (\\mu_0 \epsilon_0 \frac{\partial \mathbf{E}}{\partial t}\) $, which
    accounts for the displacement current.
 
 #### Physics at Each Step
 
 1. **Original Ampère's Law**: 
 
-The original form of Ampère’s Law tells us that a steady current \(\mathbf{J}\) produces a magnetic field 
-\(\mathbf{B}\), which circulates around the current. 
+The original form of Ampère’s Law tells us that a steady current $ (\\mathbf{J}\) $ produces a magnetic field
+$ (\\mathbf{B}\) $, which circulates around the current.
 
 The curl of the magnetic field at any point in space is proportional to the current density at that point.
 
@@ -927,7 +927,7 @@ electric field between capacitor plates changes over time.
 3. **Displacement Current**: 
 
 To account for the effect of time-varying electric fields, Maxwell introduced the displacement current, 
-\(\epsilon_0 \frac{\partial \mathbf{E}}{\partial t}\). 
+$ (\\epsilon_0 \frac{\partial \mathbf{E}}{\partial t}\) $.
 
 This term behaves like a real current in its ability to generate a magnetic field, and it allows the 
 equation to apply in situations where there are no physical currents (e.g., between the plates of a 
@@ -936,7 +936,7 @@ charging capacitor).
 4. **Final Form**: 
 
 The final equation, 
-\(\nabla \times \mathbf{B} = \mu_0 \left( \mathbf{J} + \epsilon_0 \frac{\partial \mathbf{E}}{\partial t} \right)\), 
+$ (\\nabla \times \mathbf{B} = \mu_0 \left( \mathbf{J} + \epsilon_0 \frac{\partial \mathbf{E}}{\partial t} \right)\) $,
 is a unified description of how both **real electric currents** and **changing electric fields** can create 
 magnetic fields. 
 
@@ -949,9 +949,9 @@ electromagnetism, including the behavior of electromagnetic waves.
     expresses how both **electric currents** and **time-varying electric fields** generate **magnetic fields**.
 
 - **Equation**: 
-    \(\nabla \times \mathbf{B} = \mu_0 \left( \mathbf{J} + \epsilon_0 \frac{\partial \mathbf{E}}{\partial t} \right)\)
+    $ (\\nabla \times \mathbf{B} = \mu_0 \left( \mathbf{J} + \epsilon_0 \frac{\partial \mathbf{E}}{\partial t} \right)\) $
 
-- The term \(\epsilon_0 \frac{\partial \mathbf{E}}{\partial t}\) represents the **displacement current**, 
+- The term $ (\\epsilon_0 \frac{\partial \mathbf{E}}{\partial t}\) $ represents the **displacement current**,
   which is needed to account for the changing electric field, ensuring the law holds in all situations.
 
 - This equation is crucial for understanding the behavior of magnetic fields in **electromagnetic waves**, 
@@ -966,68 +966,68 @@ solution for the electric and magnetic fields.
 
 1. **Start with Faraday's Law**:
 
-   \[
+   $$ \[
    \nabla \times \mathbf{E} = -\frac{\partial \mathbf{B}}{\partial t}
-   \]
-   This equation states that a changing magnetic field (\(\frac{\partial \mathbf{B}}{\partial t}\)) 
-   produces a circulating electric field (\(\nabla \times \mathbf{E}\)).
+   \] $$
+   This equation states that a changing magnetic field ($ (\\frac{\partial \mathbf{B}}{\partial t}\) $)
+   produces a circulating electric field ($ (\\nabla \times \mathbf{E}\) $).
 
 2. **Take the curl of both sides** of this equation:
 
-   \[
+   $$ \[
    \nabla \times (\nabla \times \mathbf{E}) = -\nabla \times \frac{\partial \mathbf{B}}{\partial t}
-   \]
+   \] $$
 
    Using the vector identity
-   \(\nabla \times (\nabla \times \mathbf{A}) = \nabla (\nabla \cdot \mathbf{A}) - \nabla^2 \mathbf{A}\), 
+   $ (\\nabla \times (\nabla \times \mathbf{A}) = \nabla (\nabla \cdot \mathbf{A}) - \nabla^2 \mathbf{A}\) $,
 
    we can rewrite the left-hand side:
 
-   \[
+   $$ \[
    \nabla \times (\nabla \times \mathbf{E}) = \nabla (\nabla \cdot \mathbf{E}) - \nabla^2 \mathbf{E}
-   \]
+   \] $$
 
-   From **Gauss’s Law for Electricity** (\(\nabla \cdot \mathbf{E} = \frac{\rho}{\epsilon_0}\)), we know 
-   that \(\nabla \cdot \mathbf{E} = 0\) in the absence of free charges (vacuum or empty space), so:
+   From **Gauss’s Law for Electricity** ($ (\\nabla \cdot \mathbf{E} = \frac{\rho}{\epsilon_0}\) $), we know
+   that $ (\\nabla \cdot \mathbf{E} = 0\) $ in the absence of free charges (vacuum or empty space), so:
 
-   \[
+   $$ \[
    \nabla \times (\nabla \times \mathbf{E}) = -\nabla^2 \mathbf{E}
-   \]
+   \] $$
 
-3. **Substitute for \(\nabla \times \frac{\partial \mathbf{B}}{\partial t}\)** using **Ampère’s Law**:
-   \[
+3. **Substitute for $ (\\nabla \times \frac{\partial \mathbf{B}}{\partial t}\) $** using **Ampère’s Law**:
+   $$ \[
    \nabla \times \frac{\partial \mathbf{B}}{\partial t} = \mu_0 \epsilon_0 \frac{\partial^2 \mathbf{E}}{\partial t^2}
-   \]
+   \] $$
 
 4. **Combine these equations**:
-   \[
+   $$ \[
    -\nabla^2 \mathbf{E} = -\mu_0 \epsilon_0 \frac{\partial^2 \mathbf{E}}{\partial t^2}
-   \]
+   \] $$
    Simplifying:
-   \[
+   $$ \[
    \nabla^2 \mathbf{E} = \mu_0 \epsilon_0 \frac{\partial^2 \mathbf{E}}{\partial t^2}
-   \]
+   \] $$
 
-   This is the **wave equation** for the electric field \(\mathbf{E}\). 
+   This is the **wave equation** for the electric field $ (\\mathbf{E}\) $.
 
-   It shows that the electric field \(\mathbf{E}\) propagates as a wave with the speed:
-   \[
+   It shows that the electric field $ (\\mathbf{E}\) $ propagates as a wave with the speed:
+   $$ \[
    c = \frac{1}{\sqrt{\mu_0 \epsilon_0}}
-   \]
-   This is the speed of light, which Maxwell calculated to be approximately \(3 \times 10^8\) m/s, the same 
+   \] $$
+   This is the speed of light, which Maxwell calculated to be approximately $ (\ 3 \times 10^8\) $ m/s, the same
    as the observed speed of light.
 
 5. **Magnetic Field Wave Equation**: Similarly, Maxwell derived the wave equation for the magnetic field 
-    \(\mathbf{B}\), using the same reasoning:
+    $ (\\mathbf{B}\) $, using the same reasoning:
 
-   \[
+   $$ \[
    \nabla^2 \mathbf{B} = \mu_0 \epsilon_0 \frac{\partial^2 \mathbf{B}}{\partial t^2}
-   \]
+   \] $$
 
 ### Physical Interpretation: Electromagnetic Waves
 
-Maxwell’s derivation showed that both the electric field \(\mathbf{E}\) and the magnetic field 
-\(\mathbf{B}\) satisfy wave equations. 
+Maxwell’s derivation showed that both the electric field $ (\\mathbf{E}\) $ and the magnetic field
+$ (\\mathbf{B}\) $ satisfy wave equations.
 
 The electric and magnetic fields oscillate and propagate through space, creating an electromagnetic wave. 
 
@@ -1043,7 +1043,7 @@ interdependent and propagate through space in a wave-like manner.
 
 2. **Speed of Light**: Maxwell’s prediction that the speed of electromagnetic waves (light) is 
 
-    \(c = \frac{1}{\sqrt{\mu_0 \epsilon_0}}\) 
+    $ (\ c = \frac{1}{\sqrt{\mu_0 \epsilon_0}}\) $
 
     was significant because it showed that light is an electromagnetic wave, linking the two previously 
     separate domains of optics and electromagnetism.
