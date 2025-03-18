@@ -111,7 +111,7 @@ culminating in Maxwell’s equations.
     understanding of **light, radio waves, microwaves**, and other forms of electromagnetic radiation.
 
   - **Speed of Light**: Maxwell’s equations predicted that the speed of electromagnetic waves (light) was 
-    related to the electric and magnetic constants ($ (\\epsilon_0\) $ and $ (\\mu_0\) $).
+    related to the electric and magnetic constants ( $ (\\epsilon_0\) $ and $ (\\mu_0\) $ ).
 
     He calculated the speed of these waves to be approximately **300,000 km/s**, which closely matched the 
     observed speed of light, thereby linking light with electromagnetic theory.
@@ -1043,7 +1043,7 @@ interdependent and propagate through space in a wave-like manner.
 
 2. **Speed of Light**: Maxwell’s prediction that the speed of electromagnetic waves (light) is 
 
-    $ (\ c = \frac{1}{\sqrt{\mu_0 \epsilon_0}}\) $
+    $(\ c = \frac{1}{\sqrt{\mu_0 \epsilon_0}}\)$
 
     was significant because it showed that light is an electromagnetic wave, linking the two previously 
     separate domains of optics and electromagnetism.
