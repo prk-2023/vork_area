@@ -49,11 +49,9 @@ When a magnetic field through a coil changes (e.g., moving a magnet in or out), 
 - This electric field exerts a force on electrons in the conductor, causing them to move (current).  
 
 **Equation (Faraday’s Law):**  
-$$
-\[
+$$\[
 \mathcal{E} = -\frac{d\Phi_B}{dt}, \quad \text{where } \Phi_B = \int \mathbf{B} \cdot d\mathbf{A}.
-\]
-$$
+\]$$
 
 **Mechanism:**  
 
@@ -78,20 +76,16 @@ which directly affects electrons’ quantum states, inducing current.
    
    - Quantum mechanics treats $\( \mathbf{A} \)$ (not just $\( \mathbf{B} \)$ ) as fundamental. 
      The Hamiltonian of an electron depends on $\( \mathbf{A} \)$:  
-     $$
-     \[
+     $$\[
      H = \frac{1}{2m} \left( \mathbf{p} - q\mathbf{A} \right)^2.
-     \]
-     $$
+     \]$$
 
 2. **Phase Shift in Electrons:**  
 
    - Electrons in the coil acquire a **quantum phase** proportional to the line integral of $\( \mathbf{A} \)$:  
-     $$
-     \[
+     $$\[
      \Delta \phi = \frac{q}{\hbar} \oint \mathbf{A} \cdot d\mathbf{l}.
-     \]  
-     $$
+     \]$$
 
    - A changing $\( \mathbf{A} \)$ (due to changing $\( \mathbf{B} \)$ ) creates a time-varying phase 
      gradient along the coil.  
@@ -102,11 +96,9 @@ which directly affects electrons’ quantum states, inducing current.
      creating a **net current**.  
 
 **Equation (Aharonov-Bohm Effect):**  
-$$
-\[
+$$\[
 \mathcal{E} = -\frac{d}{dt} \oint \mathbf{A} \cdot d\mathbf{l}.
-\]
-$$
+\]$$
 **Mechanism:**  
 - Even if $\( \mathbf{B} = 0 \)$ in the region of the coil (but $\( \mathbf{A} \neq 0 \)$ ), a 
   changing $\( \mathbf{A} \)$ can induce current.  
@@ -283,11 +275,9 @@ Here's a structured explanation:
 
 In quantum mechanics, the **vector potential $\( \mathbf{A} \)$** (not just the magnetic field $\( \mathbf{B} \)$ ) 
 directly influences charged particles like electrons. The Hamiltonian for an electron in an electromagnetic field is:
-$$
-\[
+$$\[
 H = \frac{1}{2m} \left( \mathbf{p} - q\mathbf{A} \right)^2 + q\phi,
-\]
-$$
+\]$$
 where $\( \mathbf{p} \)$ is the canonical momentum, $\( q \)$ is the electron charge, and $\( \phi \)$
 is the scalar potential. The term $\( \mathbf{p} - q\mathbf{A} \)$  represents the **kinetic momentum**.
 
@@ -299,21 +289,17 @@ When the magnetic flux through the coil changes (e.g., moving a magnet), the vec
 becomes time-dependent. This modifies the Hamiltonian, altering the electrons' quantum states. 
 The time derivative of \( \mathbf{A} \) generates an **electric field**:
 
-$$
-\[
+$$\[
 \mathbf{E} = -\frac{\partial \mathbf{A}}{\partial t} \quad \text{(in the absence of a scalar potential gradient)}.
-\]
-$$
+\]$$
 ---
 
 ### **3. Phase Shift and the Aharonov-Bohm Effect**
 
 - Electrons traveling around a loop acquire a **quantum phase** proportional to the line integral of $\( \mathbf{A} \)$:
-  $$
-  \[
+  $$\[
   \Delta \phi = \frac{q}{\hbar} \oint \mathbf{A} \cdot d\mathbf{l}.
-  \]
-  $$
+  \]$$
 
 - A changing $\( \mathbf{A} \)$ (and thus changing flux $\( \Phi = \oint \mathbf{A} \cdot d\mathbf{l} \)$ ) 
   causes a time-dependent phase shift in the electrons' wave functions. 
@@ -353,11 +339,11 @@ changing flux, enforcing consistency in the quantum state.
 
 ### **Example: Superconducting Rings**
 In superconductors, flux quantization occurs:
-$$
-\[
+
+$$\[
 \Phi = n \frac{h}{2e},
-\]
-$$
+\]$$
+
 where $\( n \)$ is an integer. A changing flux induces persistent currents to maintain quantized flux, a 
 purely quantum effect.
 
