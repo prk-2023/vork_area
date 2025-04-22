@@ -1,0 +1,31 @@
+[package]
+name = "memory_access_basics_rust"
+version = "0.1.0"
+edition = "2021"
+
+[build]
+target = "x86_64-unknown-linux-gnu"
+
+[[bin]]
+name = "lab1_memcpy"
+path = "src/lab1_memcpy.rs"
+
+[[bin]]
+name = "lab2_stack_heap"
+path = "src/lab2_stack_heap.rs"
+
+[[bin]]
+name = "lab3_mmio"
+path = "src/lab3_mmio.rs"
+
+[[bin]]
+name = "lab4_cache"
+path = "src/lab4_cache.rs"
+
+[[bin]]
+name = "lab5_alignment"
+path = "src/lab5_alignment.rs"
+
+[[bin]]
+name = "lab6_struct_padding"
+path = "src/lab6_struct_padding.rs"
