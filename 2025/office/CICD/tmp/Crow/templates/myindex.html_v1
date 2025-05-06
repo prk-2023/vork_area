@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Realtek Transcoding Pipeline profiling/tracing</title>
+</head>
+<body>
+  <h1>Hello World Example</h1>
+  <button onclick="sayHello()">Click Me</button>
+  <p id="message"></p>
+
+  <script>
+    function sayHello() {
+      document.getElementById("message").textContent = "Hello, World!";
+    }
+  </script>
+</body>
+</html>

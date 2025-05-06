@@ -1,0 +1,20 @@
+cmake_minimum_required(VERSION 3.10)
+project(TranscodingCI)
+
+# Set C++ standard
+set(CMAKE_CXX_STANDARD 17)
+
+# Include Crow header files
+include_directories(/path/to/crow/include)
+
+# Add your dependencies (FFmpeg and GStreamer)
+find_package(FFmpeg REQUIRED)
+find_package(GStreamer REQUIRED)
+
+add_executable(transcoding_cicd main.cpp)
+
+# Link with FFmpeg and GStreamer libraries
+target_link_libraries(transcoding_cicd
+    ${FFMPEG_LIBRARIES}
+    ${GSTREAMER_LIBRARIES}
+    pthread)

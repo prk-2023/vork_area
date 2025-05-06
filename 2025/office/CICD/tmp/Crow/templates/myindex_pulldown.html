@@ -1,0 +1,42 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>:: RTK profile transcode pipeline::</title>
+</head>
+<body>
+  <h1> RTK transcode pipeline profiler </h1>
+
+  <label for="commandSelect">Select command:</label>
+  <select id="commandSelect">
+    <option value="ff_parser_demux">FFMpeg Parser and Demux</option>
+    <option value="gst_parser_demux">GST Parser and Demux</option>
+    <option value="date">Show Date</option>
+  </select>
+
+  <button onclick="runCommand()">Run Command</button>
+
+  <p id="message"></p>
+
+  <script>
+    function runCommand() {
+      const command = document.getElementById("commandSelect").value;
+      const messageElement = document.getElementById("message");
+
+      if (command === "ff_parser_demux") {
+          messageElement.textContent = "To Do : Construct and run CLI args for FFmpeg/Gst !";
+      } else if (command === "gst_parser_demux") {
+
+
+          messageElement.textContent = "To Do : Construct and run CLI args for FFmpeg/Gst";
+      } else if (command === "date") {
+        const now = new Date();
+        messageElement.textContent = "Current Date and Time: Construct and run CLI args for FFmpeg/Gst " + now.toString();
+      } else {
+        messageElement.textContent = "Unknown command.";
+      }
+    }
+  </script>
+</body>
+</html>

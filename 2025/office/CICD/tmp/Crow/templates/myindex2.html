@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Command Runner</title>
+</head>
+<body>
+  <h1>Command Runner</h1>
+
+  <label for="commandSelect">Choose a command:</label>
+  <select id="commandSelect">
+    <option value="echo Hello">Echo Hello</option>
+    <option value="date">Show Date</option>
+    <option value="ls">List Directory</option>
+  </select>
+
+  <button onclick="runCommand()">Run Command</button>
+
+  <pre id="output"></pre>
+
+  <script>
+    function runCommand() {
+      const command = document.getElementById("commandSelect").value;
+
+      fetch('/run', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cmd: command })
+      })
+      .then(response => response.text())
+      .then(data => {
+        document.getElementById("output").textContent = data;
+      })
+      .catch(error => {
+        document.getElementById("output").textContent = 'Error: ' + error;
+      });
+    }
+  </script>
+</body>
+</html>
