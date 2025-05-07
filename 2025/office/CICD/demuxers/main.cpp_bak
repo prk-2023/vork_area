@@ -1,0 +1,39 @@
+#include "FFmpegDemuxer.h"
+#include <iostream>
+#include <chrono>
+#include <thread>
+
+int main(int argc, char* argv[]) {
+    if (argc < 2) {
+        std::cerr << "Usage: ./demuxer <input.mp4>" << std::endl;
+        return -1;
+    }
+
+    std::string inputFile = argv[1];
+
+    // Initialize FFmpeg (only once per app) 
+    // required of ffmpeg < 4.x
+    //av_register_all();  // Deprecated in recent FFmpeg but harmless
+
+    FFmpegDemuxer demuxer(inputFile);
+
+    std::cout << "Preparing demuxer..." << std::endl;
+    if (!demuxer.prepare()) {
+        std::cerr << "Failed to prepare demuxer." << std::endl;
+        return -1;
+    }
+
+    std::cout << "Starting demuxer thread..." << std::endl;
+    demuxer.startThread();
+    demuxer.resume(); // Start reading packets
+
+    std::cout << "Reading for 5 seconds..." << std::endl;
+    std::this_thread::sleep_for(std::chrono::seconds(5));
+
+    std::cout << "Stopping demuxer..." << std::endl;
+    demuxer.pause();
+    demuxer.stopThread();
+
+    std::cout << "Demuxing complete." << std::endl;
+    return 0;
+}

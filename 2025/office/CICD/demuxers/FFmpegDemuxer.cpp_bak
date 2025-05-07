@@ -1,0 +1,192 @@
+#include "FFmpegDemuxer.h"
+#include <iostream>
+#include <chrono>
+#include <thread>
+
+FFmpegDemuxer::FFmpegDemuxer(const std::string& uri)
+    : uri(uri), status(Status::NONE), avContext(nullptr), stopThreadFlag(false) {
+    av_init_packet(&currentPacket);
+    currentPacket.data = nullptr;
+    currentPacket.size = 0;
+}
+
+FFmpegDemuxer::~FFmpegDemuxer() {
+    stopThread();
+    closeAvformat();
+
+    for (auto& ctx : streamContexts) {
+        if (ctx.codecContext) {
+            avcodec_free_context(&ctx.codecContext);
+        }
+    }
+}
+
+bool FFmpegDemuxer::prepare() {
+    if (avformat_open_input(&avContext, uri.c_str(), nullptr, nullptr) < 0) {
+        std::cerr << "Failed to open input: " << uri << std::endl;
+        return false;
+    }
+
+    if (avformat_find_stream_info(avContext, nullptr) < 0) {
+        std::cerr << "Failed to find stream information." << std::endl;
+        return false;
+    }
+
+    if (!fillMediaInfo()) {
+        std::cerr << "Failed to fill media info." << std::endl;
+        return false;
+    }
+
+    status = Status::PREPARED;
+    return true;
+}
+
+void FFmpegDemuxer::startThread() {
+    stopThreadFlag = false;
+    threadExecutor = std::thread(&FFmpegDemuxer::threadLoop, this);
+}
+
+void FFmpegDemuxer::stopThread() {
+    stopThreadFlag = true;
+    condVar.notify_all();
+    if (threadExecutor.joinable()) {
+        threadExecutor.join();
+    }
+}
+
+void FFmpegDemuxer::pause() {
+    status = Status::PAUSED;
+}
+
+void FFmpegDemuxer::resume() {
+    status = Status::PLAYING;
+}
+
+void FFmpegDemuxer::seek(int64_t timestamp) {
+    doSeek(timestamp);
+}
+
+void FFmpegDemuxer::setParameter(const std::string& param, const std::string& value) {
+    // Example: implement if needed
+}
+
+void FFmpegDemuxer::addSinkBin(AVFormatContext* sinkBin) {
+    // Stub
+}
+
+void FFmpegDemuxer::removeSinkBin(AVFormatContext* sinkBin) {
+    // Stub
+}
+
+void FFmpegDemuxer::removeAllSinkBins() {
+    // Stub
+}
+
+bool FFmpegDemuxer::openAvformat() {
+    return (avformat_open_input(&avContext, uri.c_str(), nullptr, nullptr) == 0);
+}
+
+void FFmpegDemuxer::closeAvformat() {
+    if (avContext) {
+        avformat_close_input(&avContext);
+        avContext = nullptr;
+    }
+}
+
+void FFmpegDemuxer::onAvformatInterrupt() {
+    // Stub
+}
+
+bool FFmpegDemuxer::fillMediaInfo() {
+    for (unsigned int i = 0; i < avContext->nb_streams; ++i) {
+        AVStream* stream = avContext->streams[i];
+        AVCodecParameters* codecpar = stream->codecpar;
+
+        const AVCodec* codec = avcodec_find_decoder(codecpar->codec_id);
+        if (!codec) {
+            std::cerr << "Decoder not found for stream " << i << std::endl;
+            continue;
+        }
+
+        AVCodecContext* codecCtx = avcodec_alloc_context3(codec);
+        if (!codecCtx) {
+            std::cerr << "Failed to allocate codec context for stream " << i << std::endl;
+            continue;
+        }
+
+        if (avcodec_parameters_to_context(codecCtx, codecpar) < 0) {
+            std::cerr << "Failed to copy codec parameters to context for stream " << i << std::endl;
+            avcodec_free_context(&codecCtx);
+            continue;
+        }
+
+        StreamContext sc;
+        sc.streamIndex = i;
+        sc.codecContext = codecCtx;
+        sc.avStream = stream;
+
+        streamContexts.push_back(sc);
+    }
+    return true;
+}
+
+void FFmpegDemuxer::pushPacket(AVPacket* packet) {
+    // Stub: Implement packet queue logic
+}
+
+void FFmpegDemuxer::readPushPacket() {
+    // Stub: Implement logic to read from queue
+}
+
+void FFmpegDemuxer::removePacket() {
+    // Stub: Implement logic to remove current packet
+}
+
+void FFmpegDemuxer::doSeek(int64_t timestamp) {
+    if (!avContext) return;
+
+    if (av_seek_frame(avContext, -1, timestamp, AVSEEK_FLAG_BACKWARD) < 0) {
+        std::cerr << "Seek failed to timestamp " << timestamp << std::endl;
+    } else {
+        avcodec_flush_buffers(streamContexts[0].codecContext);
+    }
+}
+
+void FFmpegDemuxer::parseGopDuration() {
+    // Stub
+}
+
+void FFmpegDemuxer::parseIndexEntries() {
+    // Stub
+}
+
+void FFmpegDemuxer::parseSegmentDuration() {
+    // Stub
+}
+
+void FFmpegDemuxer::getMediaInfo() {
+    if (!avContext) return;
+
+    std::cout << "Format: " << avContext->iformat->name << "\n";
+    std::cout << "Duration: " << avContext->duration / AV_TIME_BASE << " sec\n";
+    std::cout << "Number of streams: " << avContext->nb_streams << "\n";
+}
+
+void FFmpegDemuxer::threadLoop() {
+    while (!stopThreadFlag) {
+        if (status != Status::PLAYING) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
+            continue;
+        }
+
+        AVPacket packet;
+        if (av_read_frame(avContext, &packet) >= 0) {
+            std::cout << "Read packet from stream index: " << packet.stream_index
+                      << ", size: " << packet.size << std::endl;
+            pushPacket(&packet);
+            av_packet_unref(&packet);
+        } else {
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        }
+    }
+}
