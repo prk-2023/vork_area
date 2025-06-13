@@ -196,7 +196,119 @@ Mainly using  **AVFrame::decode_error_flags** and other means:
    if (frame->pict_type == AV_PICTURE_TYPE_NONE)
     std::out  << "[NOTICE] Frame picture type is unknown!!! ";
 
-    
+
+# Error detection inside ffmpeg:
+
+Understanding how **`AVFrame`** internally marks frames as corrupted or having decode errors we need to look 
+into FFmpeg's decoding internals.
+
+### How does `AVFrame` decide the frame has corruption/errors?
+
+`AVFrame` itself is mostly a **data container** that stores decoded frame data. 
+It doesn’t perform decoding or corruption checks on its own. 
+Instead, the corruption/error flags you see in `AVFrame::decode_error_flags` are set 
+**by the decoder during the decoding process**.
+
+---
+
+### What happens internally?
+
+1. **During decoding**, each codec implementation (like H.264, HEVC, VP9, etc.) processes compressed data 
+   and tries to produce an uncompressed frame.
+
+2. If the decoder detects **problems in the bitstream**, like missing references, invalid syntax, or errors 
+   it cannot fully conceal, it sets specific error flags inside the frame.
+
+3. These error flags are communicated back by the decoder to the framework and stored inside the 
+   `AVFrame` struct before returning it to the user.
+
+---
+
+### Relevant `AVFrame` flags related to errors:
+
+* **`decode_error_flags`**:
+  This is a bitmask with flags like:
+
+  * `FF_DECODE_ERROR_INVALID_BITSTREAM` — Decoder detected invalid or corrupt bitstream.
+  * `FF_DECODE_ERROR_MISSING_REFERENCE` — Missing reference frame needed for decoding (common in inter-frame codecs).
+  * `FF_DECODE_ERROR_CONCEALMENT_ACTIVE` — Decoder applied error concealment to hide visible corruption.
+
+These constants are defined in FFmpeg headers like `libavcodec/avcodec.h` and are decoder-generated.
+
+---
+
+### Example scenario:
+
+* Say a frame references a previous frame that is missing or corrupted.
+* The decoder notices this during motion compensation or prediction.
+* It sets `FF_DECODE_ERROR_MISSING_REFERENCE` in the `decode_error_flags` of the output `AVFrame`.
+* Your code reads this flag and can print a warning or take corrective action.
+
+---
+
+### Summary
+
+| What                            | Where it happens                      | Who sets it                             | What it means                                                    |
+| ------------------------------- | ------------------------------------- | --------------------------------------- | ---------------------------------------------------------------- |
+| Frame corruption                | During codec bitstream decoding       | Codec decoder logic                     | Decoding errors, missing references, or concealment flagged here |
+| `decode_error_flags` in AVFrame | After decoding, before frame delivery | Decoder sets these flags inside AVFrame | Flags tell you about detected decode errors                      |
+
+---
+
+## HW decoder 
+
+- HW decoders often do not expose detailed error flags in the same way SW decoder does.
+
+- HW decoder may just produce the output frame without detailed error info embedded in
+  AVFrame::decode_error_flags
+
+- Sometimes HW decoder silently drops frames, Outputs black frames or delivers frames with artifacts but
+  without error flags.
+
+
+### What options do you have for error detection on HW-decoded frames?
+
+1. **Check `AVFrame::decode_error_flags` — if your driver/decoder supports it**
+   Sometimes, the FFmpeg wrapper for HW decoders attempts to map driver errors to these flags, but often 
+   this is limited or not implemented.
+
+2. **Check for missing PTS/DTS timestamps or irregularities**
+   HW decoders may miss PTS/DTS or produce non-monotonic timestamps. This is a hint something may be wrong.
+
+3. **Detect corrupted frames by hashing and comparing frame MD5 or checksums**
+   As you do with your MD5 hash on raw frame data, you can compare against expected hashes or look for 
+   frame-to-frame anomalies (black frames, repeated frames).
+
+4. **Visual/Statistical analysis of the decoded frame data**
+
+   * Check if frames are all zeros or mostly uniform (black/grey).
+   * Calculate pixel variance or entropy to detect frozen or corrupted frames.
+   * Detect sudden resolution changes or pixel format changes.
+
+5. **Monitor error messages/logs from the HW driver**
+   Sometimes the V4L2 driver logs or ioctl calls may reveal error conditions, which you can capture separately.
+
+6. **Use FFmpeg's `avcodec` error callbacks or side data (if available)**
+   In rare cases, the HW decoder might export extra metadata or error info as side data on the frame.
+
+7. **Software fallback for verification**
+   For critical applications, you might decode a subset of frames with a software decoder and compare results.
+
+---
+
+### Summary: HW decoder error detection limitations
+
+| Method                         | Likelihood with HW decoder | Comments                            |
+| ------------------------------ | -------------------------- | ----------------------------------- |
+| `decode_error_flags`           | Low to medium              | Often not set or limited support    |
+| PTS/DTS irregularities         | Medium                     | Useful but indirect error indicator |
+| Frame MD5 or pixel data checks | High                       | Your current method works well      |
+| Visual/entropy checks          | High                       | Can detect frozen or black frames   |
+| Driver/hardware logs           | Medium                     | Needs separate monitoring           |
+| Side data from decoder         | Low                        | Rarely implemented                  |
+| Software decode fallback       | High                       | Expensive, but most reliable        |
+
+---
 
 
 
