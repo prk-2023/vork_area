@@ -313,12 +313,45 @@ execve syscall called!
 * Use musl for fully static linking if needed.
 
 ---
-
-If you want, I can help you get started with example code or more detailed step-by-step commands!
-
-
-
-
-
+References1:
+Refs: https://www.ebpf.top/en/post/ebpf_rust_aya/  
 ---
+# Aya Intro
+
+
+## Introduction:
+
+- Starting kernel version 6.1 , Rust programming language is been supported in the Linux kernel.
+- Rust ( systems programming lanaguge) offers robust compile-time guarantees and precise control over memory
+  lifetimes. Its introduction to the kernel brings additional safety measures to the early stages of kernel
+  development. 
+
+- eBPF is a technology in the kernel that enables running user-defined programs based on *events, with a
+  validator mechanism* ensures security of the eBPF programs running in the kernel.
+
+- Rust and eBPF share common goal to ensure kernel safety, albeit with different focuses. 
+
+- Writing eBPF progs in Rust often involves unsafe memory reads and writes in the kernel, leveraging Rust
+  and Aya can provide a fast and efficient development experience. This includes
+  * Automatically generating the entire program framework (eBPF program and corresponding user-space code),
+    parameter validation, error handling, unified build and management processes and more.
+
+- Aya is a eBPF library focused on operability and developer experience, built entirely on Rust, using only
+  the libc package for system calls. 
+
+- Official website for Aya: https://github.com/aya-rs/aya/
+
+- What Aya offers:
+
+    * Management, building and testing of projects using Rust's Cargo tool.
+    * Support for direct generating CO-RE bindings with Rust and kernel files.
+    * Easy code sharing between user tool code (Rust) and eBPF code running in the kernel.
+    * No dependencies on LLVM, libbpf, bcc and like things
+
+## Process of writing eBPF progs and generating user-space programs using Aya.
+
+### setting up Rust development environment.
+
+#### Create a VM virtual machine 
+
 
