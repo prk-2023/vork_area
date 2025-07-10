@@ -159,3 +159,247 @@ of the main function.
 
 * **Lifetimes** ensure that references are valid for as long as the data they refer to is valid.
 
+-----------------------------------------------------------------------------------------------------------
+# Mastering Ownership:
+
+
+Mastering **ownership** in Rust is essential because it's the foundation of Rust's memory safety guarantees. 
+
+Below is a set of *progressive exercises* and *Rust programs* to help you fully understand how ownership, 
+borrowing, and lifetimes work.
+
+---
+
+## 🧠 What You’ll Learn
+
+* Ownership rules
+* Move semantics
+* Borrowing (immutable and mutable)
+* References and the borrow checker
+* Slices and ownership
+* Lifetimes (introductory)
+
+---
+
+## 🛠️ Getting Started
+
+Install Rust and set the PATH
+
+```bash
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+```
+
+To compile:
+
+```bash
+rustc your_file.rs && ./your_file
+```
+---
+
+## 🧪 Basic Ownership Exercises
+
+### 🔹 1. Move Semantics
+
+*Exercise:* What happens when you try to use a value after it's been moved?
+
+```rust
+fn main() {
+    let s1 = String::from("hello");
+    let s2 = s1;
+
+    println!("{}", s1); // Fix this line
+}
+```
+
+*Goal:* Understand that `s1` is moved into `s2`, so `s1` is no longer valid.
+
+✅ *Fix: Clone the string.*
+
+---
+
+### 🔹 2. Function Ownership
+
+*Exercise:* Pass a `String` to a function and try to use it afterward.
+
+```rust
+fn take_ownership(s: String) {
+    println!("Got: {}", s);
+}
+
+fn main() {
+    let s = String::from("hello");
+    take_ownership(s);
+
+    println!("{}", s); // Fix this line
+}
+```
+
+✅ *Fix: Return ownership or use references.*
+
+---
+
+## 🔄 Intermediate Borrowing Exercises
+
+### 🔹 3. Borrowing
+
+**Exercise:** Use references instead of moving ownership.
+
+```rust
+fn calculate_length(s: &String) -> usize {
+    s.len()
+}
+
+fn main() {
+    let s = String::from("hello");
+    let len = calculate_length(&s);
+
+    println!("Length: {}", len);
+    println!("String: {}", s); // Should still work
+}
+```
+
+**Challenge:** Make `calculate_length` take a reference.
+
+---
+
+### 🔹 4. Mutable Borrowing
+
+```rust
+fn change(some_string: &mut String) {
+    some_string.push_str(", world");
+}
+
+fn main() {
+    let mut s = String::from("hello");
+    change(&mut s);
+
+    println!("{}", s);
+}
+```
+
+**Challenge:** Why do you need `mut` in both `let mut s` and `&mut s`?
+
+---
+
+## 🔥 Advanced Exercises
+
+### 🔹 5. Borrow Checker Conflict
+
+```rust
+fn main() {
+    let mut s = String::from("hello");
+
+    let r1 = &s;
+    let r2 = &mut s;
+
+    println!("{}, {}", r1, r2); // Fix this
+}
+```
+
+**Goal:** Understand you can't have mutable and immutable references at the same time.
+
+---
+
+### 🔹 6. Dangling Reference Prevention
+
+```rust
+fn dangle() -> &String {
+    let s = String::from("hello");
+    &s // This won't compile — why?
+}
+
+fn main() {
+    let r = dangle();
+}
+```
+
+✅ *Fix: Return `String`, not a reference.*
+
+---
+
+### 🔹 7. Ownership with Structs
+
+```rust
+struct Person {
+    name: String,
+}
+
+fn main() {
+    let p1 = Person {
+        name: String::from("Alice"),
+    };
+
+    let p2 = p1;
+
+    println!("{}", p1.name); // Fix this
+}
+```
+
+✅ *Fix: Use references or clone.*
+
+---
+
+### 🔹 8. Lifetimes (Intro)
+
+```rust
+fn longest<'a>(x: &'a str, y: &'a str) -> &'a str {
+    if x.len() > y.len() {
+        x
+    } else {
+        y
+    }
+}
+
+fn main() {
+    let s1 = String::from("long string");
+    let s2 = "short";
+
+    let result = longest(&s1, &s2);
+    println!("Longest: {}", result);
+}
+```
+
+✅ *Try removing lifetimes and observe compiler errors.*
+
+---
+
+## 🧱 Bonus Challenges
+
+### 🔹 9. Build a Mini Text Editor
+
+* Accept user input line by line
+* Store in a `Vec<String>`
+* Print contents at the end
+* Practice borrowing and cloning strings
+
+---
+
+### 🔹 10. Implement a Safe Stack
+
+```rust
+struct Stack<T> {
+    items: Vec<T>,
+}
+
+impl<T> Stack<T> {
+    fn new() -> Self { ... }
+    fn push(&mut self, item: T) { ... }
+    fn pop(&mut self) -> Option<T> { ... }
+    fn peek(&self) -> Option<&T> { ... }
+}
+```
+
+✅ *Emphasize ownership in `push`/`pop`, borrowing in `peek`*
+
+---
+
+## ✅ Tips
+
+* Use `cargo check` frequently
+* Experiment with the compiler — it gives great hints!
+* Clone only when necessary
+* Think in terms of *who owns what and when*
+
+---
+
+Would you like this as a downloadable `.zip` or Rust Playground links for interactive use?
