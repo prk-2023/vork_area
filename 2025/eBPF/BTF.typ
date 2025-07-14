@@ -356,7 +356,7 @@ struct task_struct {
 };
 ```
 
-This proves the object has **embedded BTF metadata**.
+This proves the object has *embedded BTF metadata*.
 
 === 🔍 View kernel BTF types:
 

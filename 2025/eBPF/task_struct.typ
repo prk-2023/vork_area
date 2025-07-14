@@ -597,10 +597,10 @@ PID    COMM             CPU Time (ms)
 
 - On every `sched_switch`, we:
 
-  - Record the time when a task is switched **out**.
-  - Look up the last time the **next** task was scheduled **in**.
+  - Record the time when a task is switched *out*.
+  - Look up the last time the *next* task was scheduled *in*.
   - Subtract to find time delta = CPU time used.
-- This gives a rough **active CPU time per task between switches**.
+- This gives a rough *active CPU time per task between switches*.
 
 
 === 🧰 How to Run
@@ -867,7 +867,7 @@ PID: 5678   COMM: ls               CPU Time: 0.543 ms
   - LLVM
 - Aya is *pure Rust* — no Python, no dynamic runtime dependencies.
 
-> This makes it perfect for **minimal or embedded Linux environments**, like:
+> This makes it perfect for *minimal or embedded Linux environments*, like:
 
 - Alpine-based containers
 - IoT devices (e.g., routers, custom SBCs)
@@ -876,9 +876,9 @@ PID: 5678   COMM: ls               CPU Time: 0.543 ms
 
 === 2. Static Compilation
 
-- Aya eBPF programs and userland control logic can be **statically compiled**.
+- Aya eBPF programs and userland control logic can be *statically compiled*.
 - You can cross-compile both kernel and user parts for specific targets.
-- This fits well with distroless or **statically linked embedded firmware images**.
+- This fits well with distroless or *statically linked embedded firmware images*.
 
 === 3. Fast, Safe, and Efficient
 
@@ -888,7 +888,7 @@ PID: 5678   COMM: ls               CPU Time: 0.543 ms
 
 === 4. Async Capable Userland
 
-- Aya’s userspace side uses **Tokio (async)** by default.
+- Aya’s userspace side uses *Tokio (async)* by default.
 - Efficient and scalable on resource-constrained CPUs.
 - Runs fine in tight memory environments without GIL or CPython overhead.
 

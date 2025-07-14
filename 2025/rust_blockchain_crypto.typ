@@ -16,7 +16,7 @@
 #pagebreak()
 
 A three months plan, requires minimal of 8 - 12 hours per week.
-Can be achived in 2 months adjust the time hours spent on it.
+Can be achieved in 2 months adjust the time hours spent on it.
 
 #line(length: 100%, stroke: (paint: blue, thickness: 1pt))
 
@@ -30,6 +30,7 @@ Can be achived in 2 months adjust the time hours spent on it.
   - Enums and pattern matching
   - Traits and generics
   - Error handling (`Result` and `Option`)
+
 - Do Rust exercises on [exercism.io/rust](https://exercism.org/tracks/rust) or simple LeetCode Rust challenges.
 - Setup Rust dev environment (rustup, Cargo, VSCode or your favorite IDE).
 
