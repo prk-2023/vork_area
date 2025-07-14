@@ -105,6 +105,11 @@ config.color_scheme = "GruvboxDarkHard"
 -- config.color_scheme = "tokyonight_moon"
 -- config.color_scheme = "Tomorrow Night Bright"
 -- config.color_scheme = "zenburn (terminal.sexy)"
+-- config.color_scheme = "matrix"
+-- config.color_scheme = "Green Screen (base16)"
+-- config.color_scheme = "Greenscreen (dark) (terminal.sexy)"
+-- config.color_scheme = "Grey-green"
+-- config.color_scheme = "Mona Lisa (Gogh)"
 
 -- local key_tables = {
 -- 	resize_font = {
@@ -233,10 +238,30 @@ config.keys = {
 	{ key = "w", mods = "CTRL|CMD", action = wezterm.action.CloseCurrentTab({ confirm = true }) },
 	{ key = "Z", mods = "CTRL", action = wezterm.action.TogglePaneZoomState },
 }
+-- Tab bar styling on zoomed pane
+wezterm.on("format-tab-title", function(tab)
+	local title = tab.active_pane.title
+	local is_zoomed = tab.active_pane.is_zoomed
+
+	local zoomed_fg = "#ffffff"
+	local zoomed_bg = "#d75f5f"
+	local normal_fg = "#c0c0c0"
+	local normal_bg = "#1d1d1d"
+
+	local fg = is_zoomed and zoomed_fg or normal_fg
+	local bg = is_zoomed and zoomed_bg or normal_bg
+	local prefix = is_zoomed and "🔍 " or ""
+
+	return {
+		{ Background = { Color = bg } },
+		{ Foreground = { Color = fg } },
+		{ Text = " " .. prefix .. title .. " " },
+	}
+end)
 --- Slit windows navigation
 
 -- tab navigation change from CTRL+ALT+<number> to ALT+<number>
-for i = 1, 8 do
+for i = 1, 9 do
 	-- ALT + number to activate that tab
 	table.insert(config.keys, {
 		key = tostring(i),
