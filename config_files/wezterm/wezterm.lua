@@ -150,11 +150,11 @@ config.keys = {
 		key = "(",
 		action = wezterm.action.SplitHorizontal({ domain = "CurrentPaneDomain" }),
 	},
-	{
-		mods = "LEADER",
-		key = "m",
-		action = wezterm.action.TogglePaneZoomState,
-	},
+	-- {
+	-- 	mods = "LEADER",
+	-- 	key = "m",
+	-- 	action = wezterm.action.TogglePaneZoomState,
+	-- },
 	{
 		--key = "UpArrow",
 		key = "k",
@@ -234,14 +234,17 @@ config.keys = {
 	-- 	action = wezterm.action.AdjustPaneSize({ "Right", 1 }),
 	-- 	timemout_miliseconds = 1000,
 	-- },
-	-- CLose current tab:
+	-- Close current tab:
 	{ key = "w", mods = "CTRL|CMD", action = wezterm.action.CloseCurrentTab({ confirm = true }) },
 	{ key = "Z", mods = "CTRL", action = wezterm.action.TogglePaneZoomState },
 }
--- Tab bar styling on zoomed pane
+-- Tab bar styling on zoomed pane ( Indicator: Color the tab if Zoom is enabled on split window)
 wezterm.on("format-tab-title", function(tab)
 	local title = tab.active_pane.title
 	local is_zoomed = tab.active_pane.is_zoomed
+	local is_active_tab = tab.is_active
+	--local act_title = string.format("** ▶ %d", tab_index) -- or "* %d", or "[%d]", or "**%d**"
+	local act_title = is_active_tab and string.format(" ▶ ") or ""
 
 	local zoomed_fg = "#ffffff"
 	local zoomed_bg = "#d75f5f"
@@ -250,12 +253,18 @@ wezterm.on("format-tab-title", function(tab)
 
 	local fg = is_zoomed and zoomed_fg or normal_fg
 	local bg = is_zoomed and zoomed_bg or normal_bg
+	--local prefix = is_zoomed and "🔍 " or ""
 	local prefix = is_zoomed and "🔍 " or ""
 
 	return {
 		{ Background = { Color = bg } },
 		{ Foreground = { Color = fg } },
-		{ Text = " " .. prefix .. title .. " " },
+		-- { Text = " " .. prefix .. title .. " " },
+		-- { Text = string.format("Tab %d", tab.tab_index + 1) },
+		--{ Text = string.format("✨ %d ❯❯ ", tab.tab_index + 1) },
+		-- { Text = string.format("%d   %s", tab.tab_index + 1, prefix) },
+		{ Text = string.format("%s %s  %d", prefix, act_title, tab.tab_index + 1) },
+		-- { Text = string.format("⎇ %d: %s", tab.tab_index + 1, pane.title) },
 	}
 end)
 --- Slit windows navigation
@@ -384,6 +393,7 @@ wezterm.on("update-right-status", function(window, pane)
 
 	window:set_right_status(wezterm.format(elements))
 end)
+
 -- and finally, return the configuration to wezterm
 --
 -- A connection to remote wezterm Multiplexer made via ssh connection is refered to as an SSH Domain.
