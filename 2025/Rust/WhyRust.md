@@ -1,161 +1,271 @@
-# **learning Rust in 2025** 
+# Why Rust
 
----
-- Prospects for the next 5 years, focusing on current use cases, industry trends, and future opportunities:
----
+- Rust and its features:
+    - Not an Object-oriented nor functional programming language.
+    - Does not feature classes and does not directly support Object-oriented patters.
+    - Can operate with functions as first-class values, but this ability is limited compared to full blown
+      functional language(like Haskell or OCaml )
 
-### **1. Where Rust Is Used Today (2023–2024)**
+- Writing Code with Functions, values and Types:
 
-Rust has already carved out significant niches in several domains due to its 
-    **memory safety**, 
-    **performance**, and 
-    **concurrency features**. 
-By 2025, these areas will likely expand further:
+Programs in Rust are:
+    - Rust program is a collections of functions combined in modules.
+    - Functions in programs manipulate values.
+    - Values are statically typed, i.e every value or expression should have an assigned type at compile time. 
+    - Rust provides both primitive and compound types (arrays and structs).
+    - Standard library also provides many additional types for collections of values.
+    - Supports generic types, which makes it possible to avoid mentioning specific types and provide more
+      general definitions. 
+    - Provides traits as collections of methods (i.e. functions) that can be implemented for specific
+      types. Traits allow Rust to achieve the same levels of SW abstraction as object-oriented languages 
+      that support inheritance and polymorphism.
 
-#### **a) Systems Programming**
+- Memory Management:
 
-- **Operating Systems**:  
+Rust’s approach to memory management is based on the following principle: 
+    - The Rust compiler must know the precise locations in the code where memory is allocated, where and how
+      it's accessed, and where it’s no longer needed. This knowledge allows for controlling memory access
+      and freeing allocated memory automatically by inserting the corresponding instructions directly into 
+      the generated code, thus avoiding many common pitfalls other languages might be susceptible to. 
+ 
+      This approach differs from automatic memory management (as in JavaScript, Python, Java, or C#), where 
+      memory fragments that are no longer needed are detected at runtime and garbage is collected. 
+ 
+      As a result, Rust saves the time required to execute the corresponding algorithms at runtime and 
+      achieves both memory safety and performance.
+ 
+    - To be able to infer knowledge about memory access, Rust sets limits on what can be done with memory
+      and defines strict rules that ensure correctness:
+ 
+      1. Every memory fragment must be owned by a single variable – Rust’s ownership model is based on this.
+      2. Mutating a memory fragment requires exclusive access (as opposed to just reading the memory).
+      3. Rust allows creating mutable and immutable references to memory fragments (borrowing them) but uses
+         a borrow checker to enforce correctness (for example, prohibiting more than one mutable reference).
+      4. The Rust compiler computes and checks lifetimes for every variable in a program from the place it's
+         created to the place it’s dropped (where it becomes no longer accessible).
 
-  Rust is used to build secure, low-level components 
-  (e.g., [Redox OS](https://www.redox-os.org/), 
-  [Microsoft’s Rust-based Windows drivers](https://github.com/microsoft/windows-drivers-rs)).  
+Compiler:
+    The compiler’s requirements can be too strict. 
+    A common frustration, especially when learning the language: 
+    - The Rust compiler may fail to accept a logically correct code fragment.
 
-  - **Why**: Eliminates memory bugs like buffer overflows, critical for OS reliability.  
+To make these concepts a little easier to catch, let’s discuss Rust’s equivalent of the following 
+Python program:
 
-- **Embedded Systems**:  
+```python 
+def print_list(numbers):
+   for number in numbers:
+       print(str(number) + " ", end="")
+   print()
 
-  Rust’s lack of runtime overhead makes it ideal for IoT, robotics, and microcontrollers.  
-  - **Example**: [Espressif’s Rust support for ESP32 chips](https://github.com/esp-rs).  
 
-#### **b) Blockchain and Web3**
+def add_one(numbers):
+   numbers.append(1)
 
-- **Blockchain Development**:  
-  Rust dominates decentralized systems 
-  e.g:
-    [Solana](https://solana.com/), 
-    [Polkadot](https://polkadot.network/)
 
-  - **Why**: 
-    Security and performance are critical for smart contracts and consensus algorithms.  
+def main():
+   numbers = [1, 1, 1]
+   print_list(numbers)
+   add_one(numbers)
+   print_list(numbers)
 
-#### **c) WebAssembly (Wasm)**
-- **High-Performance Web Apps**:  
-  Rust compiles to WebAssembly, enabling browser-based apps with near-native speed 
-  (e.g., [Figma’s plugin system](https://www.figma.com/blog/webassembly-cut-figmas-load-time-by-3x/)).  
 
-#### **d) Cloud Infrastructure**
-- **Distributed Systems**:  
-  Companies like 
-  [AWS](https://aws.amazon.com/blogs/opensource/why-aws-loves-rust/) and 
-  [Google](https://security.googleblog.com/2023/01/supporting-use-of-rust-in-android.html) 
-  use Rust for cloud services and databases 
+if __name__ == '__main__':
+   main()
+```
 
-  Ex: [Firecracker](https://firecracker-microvm.github.io/), AWS’s serverless compute engine.  
-  
-  - **Why**: 
-    Thread safety prevents race conditions in concurrent systems.  
+So, we have a memory fragment (Python’s list) with three elements. 
+We print it, add one more element, and print it again. 
+We never mention any type here. 
+Python doesn’t need any sign of memory management in the program, although the memory must be allocated 
+and freed at some point.
 
-#### **e) CLI and DevOps Tools**
+Moreover, we pass around the numbers list easily without thinking about memory access control.
 
-- **Developer Tooling**:  
-    Tools like [Ripgrep](https://github.com/BurntSushi/ripgrep) and 
-    [BAT](https://github.com/sharkdp/bat) and many more ... are written in Rust.  
+The same code in Rust is different, not only in syntax but in the whole approach to types and memory management:
 
-  - **Why**: Speed and cross-platform support.  
+```rust 
+// Here we take a vector by reference (&).
+// We are not allowed to mutate elements.
+// We don't take ownership; we just borrow.
+fn print_vec(numbers: &Vec<i32>) {
+   for number in numbers {
+       print!("{} ", number);
+   }
+   println!()
+}
+// Here we take a vector by mutable reference (&mut).
+// We are now allowed to mutate elements and the vector itself.
+// We still don't take ownership; we just borrow.
+fn add_one(numbers: &mut Vec<i32>) {
+   numbers.push(1)
+}
 
----
 
-### **2. Prospects for Rust Over the Next 5 Years (2025–2030)**
+fn main() {
+   let mut numbers = vec![1,1,1];
+   // We pass a reference
+   print_vec(&numbers);
+   // We pass a mutable reference
+   add_one(&mut numbers);
+   // We pass a reference again
+   print_vec(&numbers);
+}
+```
 
-#### **a) Industry Adoption**
+We can now explore these two code fragments and find similarities and differences between them by yourself. 
+Even without understanding Rust, you might get a general feeling for it just by looking at this code.
 
-- **Enterprise Backing**:  
+Despite passing references around, the numbers variable still owns the allocated memory. 
+Rust defaults to read-only memory access, requiring explicit specification for write access. 
+Rust also ensures the memory is freed after the last usage in the second call to print_vec.
 
-  Microsoft, Google, Meta, and Amazon are investing heavily in Rust. Expect more adoption in:  
 
-  - **Kernel Development**: Linux kernel now 
-    [officially supports Rust](https://www.phoronix.com/news/Linux-Kernel-Rust-v1).  
+Here’s a variation of the add_one function that takes over ownership of a vector and renders the whole 
+program incorrect:
 
-  - **AI/ML Infrastructure**: Rust’s performance could make it viable for ML inference engines 
-    (e.g., [TensorFlow Rust bindings](https://github.com/tensorflow/rust)).  
+```rust 
+    fn add_one_incorrectly(mut numbers: Vec<i32>) {
+        numbers.push(1);
+    }
+```
+Issue here: After calling the add_one_incorrect function, the numbers variable no longer owns the memory; 
+its lifetime has ended, so we can’t print anything.
 
-- **Government and Defense**:  Agencies like the 
-  [U.S. Department of Defense](https://www.darpa.mil/news-events/2022-03-18) are exploring Rust for 
-  secure systems.  
+IDE LSP (using rust-analyzer) will show error : Value used after being moved [E0382]
 
-#### **b) Language Evolution**
+Before introducing the incorrect version, Rust's borrow checker could ensure that passing references didn't
+bring any problem. After introducing an error, it's no longer feasible. 
 
-- **Tooling Maturity**:  
+The language behaviour here exemplifies how memory access is under strict control.
 
-  By 2025, Rust’s ecosystem :Ex:
-  - [Cargo](https://doc.rust-lang.org/cargo/), 
-  [clippy](https://github.com/rust-lang/rust-clippy)) will become even more polished.  
+- Concurrency:
+It's the ability of a system to execute multiple tasks or processes simultaneously or in overlapping periods
+to improve efficiency and performance. 
+This can involve parallel execution on multiple processors or interleaved execution on a single processor, 
+allowing a system to handle multiple operations simultaneously and manage multiple tasks more effectively.
 
-- **Async Ecosystem**:  
-  Async/await and runtime support (e.g., [Tokio](https://tokio.rs/)) will mature, making Rust a top choice 
-  for networked services. 
+Rustaceans often describe Rust’s concurrency as fearless. Several factors contribute to this perception 
+    1. The ownership model adds more control over sharing data between concurrent threads.
+    2. Embracing immutable data structures simplifies the implementation of concurrent algorithms and
+       contributes to thread safety.
+    3. Message passing via channels adopted in Rust dramatically reduces the complexities of shared-state
+       concurrency.
+    4. Rust’s approach to lifetimes and memory management generally makes code that works with concurrency 
+       primitives such as locks, semaphores, or barriers more elegant and safe.
+    5. In many cases, Rust’s approach to asynchronous programming makes it possible to avoid using complex
+       concurrency patterns and enables you to write concise and clear code.
 
-#### **c) New Domains**
+Although concurrency is not the first thing beginners learn when approaching Rust, it is still easier to 
+grasp than in many other programming languages. 
 
-- **Game Development**:  
-  Rust’s performance and safety could challenge C++ in game engine
-  Ex: [Bevy Engine](https://bevyengine.org/).  
+More importantly, Rust helps you write less error-prone concurrent code.
 
-- **Quantum Computing**:  
 
-  Rust’s memory safety may prove critical for writing reliable quantum algorithms.  
+- How to get started with Rust:
 
-#### **d) Job Market Growth**
+Two things that need to be installed on your computer to get started with Rust:
 
-- **Demand for Rust Developers**:  
+1. Rust toolchain – a collection of tools that includes the Rust compiler and other utilities.
+   A code editor or IDE (integrated development environment). 
+   Install via rustup.rs the official way  to install depend on OS.
+2. This requires making a choices. 
+    IDE code editor configured to provide Rust support (for example, VSCode supports Rust but requires some
+    setup) or using a dedicated Rust IDE (such as RustRover, a JetBrains IDE, which is free for anyone 
+    learning Rust, or use neovim with rust nvim plugins)
 
-  Already, companies like 
-  [Cloudflare](https://blog.cloudflare.com/workers-rust-sdk/), 
-  [Discord](https://discord.com/blog/why-discord-is-switching-from-go-to-rust), and 
-  [Dropbox](https://dropbox.tech/infrastructure/rewriting-the-heart-of-our-sync-engine) hire Rust experts. 
+Rust projects rely on Cargo, package manager. 
+In Rust, packages are called crates. <== 
+The dependencies are specified in the Cargo.toml file, for example:
+```toml 
+    [package]
+    name = "hello"
+    version = "0.1.0"
+    edition = "2021"
 
-  By 2030:  
-  - Salaries for Rust developers could rival those of C++ and Go engineers.  
-  - Roles in blockchain, cloud infrastructure, and cybersecurity will prioritize Rust.  
+    [dependencies]
+    chrono = "0.4.38"
+```
 
----
+After adding the chrono crate to dependencies, we can use the functionality it provides in our code, 
+for example:
 
-### **3. Challenges to Rust’s Growth**
+```rust 
+use chrono::{DateTime, Local};
 
-- **Learning Curve**:  
-  Rust’s strict borrow checker and ownership model remain daunting for newcomers.  
+fn main() {
+   println!("Hello, world!");
+   let local: DateTime<Local> = Local::now();
+   println!("Today is {}", local.format("%A"));
+}
+```
 
-- **Ecosystem Fragmentation**:  
-  While growing, libraries for niche domains (e.g., GUI frameworks) are still maturing.  
+- Common challenges and how to overcome them:
 
-- **Competition**:  
-  Languages like 
-  [Zig](https://ziglang.org/) and 
-  [Carbon](https://github.com/carbon-language/carbon-lang) may target similar use cases.  
+1. Understand the ownership model. 
+    Rust’s ownership model, which includes concepts like ownership, borrowing, and lifetimes, is often the 
+    most challenging aspect for beginners. 
+    Start with small examples and practice frequently. 
+    Focus on understanding why Rust enforces these rules rather than how to get around compiler errors. 
 
----
+2. Borrow Checker: 
+    The borrow checker can be frustrating, as it’s strict and may lead to confusing compiler errors. 
+    When you encounter borrow checker issues, take a step back and analyze what Rust is trying to prevent. 
+    Experiment with approaches like referencing or cloning data (but try not to clone everything!). 
+    It’s really useful to understand what precisely a borrow checker is. 
+    See, for example, this great explanation by Nell Shamrell-Harrington.[https://www.youtube.com/watch?v=HG1fppexRMA]
 
-### **4. Should You Learn Rust in 2025?**
+3. Documentation:
+    Rust is a relatively new language, so some things might not be as straightforward as in more established
+    languages. Use the Rust documentation, which is known for being comprehensive and well-written. 
+    The Rust community also contributes to great resources like the Rust by Example guide.
 
-**Yes**, if you’re interested in:  
-- High-performance systems programming.  
-- Blockchain, cloud infrastructure, or cybersecurity.  
-- Future-proofing your career in a language praised for safety and efficiency.  
+4. Start with simple projects. 
+    Rust’s complexity can make even simple projects feel overwhelming at first. Start by implementing basic 
+    programs and gradually move to more complex ones. 
+    Examples of simple projects include building a command-line tool with clap, writing simple file parsers, 
+    or creating a basic web server using a framework like Rocket.
 
-**No**, if:  
-- You prioritize quick prototyping (Python/JS are better here).  
-- Your domain already has entrenched tools (e.g., C++ in game engines).  
+5. IDE 
+    Writing Rust code manually can be error-prone. Tools can help you with code completion, linting, and 
+    formatting.
+    Interact with the Rust community and resources.
 
----
+6. Learn from mistakes. Rust’s compiler is strict, and it can feel like you’re constantly fighting with it. 
+   View each compiler error as a learning opportunity. 
+   Rust’s error messages are often very descriptive and guide you toward the correct solution.
+   Over time, you’ll find that these errors help you write better, safer code.
 
-### **5. Key Takeaways**
+Rust’s features, like its memory safety guarantees and performance, make it a powerful language for systems 
+programming, web development, and more. 
+Stick with it; you’ll find that Rust can be fun and rewarding.
 
-- **2025–2030**: Rust will solidify its role in systems programming, blockchain, and cloud infrastructure.
-- **Career Edge**: Rust skills will be highly valued in security-critical and performance-driven fields.
-- **Community**: A passionate open-source community ensures continuous innovation 
-  Ex: [Rust Foundation](https://foundation.rust-lang.org/).
+Integrating Rust with other programming languages:
+    The PyO3 project enables developers to implement native Python modules in Rust and to access Python in 
+    Rust binaries. 
+    By leveraging PyO3, you can provide an extremely efficient Rust implementation of a Python library for 
+    Python developers. 
+    Rust and JavaScript can be connected similarly via WebAssembly and wasm-bindgen. 
 
-By 2030, Rust could become the **default choice** for building reliable, secure, and performant systems. 
-Learning it in 2025 positions you at the forefront of this shift. 🦀
+- Systems and embedded programming in Rust:
+    Rust shines in systems programming. Speakers from Google and Microsoft confirm that introducing Rust 
+    into their codebases lessens the number of security vulnerabilities, increases performance, and also 
+    keeps or sometimes improves the productivity of software developer teams. 
+ 
+    Amazon not only supports Rust development on AWS but also uses it directly to implement their own 
+    infrastructure. 
+ 
+    Cloudflare, a company that builds content delivery networks and other networking infrastructure, relies 
+    on Rust in a lot of low-level projects and contributes their frameworks to the Rust ecosystem.  
+ 
+    Ferrous Systems, a company that backs the development of rust-analyzer, also develops Ferrocene, a 
+    certified Rust toolchain for mission-critical applications. 
+    Together with other developments, this enables Rust to be used in the automotive and aerospace industries. 
+    For example, there are reports about Volvo and Renault using Rust for their in-vehicle software.
+
+- roadmap.rs/rust 
+
+Gives a clean and clear pathways to reach the desired area with rust.
+
 
 
