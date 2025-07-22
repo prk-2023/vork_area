@@ -29,9 +29,20 @@ What we cover here :
 Rust's Ownership system is a set of rules that govern how memory is managed safely and efficiently without
 using Garbage collector( which is commonly used in many languages ).
 
+Rust's Ownership and borrowing system is designed to manage *heap-allocated* values safely without a garbage
+collector.
+In other words, Ownership and Borrowing are critical when dealing with heap allocated or large data types
+and are less relevant for simple scalars.
+
 Ownership helps prevent bugs like dangling pointers, data races, and memory leaks.
 
 No garbage collector == faster execution and smaller binary foot print.
+
+#table(columns: 2,
+table.header[*Rule*][*Mostly Applies To* ],
+[ Ownership (move, drop, clone)        ],[ Heap data types (`String`, `Vec`, etc.)     ],
+[ Borrowing (immut. / mut. references) ],[ Heap values or large structs                ],
+[ Stack types (`Copy`)                 ],[ Trivially copied; no ownership rules needed ])
 
 Here’s an overview of *ownership* and how it works in Rust:
 
