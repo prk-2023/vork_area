@@ -1,0 +1,12 @@
+rule typst_compile
+  command = typst compile $in $out
+  description = Compiling $in to $out
+
+build BTF.pdf: typst_compile BTF.typ
+build task_struct.pdf: typst_compile task_struct.typ
+build all: phony BTF.pdf task_struct.pdf
+
+rule clean_pdfs
+  command = rm -f *.pdf
+  description = Cleaning all PDF in this folder
+build clean: clean_pdfs
