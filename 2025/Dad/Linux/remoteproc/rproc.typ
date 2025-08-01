@@ -93,7 +93,8 @@
 ]
 
 #align(center)[
-  #text(fill: black, font:"Open Sans", style: "italic", weight: "semibold")[History]
+  // #text(fill: black, font:"Open Sans", style: "italic", weight: "semibold")[History]
+  #text(fill: black, font:"Open Sans", style: "italic", weight: "medium")[History]
 ]
 
 //-- Document stat --//
@@ -503,3 +504,443 @@ table.header[ SoC/Board ][ Notes ],
 [ *BeagleBone AI-64*   ],[ AM62x platform with remoteproc    ]
 )
 
+//----------sample driver and notes-------------
+=  remoteproc api:
+
+
+== Overview: Remoteproc API
+
+The `remoteproc` API allows kernel drivers to:
+
+1. *Register* a remote processor device.
+2. *Load firmware* (typically an ELF or resource table binary).
+3. *Boot* the remote processor.
+4. *Stop and shutdown* the remote processor.
+5. *Communicate* using `rpmsg` (Remote Processor Messaging).
+
+It's commonly used in SoCs like:
+
+- Texas Instruments (TI) OMAP/AMx/DRA7x/Keystone processors.
+- Qualcomm Snapdragon SoCs (with Hexagon DSPs).
+- Xilinx Zynq MPSoC.
+- STM32MP1 dual-core MCUs.
+
+
+== Device Tree Integration
+
+Remote processors are described in the device tree (for example):
+
+```dts
+dsp: dsp@40800000 {
+    compatible = "ti,dra7-dsp";
+    reg = <0x40800000 0x10000>;
+    memory-region = <&dsp_mem>;
+    firmware-name = "dra7-dsp-fw.elf";
+};
+```
+== Key Remoteproc Driver API Functions
+
+From `include/linux/remoteproc.h`, the key driver callbacks include:
+
+```c
+struct rproc_ops {
+    int (*start)(struct rproc *rproc);
+    int (*stop)(struct rproc *rproc);
+    int (*load)(struct rproc *rproc, const struct firmware *fw);
+    void *(*da_to_va)(struct rproc *rproc, u64 da, int len);
+    ...
+};
+```
+
+== Template Remoteproc Platform Driver
+
+Here’s a *basic template* of a Linux remoteproc driver to *boot a firmware* for the first time:
+
+```c
+// simple_remoteproc.c
+#include <linux/module.h>
+#include <linux/platform_device.h>
+#include <linux/remoteproc.h>
+#include <linux/firmware.h>
+#include <linux/of.h>
+#include <linux/of_device.h>
+
+struct simple_rproc_priv {
+    void __iomem *base;
+};
+
+static int simple_rproc_start(struct rproc *rproc) {
+    // Example: Write to register to release reset
+    struct simple_rproc_priv *priv = rproc->priv;
+    writel(0x1, priv->base + 0x0); // dummy control register
+    return 0;
+}
+
+static int simple_rproc_stop(struct rproc *rproc) {
+    struct simple_rproc_priv *priv = rproc->priv;
+    writel(0x0, priv->base + 0x0); // halt/reset the processor
+    return 0;
+}
+
+static const struct rproc_ops simple_rproc_ops = {
+    .start = simple_rproc_start,
+    .stop = simple_rproc_stop,
+    .load = rproc_elf_load_segments,
+    .da_to_va = rproc_elf_da_to_va,
+};
+
+static int simple_rproc_probe(struct platform_device *pdev)
+{
+    struct device *dev = &pdev->dev;
+    struct rproc *rproc;
+    struct simple_rproc_priv *priv;
+    void __iomem *base;
+    struct resource *res;
+
+    res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
+    base = devm_ioremap_resource(dev, res);
+    if (IS_ERR(base))
+        return PTR_ERR(base);
+
+    rproc = rproc_alloc(dev, "simple_rproc", &simple_rproc_ops,
+                        "simple-fw.elf", sizeof(*priv));
+    if (!rproc)
+        return -ENOMEM;
+
+    priv = rproc->priv;
+    priv->base = base;
+
+    platform_set_drvdata(pdev, rproc);
+    return rproc_add(rproc);
+}
+
+static int simple_rproc_remove(struct platform_device *pdev)
+{
+    struct rproc *rproc = platform_get_drvdata(pdev);
+    rproc_del(rproc);
+    rproc_free(rproc);
+    return 0;
+}
+
+static const struct of_device_id simple_rproc_of_match[] = {
+    { .compatible = "example,simple-remoteproc" },
+    {},
+};
+MODULE_DEVICE_TABLE(of, simple_rproc_of_match);
+
+static struct platform_driver simple_rproc_driver = {
+    .probe = simple_rproc_probe,
+    .remove = simple_rproc_remove,
+    .driver = {
+        .name = "simple_remoteproc",
+        .of_match_table = simple_rproc_of_match,
+    },
+};
+
+module_platform_driver(simple_rproc_driver);
+
+MODULE_LICENSE("GPL");
+MODULE_AUTHOR("OpenAI");
+MODULE_DESCRIPTION("Simple Remoteproc driver example");
+```
+
+== To Use This Driver
+
+1. Add this to your kernel or module.
+2. Compile and install it.
+3. Ensure your DT node matches `"example,simple-remoteproc"`.
+4. Provide firmware (e.g., `simple-fw.elf`) in `/lib/firmware`.
+
+== Summary
+
+- Remoteproc lets you control remote CPUs from the Linux host.
+- The driver template above shows basic boot flow: register, load, start.
+- Combine with `rpmsg` for inter-processor communication.
+
+
+Driver, `simple_remoteproc.c`, is a *basic example of a Linux remoteproc driver*. 
+It demonstrates how to boot a remote processor (like a DSP or MCU) using the Remote Processor (remoteproc) 
+framework.
+
+Let’s break it down *step by step*:
+
+==  Includes and Structure
+
+```c
+#include <linux/module.h>
+#include <linux/platform_device.h>
+#include <linux/remoteproc.h>
+#include <linux/firmware.h>
+#include <linux/of.h>
+#include <linux/of_device.h>
+```
+
+These headers pull in everything needed to build a platform driver, interact with device trees, load 
+firmware, and work with the remoteproc framework.
+
+```c
+struct simple_rproc_priv {
+    void __iomem *base;
+};
+```
+
+This structure stores *private data* for the driver—in this case, the base address of a memory-mapped 
+register region that controls the remote CPU.
+
+== Start and Stop Functions
+
+These are the *hardware-specific callbacks* that the remoteproc core will call when starting or stopping 
+the remote processor.
+
+```c
+static int simple_rproc_start(struct rproc *rproc)
+{
+    struct simple_rproc_priv *priv = rproc->priv;
+    writel(0x1, priv->base + 0x0); // Assume this starts the remote CPU
+    return 0;
+}
+```
+
+- *`writel(0x1)`* is writing to some register to *release the remote processor from reset or power it up*.
+
+```c
+static int simple_rproc_stop(struct rproc *rproc)
+{
+    struct simple_rproc_priv *priv = rproc->priv;
+    writel(0x0, priv->base + 0x0); // Put remote CPU back into reset
+    return 0;
+}
+```
+
+- *`writel(0x0)`* resets or disables the remote processor.
+
+==  Remoteproc Operations
+
+```c
+static const struct rproc_ops simple_rproc_ops = {
+    .start = simple_rproc_start,
+    .stop = simple_rproc_stop,
+    .load = rproc_elf_load_segments,
+    .da_to_va = rproc_elf_da_to_va,
+};
+```
+
+- *`start` / `stop`* — Called to control the remote processor.
+- *`load`* — Use default ELF loader to load firmware into memory.
+- *`da_to_va`* — Convert device address (in firmware) to virtual address in Linux.
+
+== Probe Function (Device Init)
+
+```c
+static int simple_rproc_probe(struct platform_device *pdev)
+```
+
+This is called when the device is matched (via device tree):
+
+1. *Get MMIO base:*
+
+```c
+res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
+base = devm_ioremap_resource(dev, res);
+```
+
+Maps the memory region used to control the remote processor.
+
+2. *Allocate the remoteproc instance:*
+
+```c
+rproc = rproc_alloc(dev, "simple_rproc", &simple_rproc_ops,
+                    "simple-fw.elf", sizeof(*priv));
+```
+
+- `"simple-fw.elf"` is the firmware image name.
+- Allocates memory for the `rproc` and its private data.
+
+3. *Save state and register:*
+
+```c
+priv = rproc->priv;
+priv->base = base;
+
+platform_set_drvdata(pdev, rproc);
+return rproc_add(rproc);
+```
+
+Registers the remote processor with the kernel, making it visible via sysfs (e.g., `/sys/class/remoteproc/`).
+
+== Remove Function
+
+```c
+static int simple_rproc_remove(struct platform_device *pdev)
+```
+
+Cleanly unregisters the remoteproc:
+
+```c
+rproc_del(rproc);
+rproc_free(rproc);
+```
+
+== Device Tree Match Table
+
+```c
+static const struct of_device_id simple_rproc_of_match[] = {
+    { .compatible = "example,simple-remoteproc" },
+    {},
+};
+```
+
+Links the driver to DT nodes that look like:
+
+```dts
+remoteproc@12340000 {
+    compatible = "example,simple-remoteproc";
+    reg = <0x12340000 0x1000>;
+    firmware-name = "simple-fw.elf";
+};
+```
+
+== Platform Driver Registration
+
+```c
+module_platform_driver(simple_rproc_driver);
+```
+
+Registers the platform driver with probe/remove hooks.
+
+== Summary of Key Flow
+
+1. *Device Tree* describes the remote processor.
+2. *Driver probes*, maps memory, and allocates a remoteproc instance.
+3. *Firmware is loaded* via `rproc_elf_load_segments`.
+4. *Processor is started* via `start` callback.
+5. *Processor is stopped* via `stop` callback.
+
+== How to Test
+
+1. Place firmware in `/lib/firmware/simple-fw.elf`.
+2. Load the driver.
+3. Use sysfs:
+
+```bash
+# Start remote processor
+echo start > /sys/class/remoteproc/remoteproc0/state
+
+# Stop remote processor
+echo stop > /sys/class/remoteproc/remoteproc0/state
+```
+
+If you want to extend this driver with interrupts, rpmsg communication, or memory carveouts, let me know.
+
+//----------------------------------//
+
+"yes", *extend the `simple_remoteproc` driver* with additional features. These are the typical next steps:
+
+== Extensions You Can Add
+
+=== *Add Memory Regions (Carveouts)*
+
+Let the remoteproc core know which memory regions the remote CPU can use.
+
+=== Example in Device Tree:
+
+```dts
+remoteproc@12340000 {
+    compatible = "example,simple-remoteproc";
+    reg = <0x12340000 0x1000>;
+    memory-region = <&remoteproc_mem>; // Reserved region for firmware/data
+    firmware-name = "simple-fw.elf";
+};
+```
+
+==== Driver Support:
+
+Add in `probe()`:
+
+```c
+rproc->mem = devm_kzalloc(dev, sizeof(*rproc->mem), GFP_KERNEL);
+rproc->mem->cpu_addr = devm_ioremap(...);   // or from reserved memory
+rproc->mem->dma = ...;                      // DMA address
+rproc->mem->len = ...;                      // Size of region
+list_add_tail(&rproc->mem->node, &rproc->carveouts);
+```
+===  Support IRQs for Notifications
+
+Let Linux know when the remote processor sends interrupts.
+
+==== Device Tree:
+
+```dts
+interrupts = <GIC_SPI 89 IRQ_TYPE_LEVEL_HIGH>;
+```
+
+==== Driver:
+
+Use `platform_get_irq()` and `devm_request_irq()`:
+
+```c
+int irq = platform_get_irq(pdev, 0);
+devm_request_irq(dev, irq, my_irq_handler, 0, "remoteproc-irq", rproc);
+```
+
+Define handler:
+
+```c
+static irqreturn_t my_irq_handler(int irq, void *data) {
+    struct rproc *rproc = data;
+    // Notify rproc core or handle event
+    return IRQ_HANDLED;
+}
+```
+=== Enable `rpmsg` Communication
+
+Let Linux and the remote processor exchange messages (like IPC).
+
+Just include a *resource table* in the remote firmware (used by `rproc`).
+
+On Linux, when the resource table is parsed and includes a `VDEV` entry:
+
+- `rpmsg` bus will be created
+- You can write an `rpmsg` driver for your protocol
+
+Example `rpmsg` message:
+
+```c
+struct rpmsg_device *rpdev;  // passed to your rpmsg callback
+rpmsg_send(rpdev, "hello", 5);
+```
+=== Custom Firmware Name from DT
+
+Instead of hardcoding `"simple-fw.elf"`, use the DT property:
+
+==== In DT:
+
+
+```c
+  //dts
+  firmware-name = "my-mcu-firmware.elf";
+```
+
+==== In driver:
+
+```c
+const char *fw_name;
+of_property_read_string(dev->of_node, "firmware-name", &fw_name);
+rproc = rproc_alloc(dev, "simple_rproc", &simple_rproc_ops, fw_name, sizeof(*priv));
+```
+
+=== Expose More Sysfs or DebugFS for Debugging
+
+Expose useful information (firmware status, memory layout, boot steps) in `debugfs`.
+
+== What You Can Do Now
+
+Let me know what exactly you want to add first:
+
+- [ ] Memory carveout / reserved memory
+- [ ] Interrupt handling
+- [ ] RPMsg / IPC communication
+- [ ] Dynamic firmware loading from DT
+- [ ] Debug output or sysfs/debugfs
+
+Just check one or more of those boxes (or type your own), and I’ll give you code for the next feature.
