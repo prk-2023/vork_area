@@ -2,13 +2,16 @@
 
 Use Cargo to create a new proj with and fill the below dependencies :
 
+```toml
 [dependencies] 
 tiny_http = "0.12.0"
 mime_guess = "2.0.5"
+```
 
 - tiny_http: This is a small, easy-to-use HTTP server library. It handles the low-level details of networking, like accepting connections and parsing HTTP requests, so the application code can focus on handling the logic.
 - mime_guess: This library helps determine the MIME type of a file based on its file extension (e.g., .html -> text/html, .jpg -> image/jpeg). This is crucial for web servers to correctly tell browsers what kind of content they are receiving.
 
+```rust 
 use mime_guess::from_path;
 use std::env;
 use std::fs::{self, File};
@@ -16,6 +19,7 @@ use std::io::{Read, Write};
 use std::net::{SocketAddr, TcpListener};
 use std::path::{Path, PathBuf};
 use tiny_http::{Header, Request, Response, Server, StatusCode};
+```
 
 1. Below function searches for an open port starting from start_port up to 9000. 
    It tries to bind a TcpListener to each port. 
@@ -23,7 +27,7 @@ use tiny_http::{Header, Request, Response, Server, StatusCode};
 
    If no port is found, it returns None.
 
-
+```rust 
 fn find_available_port(start_port: u16) -> Option<(u16, Server)> {
     for port in start_port..9000 {
         let addr = format!("0.0.0.0:{}", port);
@@ -35,10 +39,10 @@ fn find_available_port(start_port: u16) -> Option<(u16, Server)> {
     }
     None
 }
-
+```
 2.  Below function simply prints information about an incoming request to the console. 
     It logs the client's IP address, the HTTP method (like GET), and the requested URL.
-
+```rust
 fn log_request(request: &Request, client_addr: Option<SocketAddr>) {
     let method = request.method();
     let url = request.url();
@@ -51,9 +55,11 @@ fn log_request(request: &Request, client_addr: Option<SocketAddr>) {
         url
     );
 }
+``` 
+
 3. Below function generates an HTML string for a directory listing. 
    It reads the contents of a directory and creates a list of clickable links for each file and subdirectory, similar to what you'd see in a browser.
-
+```rust 
 /// Generate HTML directory listing similar to Python's http.server
 fn generate_directory_listing(path: &Path, url_path: &str) -> String {
     let mut listing = format!(
@@ -80,6 +86,7 @@ fn generate_directory_listing(path: &Path, url_path: &str) -> String {
     listing.push_str("</ul></body></html>");
     listing
 }
+```
 
 4. Below function  is the core request-handling function.
     - First it logs incoming request.
@@ -89,6 +96,7 @@ fn generate_directory_listing(path: &Path, url_path: &str) -> String {
     - If the path does not exist, it responds with a 404 Not Found error.
     - If there's an error reading the file, it responds with a 500 Internal Server Error.
 
+```rust 
 fn handle_request(request: Request, root_dir: &Path) {
     let client_addr = request.remote_addr().copied();
     log_request(&request, client_addr);
@@ -131,6 +139,7 @@ fn handle_request(request: Request, root_dir: &Path) {
         let _ = request.respond(Response::from_string("404 Not Found").with_status_code(404));
     }
 }
+```
 
 5. Entry point of the program:
     - It sets a starting port 8000 
@@ -138,6 +147,8 @@ fn handle_request(request: Request, root_dir: &Path) {
     - It calls find_available_port to find a port to listen on.
     - It prints a message to the console indicating the server's URL and the directory it's serving.
     - It enters a loop that continuously waits for incoming requests (server.incoming_requests()). For each request received, it calls the handle_request function to process it.
+
+```rust 
 fn main() {
     let start_port = 8000;
     let root_dir = env::args()
@@ -157,3 +168,4 @@ fn main() {
         handle_request(request, &root_dir);
     }
 }
+```
