@@ -1,3 +1,5 @@
+# Code Commentary 
+
 1. 
 ```
 //Example showing some UI controls like Label, TextEdit, Slider, Button.
@@ -158,7 +160,47 @@ fn main() -> eframe::Result {
 
    Actual looping mechanism and event handling are managed by **eframe's run_native** function.
 
+# Cross compile 
+
+1. install cross tool chains 
+   $ sudo apt install gcc-aarch64-linux-gnu libc6-dev-arm64-cross
+
+2. $ rustup target add aarch64-unknown-linux-gnu
+   This installs the pre-compiled Rust standard libraries (core, std, etc...) for the aarch64-unknown-linux-gnu target, which is required to build any Rust code for that architecture.
+
+3. .cargo/config.toml file in a Rust project is used to configure Cargo, Rust’s build system and package manager.
+
+    - .cargo/config.toml typically: 
+        - Specifies the target architecture (e.g., aarch64-unknown-linux-gnu)
+        - Points to the correct linker (because your host system’s linker can’t produce binaries for AArch64)
+        - Provides target-specific settings (like custom runners, rustflags, sysroot)
+
+$ mkdir .cargo; cd .cargo; touch config.toml
+
+[build]
+target = "aarch64-unknown-linux-gnu"
+
+[target.aarch64-unknown-linux-gnu]
+linker = "aarch64-linux-gnu-gcc"
+
+Cargo and rustc look for how to use the cross-compiler, including:
+* cross-compiler ( linker )
+
+[target.aarch64-unknown-linux-gnu]
+linker = "aarch64-linux-gnu-gcc"
+
+- tells cargo to use this cross-linker instead of the default system linker.
+- linker knows how to link object files and libs for the arch (ex aarch64 target architecture )
+* C/C++ libraries and headers:
+- The linker ( aarch64-linux-gnu-gcc ) automatically uses the correct **sysroot** i.e the path to:
+    - cross-compiled std libs
+    - c headers for the target platform 
+- these are typically installed via system packages like: 
+
+sudo apt install gcc-aarch64-linux-gnu
+sudo apt install libc6-dev-arm64-cross
 
 
+4. Build for aarch64,
 
-
+    cargo build --target aarch64-unknown-linux-gnu
