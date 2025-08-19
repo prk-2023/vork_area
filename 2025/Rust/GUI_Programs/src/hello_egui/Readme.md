@@ -156,7 +156,7 @@ fn main() -> eframe::Result {
 
     - ctx: &egui::Context: This provides the drawing context, allowing you to create and interact with egui widgets. All UI elements (labels, text edits, sliders, buttons) are added to the ui object, which is derived from ctx.
 
-
+   Actual looping mechanism and event handling are managed by **eframe's run_native** function.
 
 
 
