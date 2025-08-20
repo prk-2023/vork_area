@@ -25,6 +25,14 @@ Fedora's packaging system prevents installing a second architecture of core syst
 
 ---
 
+### Solution 0: this is a quick way to match with debian cross-compiler package installation.
+
+More control approach is to generate a sysroot as explained in the other solutions.
+
+$ sudo remove gcc-aarch64-linux-gnu 
+$ sudo dnf corp enable lantw44/aarch64-linux-gnu-toolchain 
+$ sudo dnf install aarch64-linux-gnu-{binutils,gcc,glibc}
+
 ### Solution 1: Use the `sysroot` from a Fedora Docker/Podman Container (Your Idea)
 
 This is a clean and official method. You use a container to get the pure `aarch64` filesystem and then point your cross-compiler to it.

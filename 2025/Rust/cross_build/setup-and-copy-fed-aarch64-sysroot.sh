@@ -8,7 +8,8 @@ IMAGE="registry.fedoraproject.org/fedora:$FEDORA_VERSION"
 ARCH="arm64"
 
 echo ">>> Installing required host tools..."
-sudo dnf install -y podman aarch64-linux-gnu-gcc qemu-user-static-aarch64
+#sudo dnf install -y podman aarch64-linux-gnu-gcc qemu-user-static-aarch64
+sudo dnf install -y podman gcc-aarch64-linux-gnu qemu-user-static-aarch64
 
 echo ">>> Pulling Fedora $ARCH image..."
 podman pull --arch="$ARCH" "$IMAGE"

@@ -29,7 +29,8 @@ impl eframe::App for MyApp {
                 self.age += 1;
             }
             ui.label(format!("Hello '{}', age {}", self.name, self.age));
-            ui.image(egui::include_image!("/home/daybreak/Pictures/rust.png"));
+            //ui.image(egui::include_image!("/home/daybreak/Pictures/rust.png"));
+            ui.image(egui::include_image!("../rust.jpg"));
         });
     }
 }
