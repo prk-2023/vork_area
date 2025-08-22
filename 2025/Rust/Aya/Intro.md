@@ -1,13 +1,14 @@
- # generate a aya eBPF template to start working
+# generate a aya eBPF template to start working
+ 
    >  cargo generate https://github.com/aya-rs/aya-template
- # Getting Started with Aya + eBPF
+ 
+# Getting Started with Aya + eBPF
 
 Having knowledge of rust and ebpf is not enough guide me how to go about using aya + eBPF:
  
 Combining Rust+eBPF with Aya is a powerful approach for building robust and efficient kernel-level programs. 
 
-Here's a structured guide on how to go about using Aya + eBPF, from setting up your environment to building
-and deploying your first programs:
+Here's a structured guide on how to go about using Aya + eBPF, from setting up your environment to building and deploying your first programs:
 
 ## 1. Understand the Core Concepts
 
@@ -15,8 +16,7 @@ Before diving into code, ensure you have a solid grasp of:
 
   * *eBPF Fundamentals:*
       * What eBPF is and its purpose (running sandboxed programs in the kernel).
-      * Different eBPF program types (e.g., XDP for network processing, Kprobes/Tracepoints for tracing,
-        Cgroups for control groups).
+      * Different eBPF program types (e.g., XDP for network processing, Kprobes/Tracepoints for tracing, Cgroups for control groups).
       * The eBPF verifier and its safety checks.
       * eBPF Maps (for communication between kernel and user space, and for persistent data).
       * eBPF Helpers (functions provided by the kernel to eBPF programs).
@@ -64,8 +64,7 @@ Aya provides a `cargo generate` template to quickly scaffold a new project.
     ```bash
     cargo generate https://github.com/aya-rs/aya-template
     ```
-    Follow the prompts. You'll typically get two crates: one for the eBPF program (kernel space) and one 
-    for the user-space program.
+    Follow the prompts. You'll typically get two crates: one for the eBPF program (kernel space) and one for the user-space program.
 2.  *Explore the generated code:*
       * *`your-project-ebpf/src/main.rs`*: This is where your eBPF program logic will reside. Notice the `#![no_std]` and `#![no_main]` attributes. You'll see macros like `#[xdp]` or `#[tracepoint]` that attach your Rust function to a specific eBPF hook.
       * *`your-project/src/main.rs`*: This is your user-space application. It's responsible for loading the compiled eBPF program into the kernel, attaching it, and interacting with it (e.g., reading from maps or perf buffers).
@@ -138,3 +137,4 @@ Aya provides a `cargo generate` template to quickly scaffold a new project.
   * *Community:* Join the Aya Discord server (often linked in the Aya GitHub or documentation) for help and discussions.
 
 By following these steps and continuously experimenting with different eBPF program types and Aya features, you'll gain practical experience and become proficient in building powerful kernel-level applications with Rust and Aya.
+
