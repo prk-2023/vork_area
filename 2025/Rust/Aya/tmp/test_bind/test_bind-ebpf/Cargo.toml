@@ -1,0 +1,17 @@
+[package]
+name = "test_bind-ebpf"
+version = "0.1.0"
+edition.workspace = true
+
+[dependencies]
+test_bind-common = { path = "../test_bind-common" }
+
+aya-ebpf = { workspace = true }
+aya-log-ebpf = { workspace = true }
+
+[build-dependencies]
+which = { workspace = true }
+
+[[bin]]
+name = "test_bind"
+path = "src/main.rs"
