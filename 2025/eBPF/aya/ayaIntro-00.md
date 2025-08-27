@@ -1,6 +1,142 @@
 # AYA: 
 ---
 
+If you’re familiar with the **block-level design of eBPF** (maps, programs, hooks, verifier, JIT), you're 
+already ahead of many folks who start with `bpftrace` or `bcc`.
+
+Let’s look at how you can **learn Aya**, a Rust-based eBPF framework, *without* needing deep experience 
+with `bpftrace` or `bcc`.
+
+---
+
+## Quick Summary
+
+* **Aya** is a *from-scratch* Rust-native library for writing and loading eBPF programs.
+* **bpftrace** and **bcc** are high-level tools that abstract away much of the low-level details.
+* You can **skip bpftrace/bcc** if you prefer to work close to the kernel, and with **type safety and modern 
+  tooling** (which Rust provides).
+
+---
+
+## Good News for You
+
+You already know how eBPF works at a block level — programs, maps, loaders, hooks (tracepoints, kprobes, 
+etc.). That’s the **mental model** bpftrace/bcc try to hide under the hood.
+
+So you **don’t need to master bpftrace or bcc** to be successful with Aya. You just need to understand how 
+they map to the same building blocks you already know:
+
+| Concept             | eBPF Block                       | `bpftrace` / `bcc` | Aya                                           |
+| ------------------- | -------------------------------- | ------------------ | --------------------------------------------- |
+| Hook point          | kprobe/tracepoint etc.           | Automatic          | You declare and attach manually               |
+| eBPF Program        | BPF bytecode                     | Hidden             | Written in Rust + compiled with `cargo xtask` |
+| Maps                | Shared memory                    | Hidden             | Defined in Rust (with full control)           |
+| Userspace loader    | `bpftrace` CLI or Python scripts | Hidden             | Rust app using `aya::Bpf`                     |
+| Event communication | perf ring buffer / maps          | Abstracted         | Manual but fully customizable                 |
+| Verifier            | Kernel                           | Transparent        | Errors shown in Rust build or at load time    |
+
+---
+
+## Your Learning Path
+
+Here’s a **focused path** for learning Aya without needing to first master `bpftrace` or `bcc`.
+
+---
+
+### Step 1: Firm Up the eBPF Blocks (You already know)
+
+Make sure you’re confident in:
+
+* What are eBPF programs (and types like `tracepoint`, `kprobe`, `xdp`, etc.)
+* What are eBPF maps (array, hash, ring buffer, perf buffer, etc.)
+* How kernel and user space interact via maps or ring buffers
+
+If you’re fuzzy on verifier logic or helpers, I can provide cheat sheets.
+
+---
+
+### Step 2: Setup Aya and Build a Simple App
+
+Follow the official Aya book:
+[https://aya-rs.dev/book/](https://aya-rs.dev/book/)
+
+Try their **minimal tracepoint example**:
+
+* eBPF program in `src/bpf/`
+* Loader in `src/main.rs`
+* Build using `cargo xtask build-ebpf`
+
+It’s structured cleanly and shows you:
+
+* How to attach to `tracepoint:syscalls:sys_enter_execve`
+* How to use a perf buffer to send events to userspace
+* How to read them in real time
+
+---
+
+### Step 3: Learn via Comparisons (Optional but helpful)
+
+If you ever get stuck, it's useful to **compare Aya to bpftrace**:
+
+| Goal            | Aya                                   | bpftrace                          |
+| --------------- | ------------------------------------- | --------------------------------- |
+| Trace syscalls  | Tracepoint hook + program             | `tracepoint:syscalls:sys_enter_*` |
+| Print arguments | Serialize event struct to perf buffer | `printf()`                        |
+| Filter by PID   | Add check in BPF program              | `/pid == 1234/`                   |
+| Track counts    | Use `HashMap` or `PerfEventArray`     | `@counts[pid] = count()`          |
+
+So if you understand a bpftrace one-liner like:
+
+```bash
+bpftrace -e 'tracepoint:syscalls:sys_enter_execve { printf("PID: %d\n", pid); }'
+```
+
+You can think of the Aya equivalent as:
+
+* Attach a Rust-based BPF program to the same tracepoint
+* In the program, format data into a struct
+* Send via perf buffer
+* Read and print in userspace Rust
+
+---
+
+### Step 4: Experiment and Build
+
+Ideas you can try building in Aya:
+
+* Count how many times each syscall is called per PID
+* Measure latency between syscall entry/exit
+* Track failed `open()` calls
+* Implement a per-process syscall histogram
+* Parse `bpf_attr` when someone calls `bpf(BPF_PROG_LOAD)`
+
+---
+
+### Bonus: Real-World Project References
+
+* Aya's example repo: [https://github.com/aya-rs/aya-template](https://github.com/aya-rs/aya-template)
+* RedBPF (older, not recommended now)
+* Facebook’s Katran (written in C but shows real-world eBPF infra)
+
+---
+
+##  Summary
+
+You **don’t need** to fully master `bpftrace` or `bcc` to learn **Aya**:
+
+- You already have the mental model of eBPF
+- Aya gives you full control in Rust (with safety)
+- You’ll learn more by directly writing and testing small Aya programs
+
+Let me know if you want:
+
+* A custom "hello world" Aya tracepoint example
+* A walkthrough of how a perf buffer works in Aya
+* A cheat sheet comparing Aya to bpftrace
+
+---
+# Aya
+
 ### **Aya: A Rust-Based Approach to eBPF Tracing (vs. BCC/BPFtrace/libbpf)**
 
 Aya is an emerging **Rust-based eBPF library** that provides a **memory-safe**, low-overhead way to write 
@@ -11,7 +147,7 @@ It’s designed as an alternative to **BCC** (Python/Lua-based) and **libbpf** (
 
 ---
 
-## **🔹 Key Advantages of Aya**
+## **  Key Advantages of Aya**
 
 ### **1. Memory Safety (Rust’s Strong Suit)**
    - No undefined behavior, dangling pointers, or memory leaks (unlike C/libbpf).
@@ -41,32 +177,32 @@ It’s designed as an alternative to **BCC** (Python/Lua-based) and **libbpf** (
 
 ---
 
-## **🔹 How Aya Compares to Other Tools**
+## **  How Aya Compares to Other Tools**
 | Feature               | **Aya (Rust)** | **BCC (Python/C++)** | **BPFtrace** | **libbpf (C)** |
 |----------------------|---------------|----------------------|-------------|---------------|
-| **Memory Safety**    | ✅ Yes (Rust)  | ❌ No (C/Python)      | ❌ No        | ❌ No (C)      |
-| **Runtime Compilation** | ❌ No (pre-compiled) | ✅ Yes (LLVM) | ❌ No (scripting) | ❌ No (pre-compiled) |
+| **Memory Safety**    | OK Yes (Rust)  | NO No (C/Python)      | NO No        | NO No (C)      |
+| **Runtime Compilation** | NO No (pre-compiled) | OK Yes (LLVM) | NO No (scripting) | NO No (pre-compiled) |
 | **Performance Overhead** | ⚡ Low | 🐢 Medium (due to runtime LLVM) | ⚡ Low (scripting) | ⚡ Low |
-| **Ease of Use**      | 🟢 Good (Rust) | 🟡 Medium (Python/C++) | ✅ Very Easy | 🔴 Hard (C) |
+| **Ease of Use**      | 🟢 Good (Rust) | 🟡 Medium (Python/C++) | OK Very Easy | 🔴 Hard (C) |
 | **Best For**         | Custom BPF programs, networking, security | Quick prototyping, tracing | Ad-hoc tracing | Production BPF programs (C) |
 
 ---
 
-## **🔹 When Should You Use Aya?**
-✅ **Use Aya if:**
+## **  When Should You Use Aya?**
+OK **Use Aya if:**
    - You want **memory-safe BPF programs** (critical for security tools).
    - You need **low-overhead, pre-compiled BPF** (like `libbpf` but in Rust).
    - You prefer **Rust’s tooling** over Python/C.
    - You’re building **long-running BPF programs** (e.g., networking, security monitoring).
 
-❌ **Avoid Aya if:**
+NO **Avoid Aya if:**
    - You just need **quick ad-hoc tracing** (use `bpftrace` instead).
    - You rely on **BCC’s Python/Lua bindings** for rapid prototyping.
    - You’re not familiar with Rust (learning curve vs. `bpftrace`).
 
 ---
 
-## **🔹 Example: Aya vs. BCC vs. BPFtrace**
+## **  Example: Aya vs. BCC vs. BPFtrace**
 ### **1. Aya (Rust) - Custom BPF Program**
 
 ```rust
@@ -99,7 +235,7 @@ bpftrace -e 'kprobe:do_sys_open { printf("file opened!\n"); }'
 
 ---
 
-## **🔹 Verdict: Is Aya Worth It?**
+## **  Verdict: Is Aya Worth It?**
 - **👍 Best for:** Production-grade BPF programs where **safety & performance** matter.
 - **👎 Not ideal for:** One-off debugging (use `bpftrace`/`perf` instead).
 
@@ -121,7 +257,7 @@ Here’s how **Aya (Rust)** compares to alternatives in this environment.
 
 ---
 
-## **🔹 Key Constraints in ARM Embedded Systems**
+## **  Key Constraints in ARM Embedded Systems**
 1. **Limited CPU/Memory**  
    - No room for runtime compilation (BCC’s LLVM is heavyweight).  
    - Minimal kernel overhead is crucial.  
@@ -139,22 +275,22 @@ Here’s how **Aya (Rust)** compares to alternatives in this environment.
 
 ---
 
-## **🔹 Comparison for ARM Embedded Systems**
+## **  Comparison for ARM Embedded Systems**
 | Feature               | **Aya (Rust)** | **BCC** | **BPFtrace** | **libbpf (C)** |
 |----------------------|---------------|---------|-------------|---------------|
-| **ARM/aarch64 Support** | ✅ Yes | ✅ Yes (but heavy) | ✅ Yes (if built) | ✅ Yes |
-| **No Python Required** | ✅ Yes | ❌ No (needs Python) | ✅ Yes | ✅ Yes |
+| **ARM/aarch64 Support** | OK Yes | OK Yes (but heavy) | OK Yes (if built) | OK Yes |
+| **No Python Required** | OK Yes | NO No (needs Python) | OK Yes | OK Yes |
 | **Runtime Overhead** | ⚡ Very Low | 🐢 High (LLVM) | ⚡ Low | ⚡ Low |
-| **Memory Safety** | ✅ Yes (Rust) | ❌ No | ❌ No | ❌ No |
-| **Pre-Compiled BPF** | ✅ Yes | ❌ No (runtime LLVM) | ❌ No (script) | ✅ Yes |
-| **Cross-Compilation** | ✅ Easy (Rust toolchain) | ❌ Hard (LLVM deps) | ❌ Needs bpftrace build | ✅ Possible |
-| **Kernel Headers Needed?** | ❌ No (BTF helps) | ✅ Yes | ✅ Yes | ✅ Yes |
-| **Best For** | Custom BPF programs (XDP, security) | ❌ Avoid (too heavy) | Ad-hoc debugging (if compiled) | Legacy C BPF |
+| **Memory Safety** | OK Yes (Rust) | NO No | NO No | NO No |
+| **Pre-Compiled BPF** | OK Yes | NO No (runtime LLVM) | NO No (script) | OK Yes |
+| **Cross-Compilation** | OK Easy (Rust toolchain) | NO Hard (LLVM deps) | NO Needs bpftrace build | OK Possible |
+| **Kernel Headers Needed?** | NO No (BTF helps) | OK Yes | OK Yes | OK Yes |
+| **Best For** | Custom BPF programs (XDP, security) | NO Avoid (too heavy) | Ad-hoc debugging (if compiled) | Legacy C BPF |
 
 ---
 
-## **🔹 Best Choices for ARM Embedded**
-### **1. ✅ Aya (Best for Custom BPF Programs)**
+## **  Best Choices for ARM Embedded**
+### **1. OK Aya (Best for Custom BPF Programs)**
    - **Pros:**  
      - No Python, no runtime LLVM.  
      - Memory-safe Rust, minimal overhead.  
@@ -164,7 +300,7 @@ Here’s how **Aya (Rust)** compares to alternatives in this environment.
    - **Use Case:**  
      - Writing **custom BPF probes** for networking (XDP), security, or performance monitoring.  
 
-### **2. ✅ libbpf (Best for Legacy C BPF)**
+### **2. OK libbpf (Best for Legacy C BPF)**
    - **Pros:**  
      - Lightweight, pre-compiled BPF.  
      - Works on older kernels (if BTF is unavailable).  
@@ -174,7 +310,7 @@ Here’s how **Aya (Rust)** compares to alternatives in this environment.
    - **Use Case:**  
      - If you must use C (e.g., existing BPF codebase).  
 
-### **3. ⚠️ BPFtrace (Only If Pre-Built)**
+### **3. BPFtrace (Only If Pre-Built)**
    - **Pros:**  
      - Great for ad-hoc debugging.  
    - **Cons:**  
@@ -183,14 +319,14 @@ Here’s how **Aya (Rust)** compares to alternatives in this environment.
    - **Use Case:**  
      - Quick debugging, if you can build it for your device.  
 
-### **4. ❌ BCC (Avoid on Embedded)**
+### **4. NO BCC (Avoid on Embedded)**
    - **Why?**  
      - Requires Python + LLVM (too heavy).  
      - Runtime compilation is slow and resource-intensive.  
 
 ---
 
-## **🔹 Example Workflow with Aya on ARM**
+## **  Example Workflow with Aya on ARM**
 ### **1. Cross-Compile BPF Program (on x86 Host)**
 ```sh
 # Install Rust ARM toolchain
@@ -214,13 +350,13 @@ probe.attach("do_sys_open", 0)?;
 
 ---
 
-## **🔹 Verdict: What Should You Use?**
+## **  Verdict: What Should You Use?**
 | Scenario | Best Tool |
 |----------|----------|
-| **Custom BPF (XDP, security, etc.)** | ✅ **Aya** (Rust) |
-| **Existing C BPF code** | ✅ **libbpf** |
+| **Custom BPF (XDP, security, etc.)** | OK **Aya** (Rust) |
+| **Existing C BPF code** | OK **libbpf** |
 | **Quick debugging** | ⚠️ **BPFtrace** (if pre-built) |
-| **Avoid at all costs** | ❌ **BCC** |
+| **Avoid at all costs** | NO **BCC** |
 
 ### **Why Aya Wins for ARM Embedded?**
 ✔ **No Python/LLVM** → Minimal footprint.  
@@ -243,9 +379,9 @@ embedded use cases**.
 
 ---
 
-## 🧭 What Is Aya?
+## What Is Aya?
 
-### 🔧 Aya is a **pure Rust framework** for writing and loading eBPF programs.
+### Aya is a **pure Rust framework** for writing and loading eBPF programs.
 
 Aya is a pure Rust framework for eBPF development, enabling you to write, compile, load, and manage eBPF
 programs without relying on C-based tooling like libbpf or BCC.
@@ -268,7 +404,7 @@ cloud-native, systems, and embedded development.
 
 ---
 
-## 📦 The Aya Stack: Two Parts
+## The Aya Stack: Two Parts
 
 | Layer           | Crate     | Description                                |
 | --------------- | --------- | ------------------------------------------ |
@@ -277,7 +413,7 @@ cloud-native, systems, and embedded development.
 
 ---
 
-## 📌 How Aya Fits into eBPF Tracing
+## How Aya Fits into eBPF Tracing
 
 ### eBPF Tracing: What Is It?
 
@@ -292,37 +428,37 @@ eBPF tracing is the act of dynamically attaching programs to kernel or userspace
 
 --
 
-## 🛠 What You Can Do With Aya
+## What You Can Do With Aya
 
 | Use Case                                   | Aya Support |
 | ------------------------------------------ | ----------- |
-| KProbes / KRetProbes                       | ✅ Yes       |
-| UProbes / URetProbes                       | ✅ Yes       |
-| Tracepoints                                | ✅ Yes       |
-| Perf events / PMCs                         | ✅ Yes       |
-| XDP (network filtering)                    | ✅ Yes       |
-| Socket filtering (SOCK\_MAP, SK\_MSG, etc) | ✅ Yes       |
-| BPF Maps (hash, array, etc)                | ✅ Yes       |
-| BTF-enabled introspection                  | ✅ Yes       |
+| KProbes / KRetProbes                       | OK Yes       |
+| UProbes / URetProbes                       | OK Yes       |
+| Tracepoints                                | OK Yes       |
+| Perf events / PMCs                         | OK Yes       |
+| XDP (network filtering)                    | OK Yes       |
+| Socket filtering (SOCK\_MAP, SK\_MSG, etc) | OK Yes       |
+| BPF Maps (hash, array, etc)                | OK Yes       |
+| BTF-enabled introspection                  | OK Yes       |
 
 So, Aya covers almost everything BCC/BPFTrace can, **with more control** and **Rust safety**.
 
 ---
 
-## 🎯 When to Use Aya (vs. BCC/BPFTrace)
+## When to Use Aya (vs. BCC/BPFTrace)
 
 | Scenario                          | Best Tool |
 | --------------------------------- | --------- |
 | Interactive prototyping           | BPFTrace  |
 | Simple, one-liner syscall tracing | BPFTrace  |
-| Kernel debug tracing in prod      | Aya ✅     |
-| No Python/Clang in system         | Aya ✅     |
-| Embedded / Minimal Linux          | Aya ✅✅✅   |
-| Need safe, typed Rust environment | Aya ✅     |
+| Kernel debug tracing in prod      | Aya OK     |
+| No Python/Clang in system         | Aya OK     |
+| Embedded / Minimal Linux          | Aya OKOKOK   |
+| Need safe, typed Rust environment | Aya OK     |
 
 ---
 
-## ✅ Why Choose Aya?
+## OK Why Choose Aya?
 
 | Feature                   | Aya Benefits                        |
 | ------------------------- | ----------------------------------- |
@@ -338,14 +474,14 @@ So, Aya covers almost everything BCC/BPFTrace can, **with more control** and **R
 
 | Feature                          | Benefit for Embedded Linux                                                  |
 | -------------------------------- | --------------------------------------------------------------------------- |
-| ✅ **Pure Rust Implementation**   | No C toolchain (e.g., LLVM, Clang, libbpf) needed—easier cross-compilation. |
+| OK **Pure Rust Implementation**   | No C toolchain (e.g., LLVM, Clang, libbpf) needed—easier cross-compilation. |
 | 📦 **Static Linking (via musl)** | Enables building small, self-contained binaries.                            |
 | 📄 **BTF Support**               | Enhances portability across kernel versions without needing headers.        |
 | 🧠 **Low Runtime Overhead**      | eBPF programs are executed in the kernel with very low overhead.            |
 | 🐧 **Linux Kernel Support**      | eBPF is part of the Linux kernel since 4.x—common in embedded distros.      |
 | 💬 **Data Sharing via Maps**     | eBPF maps allow lightweight communication between kernel and user space.    |
 
-## 🔧 Embedded Use Cases for Aya
+## Embedded Use Cases for Aya
 
 ### 1. **Device Monitoring / Telemetry**
 
@@ -387,7 +523,7 @@ A typical Aya-based embedded workflow might look like:
 
 ---
 
-## 🔐 Security Advantage
+## Security Advantage
 
 Aya (and eBPF in general) has a **security edge** in embedded:
 
@@ -396,18 +532,18 @@ Aya (and eBPF in general) has a **security edge** in embedded:
 
 ---
 
-## 📦 Lightweight Comparison
+## Lightweight Comparison
 
 | Feature                      | Aya                     | libbpf/BCC                 |
 | ---------------------------- | ----------------------- | -------------------------- |
 | Language                     | Rust                    | C / Python                 |
 | Userspace dependencies       | Only libc               | Requires LLVM, Clang, etc. |
-| Embedded suitability         | ✅ Excellent             | 🚫 Heavy                   |
-| Compile-once, run-everywhere | ✅ Yes (with BTF + musl) | ❌ Not easily               |
+| Embedded suitability         | OK Excellent             | 🚫 Heavy                   |
+| Compile-once, run-everywhere | OK Yes (with BTF + musl) | NO Not easily               |
 
 ---
 
-## 🚀 Final Take
+## Final Take
 
 Aya brings the power of eBPF to the **embedded Linux world** by offering:
 
@@ -420,7 +556,7 @@ Whether you're building telemetry agents, secure runtime monitors, or custom net
 embedded systems, Aya is **an ideal fit for modern, Rust-first embedded Linux development**.
 
 
-## 🔁 The Aya Workflow (Visual) ( general case not limited to embedded )
+## The Aya Workflow (Visual) ( general case not limited to embedded )
 
 ```bash
 1. Write eBPF program (aya-bpf) in Rust
@@ -436,7 +572,7 @@ embedded systems, Aya is **an ideal fit for modern, Rust-first embedded Linux de
 
 ---
 
-### 🚀 Example Use Cases with Aya
+### Example Use Cases with Aya
 
 * Trace all calls to `execve` and log command names
 * Monitor all file opens on the system
@@ -445,7 +581,7 @@ embedded systems, Aya is **an ideal fit for modern, Rust-first embedded Linux de
 
 ---
 
-## 🧩 Summary
+##  Summary
 
 * **Aya is a Rust-native, low-footprint alternative to BCC/BPFTrace**
 * It's especially suited for **embedded systems**, **production monitoring**, and **safe tracing**
@@ -476,29 +612,29 @@ Starting with x86_64 platform to learn and move over to aarch64:
 
 ---
 
-## ✅ Why Start on x86\_64?
+## OK Why Start on x86\_64?
 
-### 🖥️ 1. **Faster Development Loop**
+### 1. **Faster Development Loop**
 
 * Easier to install tools (`cargo`, `llvm`, `aya-cli`, etc.)
 * You can build, test, and debug quickly without worrying about cross-compilation or deploying to another 
   device.
 
-### 🧪 2. **Same Kernel ABI / BTF Model**
+### 2. **Same Kernel ABI / BTF Model**
 
 * eBPF programs don’t rely on architecture-specific instructions rather they rely on 
   **kernel ABIs and event hooks**, which are consistent across architectures.
 
 * You can **simulate the exact same probe logic** on `x86_64` that you’ll use on ARM later.
 
-### 📚 3. **Great Learning Environment**
+### 3. **Great Learning Environment**
 
 * Easier to install `bpftool`, debug logs, use `dmesg`, and explore `/sys/kernel/debug/tracing`
 * BTF support is usually already present in distros like Ubuntu, Fedora, etc.
 
 ---
 
-## 🧭 Then Move to aarch64 (Raspberry Pi, Rockchip)
+## Then Move to aarch64 (Raspberry Pi, Rockchip)
 
 Once you’re comfortable:
 
@@ -510,7 +646,7 @@ Once you’re comfortable:
   * The compiled `.o` eBPF program
   * The compiled `aya` loader binary
 
-### 🚀 Run on your target:
+### Run on your target:
 
 * Raspberry Pi OS / Armbian / Yocto kernel must support:
 
@@ -519,7 +655,7 @@ Once you’re comfortable:
 
 ---
 
-## 🪛 Tools to Make This Easy
+## Tools to Make This Easy
 
 | Tool                        | Purpose                               |
 | --------------------------- | ------------------------------------- |
@@ -531,7 +667,7 @@ Once you’re comfortable:
 
 ---
 
-## 📌 Summary
+## Summary
 
 | Step                 | Platform      | Notes                                |
 | -------------------- | ------------- | ------------------------------------ |
@@ -542,7 +678,7 @@ Once you’re comfortable:
 
 ---
 
-## 🎓 Conclusion
+## Conclusion
 
 > starting on x86_64 and moving to aarch64 is the smart, scalable way to learn and deploy `aya` for tracing.
 
@@ -559,7 +695,7 @@ Below is an overview of what these are and **how Aya uses them**:
 
 ---
 
-## 🧠 Kernel eBPF Primitives
+## Kernel eBPF Primitives
 
 | Feature         | Description                                                                |
 | --------------- | -------------------------------------------------------------------------- |
@@ -571,7 +707,7 @@ Below is an overview of what these are and **how Aya uses them**:
 
 ---
 
-## 🦀 How Aya Uses These
+## How Aya Uses These
 
 Aya is a **pure Rust eBPF framework** that allows you to:
 
@@ -646,15 +782,15 @@ loader.
 
 | Feature         | Supported in Kernel | Supported in Aya? | Notes                         |
 | --------------- | ------------------- | ----------------- | ----------------------------- |
-| **Kprobes**     | ✅ Yes               | ✅ Yes             | For tracing kernel functions  |
-| **Kretprobes**  | ✅ Yes               | ✅ Yes             | Trace function returns        |
-| **Tracepoints** | ✅ Yes               | ✅ Yes             | Stable tracing across kernels |
-| **Uprobes**     | ✅ Yes               | ✅ Yes             | Trace user-space apps         |
-| **Maps**        | ✅ Yes               | ✅ Yes             | For sharing data              |
+| **Kprobes**     | OK Yes               | OK Yes             | For tracing kernel functions  |
+| **Kretprobes**  | OK Yes               | OK Yes             | Trace function returns        |
+| **Tracepoints** | OK Yes               | OK Yes             | Stable tracing across kernels |
+| **Uprobes**     | OK Yes               | OK Yes             | Trace user-space apps         |
+| **Maps**        | OK Yes               | OK Yes             | For sharing data              |
 
 ---
 
-## ✅ Bottom Line
+## OK Bottom Line
 
 Aya leverages the **core eBPF features provided by the Linux kernel**, but does so in **pure, safe Rust** 
 without depending on C libraries like `libbpf` or BCC. 
