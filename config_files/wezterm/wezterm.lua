@@ -19,7 +19,7 @@ end
 config.scrollback_lines = 5000
 config.enable_scroll_bar = true
 config.audible_bell = "Disabled"
-config.initial_cols = 207
+config.initial_cols = 162
 config.initial_rows = 45
 -- Weight: `"Thin, ExtraLight,Light,DemiLight,Book,Regular,Medium,DemiBold,Bold,ExtraBold,Black,ExtraBlack"
 -- stretch:
@@ -66,7 +66,7 @@ config.font = wezterm.font("JetBrains Mono", { weight = 549, stretch = "Normal",
 -- config.font = wezterm.font("CodeNewRoman Nerd Font", { weight = 549, stretch = "Normal", style = "Normal" })
 -- config.font = wezterm.font("DejaVu Sans Mono", { weight = "Book", stretch = "SemiCondensed", style = "Normal" })
 
-config.font_size = 10.8
+config.font_size = 11.7
 config.line_height = 1.0
 config.use_fancy_tab_bar = true
 -- config.use_fancy_tab_bar = false
@@ -244,7 +244,7 @@ wezterm.on("format-tab-title", function(tab)
 	local is_zoomed = tab.active_pane.is_zoomed
 	local is_active_tab = tab.is_active
 	--local act_title = string.format("** ▶ %d", tab_index) -- or "* %d", or "[%d]", or "**%d**"
-	local act_title = is_active_tab and string.format(" ▶ ") or ""
+	local act_title = is_active_tab and string.format("  ▶  ") or ""
 
 	local zoomed_fg = "#ffffff"
 	local zoomed_bg = "#d75f5f"
@@ -263,7 +263,7 @@ wezterm.on("format-tab-title", function(tab)
 		-- { Text = string.format("Tab %d", tab.tab_index + 1) },
 		--{ Text = string.format("✨ %d ❯❯ ", tab.tab_index + 1) },
 		-- { Text = string.format("%d   %s", tab.tab_index + 1, prefix) },
-		{ Text = string.format("%s %s  %d", prefix, act_title, tab.tab_index + 1) },
+		{ Text = string.format(" %s : %s : %d", prefix, act_title, tab.tab_index + 1) },
 		-- { Text = string.format("⎇ %d: %s", tab.tab_index + 1, pane.title) },
 	}
 end)
