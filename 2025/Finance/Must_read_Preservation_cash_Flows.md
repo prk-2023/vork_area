@@ -10,7 +10,8 @@ The intent of this write-up is to share my view and listen to comments if my thi
 All saving/insurance schemes give a picture of Long term financial promises, life insurance, 
 retirement plans or pension-linked investments. 
 
-When viewed from the point of preserving the value of saving over time. We not re-build/calculate/asses any investment plan.
+When viewed from the point of preserving the value of saving over time. 
+We can re-build/re-calculate/re-asses any investment plan.
 
 And here are some points:
 
