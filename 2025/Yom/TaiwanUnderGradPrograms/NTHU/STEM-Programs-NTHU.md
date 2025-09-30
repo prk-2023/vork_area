@@ -31,4 +31,12 @@ All courses offered to IBP Group B students
 ( Electrical Engineering and Computer Science, Business Management, Engineering Technology) are conducted 
 entirely in English.
 
+6. Search for department and english courses 
 
+https://www.ccxp.nthu.edu.tw/ccxp/INQUIRE/JH/6/6.2/6.2.H/JH62h001.php
+
+Search shows: Electrical Engineering ( https://eecs-en.site.nthu.edu.tw/p/412-1015-12336.php )
+
+7. Engineering courses :
+
+https://apply.nthu.edu.tw/en/department/36-program-of-engineering

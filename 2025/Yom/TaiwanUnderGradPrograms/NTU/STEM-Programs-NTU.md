@@ -1,6 +1,13 @@
 # NTU 
 
-Full English and English taught progograms at NTU:
+## Explore the list of available program. 
+
+https://oiasystem.ntu.edu.tw/globaladmission/foreign/requirement/dept.list/id/qiTvGY2R2jAI?lang=en
+
+
+From the list below are the collages and programs of interest 
+
+## Full English and English taught progograms at NTU:
 
 
 The Relevant Links:
@@ -8,7 +15,7 @@ https://admissions.ntu.edu.tw/colleges/international-college/
 
 - International College, NTU  NTU’s International College offers several all‑English immersive learning undergraduate programs. 
 
-## Fully English:
+**Fully English:**
 
 1. GUPS: Global UnderGraduate Program in SemiConductors:
 Curriculum: https://www.canva.com/design/DAF4P461GDE/US9PDdK6-cKmnShydjcC9g/view?utm_content=DAF4P461GDE&utm_campaign=designshare&utm_medium=link&utm_source=editor
@@ -63,7 +70,7 @@ For undergraduate programs and courses at **(NTU)** in the fields of **Physics**
 
 ---
 
-### **1. Department of Physics**
+### **1. Department of Physics** ( from the above lists the course offered is only in Chinese )
 
 * **General Physics (b)** 
   An introductory physics course covering topics like Newtonian mechanics, electromagnetism, and quantum physics.
