@@ -140,19 +140,23 @@ instruction and course offerings.
 
 For more references:
 
-[1]: https://course.ntu.edu.tw/en/courses/838034bd-d5ac-4a62-8735-7d055b03ebbb
+https://course.ntu.edu.tw/en/courses/838034bd-d5ac-4a62-8735-7d055b03ebbb
 "General Physics (b)｜NTU Course"
-[2]: https://course.ntu.edu.tw/en/courses/112-2/72205 
+
+https://course.ntu.edu.tw/en/courses/112-2/72205 
 "General Physics Lab.(Ⅱ)｜NTU Course"
-[3]: https://course.ntu.edu.tw/en/courses/112-2/67188 
+
+https://course.ntu.edu.tw/en/courses/112-2/67188 
 "Electronics (Ⅱ)｜NTU Course"
-[4]: https://course.ntu.edu.tw/en/courses/112-2/26355 
+
+https://course.ntu.edu.tw/en/courses/112-2/26355 
 "Electronic Circuits｜NTU Course"
-[5]: https://course.ntu.edu.tw/en/courses/112-2/23144 
+
+https://course.ntu.edu.tw/en/courses/112-2/23144 
 "Introduction to Power Electronics｜NTU Course"
-[6]: https://course.ntu.edu.tw/en/courses/112-2/24472 
+
+https://course.ntu.edu.tw/en/courses/112-2/24472 
 "Switching Power Supply｜NTU Course"
-[7]: https://course.ntu.edu.tw/en/courses/112-2/54007 
+
+https://course.ntu.edu.tw/en/courses/112-2/54007 
 "Electrical Engineering Lab (semiconductor)｜NTU Course"
-
-
