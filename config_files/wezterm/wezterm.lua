@@ -78,6 +78,9 @@ config.font = wezterm.font_with_fallback {
     'Symbols Nerd Font', -- Fallback for Nerd Font symbols
   }
 config.font_size = 12.06
+-- ligatures renders fonts to merge but while editing source code this can get confusing 
+-- to disable ligatures un comment the below line
+config.harfbuzz_features = { 'calt=0' } -- this disabled ligatures ( that is ! = becomes != and = > becomes =>  )
 config.line_height = 1.0
 config.use_fancy_tab_bar = true
 -- config.use_fancy_tab_bar = false
