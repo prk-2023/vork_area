@@ -65,8 +65,19 @@ config.font = wezterm.font("JetBrains Mono", { weight = 549, stretch = "Normal",
 -- config.font = wezterm.font("CodeNewRoman Nerd Font", { weight = "Regular", stretch = "Normal", style = "Normal" })
 -- config.font = wezterm.font("CodeNewRoman Nerd Font", { weight = 549, stretch = "Normal", style = "Normal" })
 -- config.font = wezterm.font("DejaVu Sans Mono", { weight = "Book", stretch = "SemiCondensed", style = "Normal" })
+-- wezterm.font("Hack", {weight="Regular", stretch="Normal", style="Normal"}) -- /home/daybreak/.fonts/Hack-Regular.ttf, FontConfig
+-- wezterm.font("Hack", {weight="Regular", stretch="Normal", style="Italic"}) -- /home/daybreak/.fonts/Hack-Italic.ttf, FontConfig
+-- wezterm.font("Iosevka SS14", {weight="Medium", stretch="Expanded", style="Normal"}) -- /usr/share/fonts/iosevka-ss14-fonts/IosevkaSS14-ExtendedMedium.ttf, FontConfig
+-- wezterm.font("Iosevka SS14", {weight="Medium", stretch="Expanded", style="Oblique"})
+-- wezterm.font("Iosevka SS14", {weight="Medium", stretch="Normal", style="Oblique"})
+wezterm.font("Iosevka SS14", {weight="Regular", stretch="Normal", style="Normal"})
 
-config.font_size = 11.7
+config.font = wezterm.font_with_fallback {
+    'JetBrains Mono', -- Primary font
+    'Noto Color Emoji', -- Fallback for emojis
+    'Symbols Nerd Font', -- Fallback for Nerd Font symbols
+  }
+config.font_size = 12.06
 config.line_height = 1.0
 config.use_fancy_tab_bar = true
 -- config.use_fancy_tab_bar = false
