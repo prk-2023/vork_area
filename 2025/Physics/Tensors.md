@@ -1,7 +1,243 @@
 # Tensors:
 
 
-History:
+## 1. Motivation: direction dependence in physics 
+
+In many physical systems the response in one direction is not the same as in another direction:
+i.e these systems are classified as **anisotropic**. 
+(ref: https://www.feynmanlectures.caltech.edu/II_31.html )
+
+Example: **polarizability** in crystals: When you apply an electric field $E$ you get a polarization $P$ (
+dipole moment per volume). In an isotropic, the relation is simple:
+
+$$
+    \mathbf{P} = \alpha * \mathbf{E}
+$$
+with a single scalar $\alpha$.
+But in a crystal, $\alpha$ depends on the direction: 
+A field in one direction might produce polarization in another direction, etc ...
+
+Thus the simplest "linear response" law must generalize from $\mathbf{P} = \alpha * \mathbf{E}$ ( scalar
+proportionality ) to something that can accomodate cross-components: 
+
+$$
+P_x = \alpha_{xx} E_x + \alpha_{xy} E_y + \alpha_{xz} E_z,
+$$
+$$
+P_y = \alpha_{yx} E_x + \alpha_{yy} E_y + \alpha_{yz} E_z,
+$$
+$$
+P_z = \alpha_{zx} E_x + \alpha_{zy} E_y + \alpha_{zz} E_z.
+$$
+
+In compact notation:
+
+$$
+P_i = \sum_j \alpha_{ij},E_j.  \tag{31.5}
+$$
+
+
+Here the “nine numbers” $\alpha_{ij} for (i,j = x,y,z)$ capture *all* of the linear relation between 
+$\mathbf{E}$ and  $\mathbf {P}$.
+
+This set of nine numbers ( given a coordinate system) is called the **tensor of polarizability**.
+
+So from the state, what emerges is :
+
+> A **Tensor** ( here its called "2nd rank" ) is a collection of components ${T_{ij}}$ that linearly relate
+> vector components to vector components, or more generally transforms in a particular way under change of
+> co-ordinate axes. 
+
+Note: In Feynman lectures focuses more on presenting **tensors** from the physics of anisotropy. 
+
+
+## 2. Transformation properties under change of axes: 
+
+A key property that distinguishes a mere array of numbers from a **tensor** is how the components change
+when (transformations) you rotate or change your co-ordinate system. 
+
+But Physical relations between $E$ and $P$ should now be dependent on co-ordinate axes you choose. (
+Universal laws )
+
+So if you go from $(x,y,z)$ to a new $(x',y',z')$ the same physical field vectors $\mathbf{E}$, $\mathbf{P}$
+have different components in the primed system.
+=> The new components $E_{x'}, E_{y'}, E_{z'}$ are linear combinations of the old ones; 
+=> likewise for $P_{x'},\dots$. 
+You then deduce how the components $\alpha_{i'j'}$ in the new system must relate to the old $\alpha_{ij}$.
+
+Thus a **tensor** is an object who's components transform in a definite rule under a change of basis (
+co-ordinate transformation ), such that the physical relations ( like $P_i = \sum_j \alpha_{ij} E_j)$ ) 
+remains valid in any basis.
+
+Using the vector transformation, the tensor components like $\alpha_{ij}$  changes under co-ordinate
+transformation to keep physical law unchanged. 
+Ex: 
+Suppose in one coordinate system you have:
+$$ 
+    P_x = \alpha_{xx} E_x + \alpha_{xy} E_y
+$$
+
+Now, rotate your axes by 90°. The same physical vectors $\mathbf{P}$ and $\mathbf{E}$ now have new 
+components $P_{x'}$, $E_{x'}$, etc.
+
+To keep the equation valid in the new system:
+
+$$
+    P_{x'} = \alpha_{x'x'} E_{x'} + \alpha_{x'y'} E_{y'}
+$$
+
+The **new components** $\alpha_{x'x'}$ , etc., must be **combinations of the old ones** — this rule defines 
+how tensors transform.
+
+> This shows: to keep physical laws the same in any coordinate system, the tensor components must transform 
+> in a specific way — that’s what makes them tensors.
+
+---
+
+## 3. From vectors and scalars to tensor ranks
+
+* A **scalar** (rank 0 tensor) is just a number; it’s invariant (no indices).
+* A **vector** (rank 1 tensor) has components $V_i$, transforms like a vector.
+* A **rank 2 tensor** has components $T_{ij}$. In the polarization example, $\alpha_{ij}$ is rank 2.
+
+By contracting (summing) indices:
+
+* If you sum one index of a rank‑2 tensor with a vector, you get a vector: $(T_{ij} E_j =$ vector with i-index.
+
+* If you sum both indices with two vectors, you get a scalar: $E_i T_{ij} E_j$. 
+  Indeed, in the polarization energy expression,
+
+  $$
+    u_P = \frac{1}{2} \sum_{i,j} \alpha_{ij} E_i E_j 
+  $$
+
+is a scalar (energy density), independent of the coordinate choice. 
+
+So one hallmark of a tensor is its behavior under these index summations with vectors.
+
+It is to note that many physical tensors are symmetric (i.e. $T_{ij} = T_{ji}$ ), such as in the 
+polarizability tensor in many crystals or the inertia tensor ( In gravitation theory ). 
+
+
+## 4. Geometric intuition: ellipsoids and principal axes
+
+To help intuition, Feynman introduces the idea of the “energy ellipsoid.” The idea:
+
+* Consider the relation $u_P = \tfrac12 \sum_{i,j} \alpha_{ij} E_i E_j$.
+
+* Fix $u_P = u_0$. Then the set of $\mathbf{E}$ that satisfy that is an ellipsoid in the $(E_x, E_y, E_z)$
+  space
+
+* The shape of that ellipsoid encodes the anisotropy of the medium: directions in which the field costs more
+ 
+   or less “energy” to polarize.
+
+* By diagonalizing the tensor (i.e. finding eigenvectors / principal axes), one picks a coordinate system 
+  in which $\alpha_{ij}$ is diagonal (only three nonzero diagonal entries) so that in those special axes, 
+  $P$ is parallel to $E$.
+
+Thus any symmetric tensor of rank 2 can be “diagonalized” in an appropriate coordinate system. 
+That gives you great insight: the general tensor can be thought of as a “stretched sphere” (ellipsoid) in 
+some transformed space.
+
+This geometric view is powerful: it shows that a tensor is not just “a big table of numbers,” but has 
+intrinsic geometric meaning (eigen‐directions, magnitude in those directions) independent of coordinate choice.
+
+---
+
+## 5. More physics examples: inertia, stress, etc.
+
+Familiar physical quantities that are tensors:
+
+* **Moment of inertia tensor**: $\displaystyle L_i = \sum_j I_{ij},\omega_j$. 
+  The kinetic energy is $\tfrac12 \sum_{ij} I_{ij},\omega_i,\omega_j$. 
+
+* **Stress tensor** $S_{ij}$: relating the force (vector) across a surface whose normal is $\mathbf{n}$. 
+  The force per unit area has components $S_{ij},n_j$.
+
+* **Elastic tensors**: The relation between stress and strain is linear in many materials, but the 
+  "stiffness tensor" is of rank 4: $\gamma_{ijkl}$ because $T_{ij} = \sum_{k,l} \gamma_{ijkl} S_{kl}$.
+
+* In relativity, the stress–energy tensor $S_{\mu\nu}) is a rank‑2 tensor in spacetime $4×4$, 
+  capturing energy density, momentum flow, pressure, etc. 
+
+These examples show that the concept of tensor is extremely general and pervasive in physics.
+
+---
+
+## 6. Summing up: what is a tensor?
+
+Putting together the insights from Feynman’s approach, here is a conceptual summary and “definition by 
+inference”:
+
+* A **tensor of rank $n$** is an object with $(n)$ indices (e.g. $T_{i!j!k\cdots}$ ) whose components 
+  transform in a definite linear way under changes of coordinate axes (or basis), such that 
+  geometric / physical relations (e.g. linear relations between vectors, energy expressions) remain valid 
+  and coordinate‐independent.
+
+* A rank‑2 tensor $T_{ij}$ often represents a linear mapping from one vector to another: 
+  $(T\mathbf{v})_{i} = \sum_j T_{ij} v_j$. 
+
+  In physics, many such mappings occur (like relating field to response, stress to deformation, etc.)
+
+* One can contract tensors with vectors (or other tensors) to get lower‐rank objects (vectors or scalars). 
+  The contraction respects the tensorial nature (i.e. coordinate invariance).
+
+* A symmetric tensor (e.g. $T_{ij} = T_{ji}$ ) can be diagonalized; 
+  its eigenvalues and eigenvectors have intrinsic meaning.
+
+* The physical examples (polarizability, stress, inertia, elasticity, electromagnetic energy–momentum) show
+  how tensors arise naturally.
+
+* The geometric picture of ellipsoids (or more generally quadric forms) helps you *see* what the tensor 
+  "does" to vector directions — which directions are "stiffer", which directions cause larger response, etc.
+
+* Crucially, Feynman’s route is: **start from physics**, let the need to encode directional dependence 
+  push you to a generalized linear relation, observe how it must transform under a coordinate change, and 
+  then see its geometric and algebraic properties emerge. 
+
+> By the end, you are left with a clear idea of what a tensor is — as a transformation‐law object, not
+> merely a big matrix.
+
+---
+
+## 7. A simple toy rephrasing / mini‑example
+
+To make it even more transparent, here’s a little toy you can try in your mind or on paper.
+
+Suppose you have a 2D system (so indices run over (x,y)). Suppose you find experimentally:
+
+* If you apply a force $F$ along the $x$-direction, you get a displacement with components $u_x = a F_x$,
+  $u_y = b F_x$.
+
+* If you apply $F$ along $y$-direction, you get $u_x = c F_y$, $u_y = d F_y$.
+
+Then you postulate
+
+$$
+u_i = \sum_j T_{ij} , F_j
+$$
+
+with matrix
+
+$$
+T = \begin{pmatrix} a & c \\ b & d \end{pmatrix}.
+$$
+
+You then ask: what happens if I rotate my coordinate axes by some angle $\theta$? 
+
+The numerical entries $(a, b, c, d)$ will change to some new entries $T_{i'j'}$, in a specific way 
+(you can derive the transformation rule). As long as you do that, the physical law $u_i = T_{ij} F_j$ stays 
+valid in any coordinate system. That is the sign that $T$ is a tensor.
+
+You can also plot the "quadratic form" $F_i T_{ij} F_j = \text{(energy)}$, see an ellipse, find principal
+directions, diagonalize (T) by rotating axes, etc.
+
+
+---
+# Tensors 
+
+**History** :
 
 Understanding the **history before tensors** helps explain *why* tensors were developed and
 *what problems they solved*. 
