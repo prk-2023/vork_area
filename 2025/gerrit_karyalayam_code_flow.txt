@@ -1,0 +1,109 @@
+1. For gerrit review, use
+
+First make sure to copy the commit-msg script to .git/hooks folder 
+this script autogenerates commit-ID and appends to the commit message.
+
+sync with remote:
+-> git pull
+-> apply local changes and commit locally
+-> update the remote branch
+
+$git push <remote> HEAD:refs/for/<branch>
+Example:
+git push origin HEAD:refs/for/openwrt-18.06
+
+git push origin HEAD:refs/for/openwrt-18.06
+
+===> NOTE: DO NOT FORGET TO ADD THE "refs/for/" IN THE PUSH COMMAND FOR REVIEW. <===
+
+
+2. How to rebase other changes on top and repush:
+Two cases: 
+  - remote branch has not progressed: (amend)
+      https://gerrit-review.googlesource.com/Documentation/intro-gerrit-walkthrough.html
+  - remote branch has progressed:(rebase)
+      https://gerrit-review.googlesource.com/Documentation/intro-user.html#rebase]
+      Rebase a Change locally:
+      // update the remote tracking branches
+      $ git fetch
+      // fetch and checkout the change
+      // (checkout command copied from change screen)
+      $ git fetch https://gerrithost/myProject refs/changes/74/67374/2 && git checkout FETCH_HEAD
+      // do the rebase
+      $ git rebase origin/master
+
+    // resolve conflicts if needed and stage the conflict resolution
+      $ git add <path-of-file-with-conflicts-resolved>
+     // continue the rebase
+      $ git rebase --continue
+      // push the commit with the conflict resolution as new patch set
+      $ git push origin HEAD:refs/for/master
+
+    Doing a manual rebase is only necessary when there are conflicts that cannot be resolved by Gerrit. If manual conflict resolution is needed also depends on the
+
+
+
+
+Reference:
+https://stackoverflow.com/questions/57396374/how-to-push-for-review
+
+If Gerrit server is configured to require a Change-Id in the commit message.
+
+you need to add a Change-Id line to your commit and then re-execute the "push" command.
+
+To add the Change-Id automatically you need to have the "commit-msg" hook installed on your local repository.
+1) Install the "commit-msg" hook
+
+	gitdir=$(git rev-parse --git-dir)
+	curl --create-dirs -Lo ${gitdir}/hooks/commit-msg https://GERRIT-SERVER/tools/hooks/commit-msg
+	chmod u+x ${gitdir}/hooks/commit-msg
+2) Add the Change-Id to the commit message
+	git commit --amend
+
+3) Push the new commit to Gerrit
+
+	git push origin HEAD:refs/for/master
+
+
+See more information about Change-Ids at the Gerrit documentation @
+	https://gerrit-review.googlesource.com/Documentation/user-changeid.html
+
+-----------------------------------------------------------------------------
+UseCase1:  (https://gerritcodereview-test.gsrc.io/updating-a-change.html)
+
+1. push a change for review with the Change-Id
+2. Now we change the local change to same file or add new files and wish to apply the second patch
+$ git add newfile ( if there are new files to add)
+$ git commit --amend 
+this command update the most recent commit. it retains the Change-Id 
+next we can 
+git push origin HEAD:refs/for/<branch>
+
+git push origin HEAD:refs/for/master
+
+
+https://gerritcodereview-test.gsrc.io/updating-a-change.html
+
+
+///copy foe the commit-msg to local  git hooks
+scp -p -P 29418  pulumati@localhost:hooks/commit-msg .git/hooks/
+
+
+
+Yocto 5:
+
+Step 1: add/commit changes and new files
+$ git add v4l2test.bb  files/
+$ git commit -m"Type Missmatch fix"
+
+Step 2: check if the commit id is included in the log 
+$ git log 
+commit 20889377893bf7d294ef6dc42971fe41fdd5b759 (HEAD -> scarthgap)
+Author: ram <pulumati@realtek.com>
+Date:   Thu Aug 15 11:38:52 2024 +0800
+    Type Missmatch fix  
+    Change-Id: I93d6bac98a392b1b12e3093608171e18fc250a7c
+Step 3: push for gerrit review:
+git push origin HEAD:refs/for/scarthgap
+
+
