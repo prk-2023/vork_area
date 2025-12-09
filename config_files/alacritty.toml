@@ -1,0 +1,77 @@
+[window]
+dimensions = { columns = 144, lines = 43 }
+opacity = 0.88
+padding = { x = 10, y = 10 }
+dynamic_padding = true
+decorations = "Full" # Options: "Full", "None", "Transparent", "Buttonless"
+# blur = true # (works on macOS/KDE Wayland)
+startup_mode = "Windowed" # Options: "Windowed", "Maximized", "Fullscreen", "SimpleFullscreen"
+title = "-=⟨⚡⭐ ⭕ ⭐⚡⟩=-"
+dynamic_title = true
+
+[font]
+size = 12.0
+[font.normal]
+family = "JetBrains Mono"
+style = "Regular"
+
+[font.bold]
+family = "JetBrains Mono"
+style = "Bold"
+
+[font.italic]
+#family = "Iosevka SS14"
+family = "ComicShannsMono Nerd Font Propo"
+style = "Italic"
+
+[font.bold_italic]
+# family = "JetBrains Mono"
+family = "ComicShannsMono Nerd Font Propo"
+style = "Bold Italic"
+
+[cursor]
+style = { shape = "Block", blinking = "On" } # Options for shape: "Block", "Underline", "Beam"
+
+# # Key bindings (example)
+# [[keyboard.bindings]]
+# key = "V"
+# mods = "Control"
+# action = "Paste"
+#
+# [[keyboard.bindings]]
+# key = "C"
+# mods = "Control"
+# action = "Copy"
+# Use your preferred key combination instead of "O" with "Control" and "Shift"
+
+[colors.primary]
+background = "0x222436"
+foreground = "0xc8d3f5"
+
+[colors.normal]
+black   = "0x1b1d2b"
+red     = "0xff757f"
+green   = "0xc3e88d"
+yellow  = "0xffc777"
+blue    = "0x82aaff"
+magenta = "0xc099ff"
+cyan    = "0x86e1fc"
+white   = "0x828bb8"
+
+[colors.bright]
+black   = "0x444a73"
+red     = "0xff757f"
+green   = "0xc3e88d"
+yellow  = "0xffc777"
+blue    = "0x82aaff"
+magenta = "0xc099ff"
+cyan    = "0x86e1fc"
+white   = "0xc8d3f5"
+
+[colors.cursor]
+text = "0x222436"
+cursor = "0xc8d3f5"
+
+[colors.selection]
+background = "0x3654a7"
+text = "0xc8d3f5"
