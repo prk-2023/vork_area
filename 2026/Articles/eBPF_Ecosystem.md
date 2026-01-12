@@ -6,6 +6,14 @@ Technologies of profiling, tracing, eBPF, Security, XDP profiling, visualization
 
 ## Visualization: 
 
+### 0. Folder Stack format:
+
+    The **Folded Stack** format is the universal "lingua franca" of profiling. 
+    It was popularized by Brendan Gregg (the inventor of Flame Graphs) specifically to take the messy, 
+    multi-line output of tools like eBPF, `perf`, and `dtrace` and turn them into something a computer can 
+    easily parse and visualize.
+
+=> More @ [FolderStack log format](./eBPFEcoSystem/FolderStack.md)
 
 ### 1. Speedscope
 
