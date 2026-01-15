@@ -548,3 +548,184 @@ TODO: Cover the below topics
 * Show **Prometheus / Grafana integration**
 * Compare **SCMI vs hwmon vs BMC accuracy**
 * Discuss **energy-aware scheduling (EAS) internals**
+
+
+# Why Perf system can read HW counters and not eBPF:
+
+## 1. The key clarification 
+
+> **The perf subsystem can read hardware counters.
+> eBPF can attach to perf events.
+> But if the hardware does not expose a power/energy counter to perf, eBPF cannot magically get power data.**
+
+So:
+
+* ✔️ perf **can** fetch HW metrics *if they exist*
+* ✔️ eBPF **can** consume perf events
+* ❌ eBPF **cannot** create new hardware metrics (like power) that the PMU does not expose
+
+---
+
+## 2. Why perf feels like it *should* expose power
+
+On Intel:
+
+* RAPL energy counters are exposed as **perf events**
+* Example:
+
+  ```bash
+  perf stat -e power/energy-pkg/
+  ```
+* Internally:
+
+  * perf → MSR → hardware energy counter
+  * eBPF *can attach* to these perf events
+
+This leads to the mental model:
+
+> “If perf can read power, maybe eBPF can too”
+
+That is **true only when the PMU exports energy counters**.
+
+---
+
+## 3. Why this breaks down on ARM
+
+### ARM PMU reality
+
+* ARM PMU exposes:
+
+  * cycles
+  * instructions
+  * cache events
+* **Energy / power is usually not part of the architectural PMU**
+
+So:
+
+* perf on ARM → mostly performance events
+* No standardized `energy-pkg` equivalent
+* Therefore:
+
+  * perf has nothing power-related to expose
+  * eBPF has nothing power-related to attach to
+
+This is a **hardware capability limitation**, not a software one.
+
+---
+
+## 4. Can eBPF attach to perf events? Yes — but…
+
+### What eBPF *can* do
+
+```text
+Hardware PMU → perf → eBPF
+```
+
+Examples:
+
+* cycles
+* instructions
+* cache misses
+* branch misses
+
+### What eBPF *cannot* do
+
+```text
+hwmon / SCMI / PMIC → eBPF   ❌
+```
+
+Why?
+
+* `hwmon` is a **sysfs file interface**
+* eBPF programs:
+
+  * cannot perform arbitrary file I/O
+  * cannot sleep or poll sensors
+* The kernel intentionally prevents this for safety and determinism
+
+---
+
+## 5. What about tracepoints like `power:*`?
+
+You *can* use eBPF on:
+
+* `tracepoint:power:cpu_frequency`
+* `tracepoint:power:cpu_idle`
+
+Important:
+
+* These tracepoints report **state transitions**
+* They do **not** report power or energy values
+
+They tell you:
+
+* “CPU entered idle”
+* “Frequency changed”
+
+Not:
+
+* “Power dropped by 3 W”
+
+---
+
+## 6. Why this separation is intentional (design philosophy)
+
+Linux intentionally keeps:
+
+* **Measurement** (hwmon, SCMI, RAPL)
+* **Performance counting** (PMU / perf)
+* **Behavior tracing** (eBPF)
+
+…separate.
+
+This ensures:
+
+* Safety
+* Determinism
+* Hardware abstraction
+* Portability
+
+If eBPF could directly read sensors:
+
+* Tracing could affect power
+* Sensor access could block
+* Security boundaries would break
+
+---
+
+## 7. The correct mental model (this is the key takeaway)
+
+```
+HW Sensors / PMIC / Firmware
+        ↓
+     hwmon / SCMI         ← What happened (power/energy)
+        ↓
+   user space sampling
+        ↓
+perf (PMU)                ← How much work happened
+        ↓
+eBPF (tracepoints)        ← Why behavior changed
+```
+
+And the **correlation happens in user space**.
+
+---
+
+## 8. Final refined statement (good for your document)
+
+You could safely write:
+
+> *Although the perf subsystem can expose hardware counters and eBPF can attach to perf events, power and energy measurements on ARM systems are typically not part of the architectural PMU. As a result, eBPF cannot be used to directly monitor power consumption. Instead, eBPF is best used to trace system behavior (DVFS, idle states, scheduling) that explains changes observed in power measurements obtained via hwmon or platform-specific interfaces.*
+
+This wording is **precise, accurate, and defensible**.
+
+---
+
+### You’re thinking about this exactly the right way
+
+Your suspicion shows you understand:
+
+* perf is the HW-facing interface
+* eBPF is a consumer of perf/tracepoints
+* the limitation is *hardware exposure*, not tooling
+
