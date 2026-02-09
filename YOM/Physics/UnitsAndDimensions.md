@@ -3,25 +3,28 @@
 ## Introduction :
 
 
-Humans conciousness helps to observe thing and describe them such as "this is fast", "the object is heavy",
-or "its a long table", these statements only give qualitative description rather then quantitatively
-describe them. Quantitative descriptions help in measurement, comparison, test and reproduce anywhere.
+Humans conciousness allow us to observe thing and describe the world qualitatively and express then as 
+"this is fast", "the object is heavy",or "its a long table", these statements only give qualitative
+description and lack precision needed for science. 
 
-For quantitative description dimensions tell us what kind of physical quantities we are dealing with and 
-Units tell us how many of is there. 
-Without Units & Dimensions numbers in science would be meaningless. 
+**Quantitative descriptions** allows us to measure help in measurement, comparison, test and reproduce
+anywhere.
 
-Units give numbers physical meaning, Dimensions ensures that the meaning is consistent. 
+To achieve this we use two tools:
 
-A Unit is an agreed upon standard used to measure a physical quantity, its fixed standard to measure and
-express the magnitude of a physical quantity. 
+- **Dimensions**: Tell us the *nature* of the physical quantity ( ex: length, time)
+- **Units**: Tells the *standard of measurement being used (ex: meters, seconds, kelvin..)
 
-Units are defined by international agreement ( like the SI System ).
+Without Units & Dimensions numbers in science are meaningless, the *Units give Physical context* and
+*Dimensions ensure the Physical logic* is consistent. 
 
-Dimensions are Universal and nature does not care how we measure things. Units are Human conventions chosen
-for convenience and standardization. 
+> Units: An agreed upon standard to express the magnitude of a physical quantity. These are defined by
+> International agreement ( like SI system )
 
-=> changing units just changes numbers but not the physics. 
+> Dimension: A universal property of nature. Nature does not care how we measure things as units are human
+> conventions chosen for convenience. 
+
+=> changing units just changes numbers but not the physics.
 
 ### Science:
 
@@ -46,17 +49,23 @@ them in to meaningless numbers.
 Unit is the standard, its used to measure the magnitude of a physical quantity. 
 
 Math:
+
 In mathematics a 'base' is a fundamental reference set from which all other related quantities are defined
 or constructed. 
-Example: Linear Algebra and Programming:
-Base is the set of elements from which you can built everything else:
-Linear Algebra:  2D space:
-    Vector (1,0) and (0,1)
-Forms a basis of the 2D plane:
-    Any vector (i,j) can be written as :
-    `(i,j) = i(1,0) + j(0,1)`
 
-    So (1,0) and (0,1) are the base vectors and you can construct every vector, in the plane.
+Example: Linear Algebra and Programming:
+
+Base is the set of elements from which you can built everything else:
+
+Linear Algebra:  2D space:
+   Vector $(1,0)$ and $(0,1)$
+
+Forms a basis of the 2D plane:
+
+   Any vector $(i,j)$ can be written as :
+       $(i,j) = i(1,0) + j(0,1)$
+
+   So (1,0) and (0,1) are the base vectors and you can construct every vector, in the plane.
 
 ### 1. Fundamental quantities: 
 
@@ -88,7 +97,7 @@ Note:
 - Time      : seconds (s)
     1 second = time that makes the unperturbed ground state hyperfine transition frequency Cs atom to be
     9192631770 when expressed in the unit Hz which is equal to 1/s. 
-    
+
 - Electric Current : ampere (A)
     1 ampere is the current which makes the elementary charge "e" to be 1.602176634 x 10^-19 when expressed
     in the unit C which is equal to A.s
@@ -134,11 +143,11 @@ Example:
 
 - Velocity → m/s
 
-- Force → newton (N) = kg·m·s⁻²
+- Force → newton $N = kg·m·s^{-2}$
 
-- Energy → joule (J) = kg·m²·s⁻²
+- Energy → joule $J = kg·m^2·s^{-2}$
 
-- Pressure → pascal (Pa) = N/m²
+- Pressure → pascal $Pa = N/m^2$
 
 
 
@@ -213,8 +222,8 @@ nature of quantity using dimensions not units. here **[Θ]** is just symbol of t
 
 Example:
 
-* Velocity → ([L T^{-1}])
-* Force → ([M L T^{-2}])
+* $Velocity → ([L T^{-1}])$
+* $Force → ([M L T^{-2}])$
 
 ---
 
@@ -236,53 +245,53 @@ The general method is always the same.
 #### Example 1: Velocity
 
 Definition:
-[
+$$
 \text{Velocity} = \frac{\text{distance}}{\text{time}}
-]
+$$
 
 Dimensions:
-[
+$$
 [v] = \frac{[L]}{[T]} = [L T^{-1}]
-]
+$$
 
 ---
 
 #### Example 2: Acceleration
 
 Definition:
-[
+$$
 \text{Acceleration} = \frac{\text{change in velocity}}{\text{time}}
-]
+$$
 
-[
+$$
 [a] = \frac{[L T^{-1}]}{[T]} = [L T^{-2}]
-]
+$$
 
 ---
 
 #### Example 3: Force
 
 Using Newton’s second law:
-[
+$$
 F = ma
-]
+$$
 
-[
+$$
 [F] = [M][L T^{-2}] = [M L T^{-2}]
-]
+$$
 
 ---
 
 #### Example 4: Pressure
 
 Definition:
-[
+$$
 \text{Pressure} = \frac{\text{Force}}{\text{Area}}
-]
+$$
 
-[
+$$
 [P] = \frac{[M L T^{-2}]}{[L^2]} = [M L^{-1} T^{-2}]
-]
+$$
 
 ---
 
@@ -400,14 +409,15 @@ $y = A \sin(\omega t - kx)$
 In STEM, we often encounter "Black Box" constants in empirical formulas. 
 We use homogeneity to "extract" what those constants actually represent.
 
-**Example: Van der Waals Equation (Real Gas Law)
+Example: Van der Waals Equation (Real Gas Law) 
+    $(P + \frac{a}{V^2})(V - b) = RT$
 
-    $$(P + \frac{a}{V^2})(V - b) = RT$$
 
 Where $P$ is pressure and $V$ is volume. What are the dimensions of $a$?
-    - According to the principle, you can only add $\frac{a}{V^2}$ to $P$ if they have the same dimensions.
-    - $[P] = [\frac{a}{V^2}]$
-    - $[ML^{-1}T^{-2}] = \frac{[a]}{[L^3]^2} \implies [a] = [ML^5T^{-2}]$
+
+- According to the principle, you can only add $\frac{a}{V^2}$ to $P$ if they have the same dimensions.
+- $[P] = [\frac{a}{V^2}]$
+- $[ML^{-1}T^{-2}] = \frac{[a]}{[L^3]^2} \implies [a] = [ML^5T^{-2}]$
 
 
 ### 4. Computational Efficiency: Nondimensionalization
@@ -456,18 +466,16 @@ Allows you to guess how the world works without even knowing the full physics ye
 **Example 1: Correct equation**
 $s = ut + \frac{1}{2} a t^2$
 
-* (s) → [L]
-* (ut) → [L]
-* (a t^2) → [L]
+* $s → [L]$
+* $ut → [L]$
+* $at^2 → [L]$
 
 ✔ Homogeneous → correct
 
 **Example 2: Incorrect equation**
 
-    - $s = ut + at$
-
-    * (at) → [L/T] × [T] = [L/T] ❌
-
+- $s = ut + at$
+    * $at → [L/T] × [T] = [L/T]$ ❌
     → Not dimensionally consistent → formula is wrong
 
 ---
@@ -491,10 +499,10 @@ $$
 
 **Example: Period of a simple pendulum**
 
-Assume (T) depends on:
+Assume $T$ depends on:
 
-* length (l) → [L]
-* acceleration due to gravity (g) → [L T⁻²]
+* length $l → [L]$
+* acceleration due to gravity (g) → $[LT^{-2}]$
 
 Assume:
 $$
@@ -502,20 +510,18 @@ T \propto l^a g^b
 $$
 
 * Dimensions:
-  ([T] = [L]^a [L T^{-2}]^b = [L]^{a+b} [T]^{-2b})
+  $[T] = [L]^a [L T^{-2}]^b = [L]^{a+b} [T]^{-2b}$
 
 * Compare powers:
-  ([T^1] = [L]^{a+b} [T]^{-2b}) →
+  $[T^1] = [L]^{a+b} [T]^{-2b}$ →
 
-* For [T]: (-2b = 1 \implies b = -\frac{1}{2})
+* For $[T]$: $-2b = 1 \implies b = -\frac{1}{2}$
 
-* For [L]: (a+b=0 \implies a = \frac{1}{2})
+* For $[L]$: $a+b=0 \implies a = \frac{1}{2}$
 
-[
-\therefore T \propto \sqrt{\frac{l}{g}}
-]
+   $\therefore T \propto \sqrt{\frac{l}{g}}$
 
-* Constant factor (2\pi) cannot be found by dimensional analysis.
+* Constant factor $2\pi$ cannot be found by dimensional analysis.
 
 ---
 
@@ -532,9 +538,9 @@ $$
 
 | Application          | How it works                                       | Example                          |
 | -------------------- | -------------------------------------------------- | -------------------------------- |
-| Checking correctness | Ensure all terms have same dimensions              | (s = ut + \frac{1}{2} at^2) ✅    |
-| Converting units     | Use dimensions to verify conversion                | Velocity [L T⁻¹]: km/h → m/s     |
-| Deriving relations   | Express unknown as product of powers of quantities | Pendulum: (T \propto \sqrt{l/g}) |
+| Checking correctness | Ensure all terms have same dimensions              | $s = ut + \frac{1}{2} at^2$ ✅    |
+| Converting units     | Use dimensions to verify conversion                | Velocity $[LT^{-1}]$: $km/h → m/s$     |
+| Deriving relations   | Express unknown as product of powers of quantities | Pendulum: $T \propto \sqrt{l/g}$ |
 
 ---
 
@@ -607,11 +613,11 @@ $$
 
 | Limitation                                                  | Why it happens               | Example                         |
 | ----------------------------------------------------------- | ---------------------------- | ------------------------------- |
-| Cannot find dimensionless constants                         | They have no dimensions      | Pendulum: 2π factor             |
+| Cannot find dimensionless constants                         | They have no dimensions      | Pendulum: $2\pi$ factor             |
 | Cannot handle dimensionless quantities                      | No dimensions to work with   | Angles, refractive index        |
-| Cannot determine functional form                            | Many functions dimensionless | sin(x), exp(x), log(x)          |
+| Cannot determine functional form                            | Many functions dimensionless | $sin(x), exp(x), log(x)$          |
 | Cannot distinguish quantities with same dimensions          | Only dimensions considered   | Torque vs energy                |
-| Cannot fully derive constants involving universal constants | Requires physical law        | F = G m₁m₂/r² (G must be known) |
+| Cannot fully derive constants involving universal constants | Requires physical law        | $F = G m₁.m₂/r²$ (G must be known) |
 
 ---
 
