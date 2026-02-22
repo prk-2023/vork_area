@@ -22,28 +22,56 @@ Typical target arch:
 The resulting output is an **ELFi** file containing **eBPF bytecode** which the kernel can **load**,
 **verify**, and **JIT**. 
 
-Like in with other approached using BCC, bpftrace, libbpf the eBPF programs are restricted in features
-in order to run in kernel space. 
+Like in with other approached using BCC, bpftrace, libbpf the eBPF programs in Rust are restricted in 
+features in order to run in kernel space. 
 
 ## How Rust eBPF works ( applying the key constrains as with C eBPF ):
 
-Program should be applied with the below constrains:
+Rust based eBPF Program and constrains that apply:
 
-- `#![no_std]` : kernel program do not have access to standard "std" crate or library. 
-- `#![no_main]`: `eBPF` programs do not have `main()` function as kernel calls a specific entry function for
-  each program type. ( aya: entry function using macros `#[tracepoint]`,`#[kprobe]` 
-- No heap allocation : can not allocate `Vec`, `Box` types which allocate mem dynamically. ( must use
+
+- **`#![no_std]`** : kernel program do not have access to standard "std" crate or library. 
+
+- **`#![no_main]`**: `eBPF` programs do not have `main()` function as kernel calls a specific entry 
+  function for each program type. In **aya** these entry points are declared using procedural macro 
+  **attributes** such as **`#[tracepoint]`**,**`#[kprobe]`** ) 
+
+  ---
+  Note: Procedural macro attributes are responsible for compile time code generation and in Aya they are 
+  responsible for:
+    - generate ELF section 
+    - define ABI entry points 
+    - Wire kernel context types. 
+  ---
+
+- **No heap allocation** : can not allocate `Vec`, `Box` types which allocate mem dynamically. ( must use
   stack/maps for persistent storage (BPF maps) 
-- No Panic: We must define a `panic_handelr` since rust runtime is absent.
-- No unwinding : Always handle erros with `Result` or return codes. Since unwinding is forbidden in kernel
-  verifier.
-- Strict stack limit ( 512 bytes : eBPF verifier enforces a fixed stack usage of 512 bytes. Prevent large
+
+- **No Panic**: We must define a `panic_handelr` since rust runtime is absent.
+
+- **No unwinding** : Always handle erros with `Result` or return codes. Since unwinding is forbidden in 
+  kernel verifier.
+
+- **Strict stack limit** (512 bytes: eBPF verifier enforces a fixed stack usage of 512 bytes. Prevent large
   local array allocation and deeply nested function calls. ( always prefer maps for storing large data )
+
 - must satisfy kernel verifier:
     * all memory access are safe.
     * No invalid pts dereferences 
     * Loops are bounded ( or eliminated  )
     * all branches are predictable 
+
+- **No heap/safe memory access**: eBPF programs cannot allocate dynamically and must satisfy the kernel
+  verifier. Any call to kernel helpers or raw memory access must be enclosed in `unsafe {}` blocks.
+  Since these operations are not checked by the Rust compiler for memory safety. Without the `unsafe` Rust
+  will reject the call. 
+  => The verifier ensures safety at runtime, but rust still enforces compile-time correctness. 
+  ```rust 
+  unsafe {
+    let value = bpf_map_lookup_elem(&test_map, &key);
+  }
+  ```
+
 
 ```mermaid 
 
@@ -322,3 +350,270 @@ Optional tools:
 * aya-tool
 * cargo xtask
 
+
+---
+
+TODO:
+
+What you’re missing is *not basics*, but **structure, flow, and depth in the right places**.
+
+Below is a **focused roadmap of missing topics**, organized so you can expand **without getting distracted**. Think of this as a **table of contents + writing guide** tailored specifically to:
+
+> **eBPF with Rust + Aya (kernel + userspace)**
+
+I’ll do three things:
+
+1. ✅ Acknowledge what you already cover well
+2. 🧭 Identify *what’s missing* (grouped logically)
+3. 🗺️ Propose a **roadmap you can follow linearly**
+
+---
+
+# 1️⃣ What You Already Cover Well (No Changes Needed)
+
+You already do an excellent job on:
+
+✔ eBPF compilation pipeline
+✔ Rust → LLVM → eBPF constraints
+✔ Verifier rules and limitations
+✔ Comparison of Rust vs Go vs C
+✔ Aya vs redbpf vs libbpf
+✔ Aya crate ecosystem & tooling
+✔ Kernel vs user space separation
+
+These sections are **solid and technically correct**. Don’t rewrite them — just *anchor future sections to them*.
+
+---
+
+# 2️⃣ What’s Missing (High-Level View)
+
+Your document currently answers:
+
+> **“What is eBPF + Aya?”**
+
+But it does **not yet answer**:
+
+> ❌ *How do I actually design, write, load, debug, and evolve real eBPF programs using Aya?*
+
+The missing topics fall into **6 major gaps**:
+
+| Gap | Description                            |
+| --- | -------------------------------------- |
+| A   | Execution & lifecycle model            |
+| B   | Program types & attach points          |
+| C   | Maps & data exchange (deep dive)       |
+| D   | Userspace runtime patterns             |
+| E   | Debugging, testing, troubleshooting    |
+| F   | Real-world architecture & case studies |
+
+---
+
+# 3️⃣ Detailed Roadmap of Missing Topics
+
+## 🧭 A. Execution Model & Lifecycle (**Foundational Gap**)
+
+You explain *what exists*, but not **how things flow at runtime**.
+
+### Missing topics
+
+Add a section like:
+
+### **eBPF Program Lifecycle (Aya)**
+
+Cover:
+
+1. Compilation
+2. Loading ELF
+3. Verifier pass/fail
+4. Map creation
+5. Program attachment
+6. Event-triggered execution
+7. Cleanup / detach
+
+Include:
+
+* Difference between **load vs attach**
+* When maps are created
+* What lives longer: program vs process
+* What happens on process crash
+
+👉 This grounds everything else.
+
+---
+
+## 🧭 B. Program Types & Attach Points (**Core Content Missing**)
+
+You *name* program types, but don’t explain them.
+
+### Missing sections (one per type, even briefly):
+
+* **kprobe / kretprobe**
+* **tracepoint**
+* **uprobes**
+* **XDP**
+* **TC**
+* **LSM** (important for security audience)
+
+For each:
+
+* When it runs
+* Context struct
+* Typical use cases
+* Aya macro used
+* Common pitfalls
+
+This turns your doc from *reference* → *learning guide*.
+
+---
+
+## 🧭 C. Maps & User ↔ Kernel Communication (**Biggest Gap**)
+
+Maps are mentioned, but **not explained deeply enough**.
+
+### Missing subsections
+
+Add a dedicated chapter:
+
+### **BPF Maps in Aya**
+
+Cover:
+
+* Map lifecycle
+* Ownership (kernel vs userspace)
+* Map pinning
+* Global data maps
+* CO-RE map relocation
+
+### **Communication Patterns**
+
+Explain *when to use what*:
+
+* Hash/Array maps → state
+* Perf buffer → events
+* Ring buffer → high-throughput telemetry
+
+Include:
+
+* One-to-one vs one-to-many
+* Control plane vs data plane
+* Backpressure & drops
+
+This ties directly to the diagram you refined earlier.
+
+---
+
+## 🧭 D. Userspace Runtime Design (**Missing Aya Strength**)
+
+You list Aya features, but don’t show **how userspace code should be structured**.
+
+### Missing topics
+
+Add:
+
+* Loader architecture
+* Async vs sync
+* Multi-program orchestration
+* Graceful shutdown
+* Signal handling
+
+Explain:
+
+* Why async matters
+* When to spawn threads
+* How perf buffers integrate with Tokio
+
+This is **Aya’s differentiator** — it deserves its own section.
+
+---
+
+## 🧭 E. Debugging, Testing & Failure Modes (**Very Important, Missing**)
+
+Right now, the doc feels “happy path only”.
+
+### Missing sections
+
+Add:
+
+* Verifier error interpretation
+* Common Rust eBPF mistakes
+* Logging with `aya-log`
+* bpftool vs aya-tool
+* How to debug attach failures
+* Kernel log inspection
+
+Optional but valuable:
+
+* Unit testing userspace logic
+* Integration testing with VM or CI
+
+---
+
+## 🧭 F. Real-World Architecture & Case Studies (**Final Layer**)
+
+This is what makes the document *valuable long-term*.
+
+### Missing examples
+
+At least 2–3:
+
+* **Observability tool** (tracepoint + ring buffer)
+* **Network counter** (XDP + maps)
+* **Security example** (LSM or kprobe)
+
+Show:
+
+* Kernel code
+* Userspace code
+* Data flow
+* Performance considerations
+
+---
+
+# 4️⃣ Suggested Writing Order (Anti-Distraction Plan)
+
+Follow this order **strictly** to avoid scope creep:
+
+1. Execution model & lifecycle
+2. Program types & attach points
+3. Maps & communication
+4. Userspace runtime patterns
+5. Debugging & testing
+6. Case studies
+
+➡️ Do **not** jump ahead. Each section builds on the previous one.
+
+---
+
+# 5️⃣ Optional Advanced Topics (Later)
+
+Only add *after* core sections are done:
+
+* Tail calls
+* CO-RE internals
+* BTF generation details
+* Performance tuning
+* Security implications
+* Deployment & packaging
+
+---
+
+# 6️⃣ One-Sentence Positioning (You Should Add Early)
+
+I strongly recommend adding this near the top:
+
+> *“This document focuses on understanding the full lifecycle and architecture of eBPF programs written in Rust using the Aya ecosystem, covering both kernel-space execution and user-space control planes.”*
+
+This sets expectations and prevents distraction.
+
+---
+
+## ✅ Next Steps (I Can Help Further)
+
+If you want, I can:
+
+* Generate a **full table of contents** in Markdown
+* Write the **next missing section** for you (execution model)
+* Turn this into a **book-style outline**
+* Review your next revision incrementally
+
+Just tell me how you’d like to proceed.
