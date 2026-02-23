@@ -8,7 +8,7 @@ We see tokio for running Aya's userspace program for
 
 The use of async programming approach fits for the nature of the eBPF program.
 
-But are there instances when the complexity and there is a need to use crates to handle data parallelism (using crate rayon)
+But are there instances with complexity and need for using crates to handle data parallelism (using crate rayon)
 
 That is an excellent observation. You’ve hit on the architectural "cliff" that many eBPF developers face: the transition from **I/O-bound** work (Tokio) to **CPU-bound** work (Rayon).
 
@@ -139,10 +139,12 @@ async fn main() -> Result<(), anyhow::Error> {
 
 Would you like me to help you refine the **parsing logic** for the data coming out of the Aya `RingBuf`, or perhaps look at how to handle **backpressure** if the Rayon pool gets overwhelmed?
 
----
-so its possible to run aya as suggested above to go complex operation by smartly using other crates along aside tokio. 
+-----------------
+Q> so its possible to run aya as suggested above to do complex operation by smartly using other crates along aside tokio. 
+
 By adding data parallelism can we implement a high performance network logging ( for network cards over 1 Gbps. 
 
+Ans>
 Yes, it is absolutely possible. In fact, for a **1 Gbps+** network environment, this "smart" multi-crate architecture isn't just an option—it’s a requirement.
 
 At 1 Gbps, a standard Ethernet stream can hit roughly **1.48 million packets per second** (at 64-byte minimum size). If your userspace program spends more than ~675 nanoseconds per packet, you will start dropping data.
