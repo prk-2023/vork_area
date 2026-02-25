@@ -261,4 +261,71 @@ If planning to use with a embedded Linux system for development, the biggest dif
 * Driver stack depth
 
 
+------------------
 
+Mellanox (now NVIDIA Networking) is indeed one of the few vendors that supports **Hardware Offload** for 
+eBPF/XDP, but it is typically reserved for their "SmartNIC" tier.
+
+While almost all modern Mellanox cards support Native Mode (running in the mlx5 driver), only the newer 
+generations support Offload Mode (running on the NIC hardware itself).
+
+### Support by Generation
+
+While almost all modern Mellanox cards support **Native Mode** (running in the `mlx5` driver), only the 
+newer generations support **Offload Mode** (running on the NIC hardware itself).
+
+| Card Generation | Driver | Native XDP | Offload XDP |
+| --- | --- | --- | --- |
+| **ConnectX-3** | `mlx4` | ✅ Yes | ❌ No |
+| **ConnectX-4** | `mlx5` | ✅ Yes | ❌ No |
+| **ConnectX-5** | `mlx5` | ✅ Yes | ⚠️ Partial (FPGA versions) |
+| **ConnectX-6 / 7** | `mlx5` | ✅ Yes | ✅ **Yes** |
+| **BlueField (DPU)** | `mlx5` | ✅ Yes | ✅ **Yes** (on the ARM cores/eSwitch) |
+
+---
+
+### How "Offload" Works on Mellanox
+
+On Mellanox hardware, XDP offload is usually tied to the **ASIC's eSwitch** or the **internal processor** 
+(in the case of BlueField DPUs).
+
+1. **Direct ASIC Offload:** 
+
+On high-end ConnectX-6/7 cards, the NIC can translate certain BPF instructions directly into hardware 
+steering rules.
+
+2. **DPU Offload (BlueField):** 
+These cards have actual ARM CPU cores on the NIC. When you "offload" here, the XDP program runs on the 
+NIC's ARM cores, completely bypassing the host's x86 CPU.
+
+---
+
+### How to check if your Mellanox card supports it
+
+Even if you have a ConnectX-6, offload might be disabled in the firmware or not supported by your specific 
+kernel version. You can check using `ethtool`:
+
+```bash
+# Look for 'hw-tc-offload' or 'bpf-can-offload'
+ethtool -k enp3s0 | grep offload
+
+```
+
+To attempt to load an XDP program in offload mode on a Mellanox card:
+
+```bash
+sudo ip link set dev enp3s0 xdpoffload obj my_prog.o
+
+```
+
+If you get `Netlink answer: Operation not supported`, it means either the **driver**, the **firmware**, or 
+the **hardware** version doesn't support true hardware offload.
+
+### A Practical Warning
+
+For "Budget" builds, you will likely find **ConnectX-4** cards on eBay for very cheap ($50). 
+While they are amazing for **Native XDP** (very fast!), they **do not** support **Offload XDP**. 
+You would need to step up to much more expensive, modern hardware for true offloading.
+
+Would you like to know the difference in "Packet per Second" (PPS) performance between Native and Offload 
+modes on this type of hardware?
