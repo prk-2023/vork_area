@@ -1,13 +1,32 @@
+# ConnectX SmartNIC : Testing:
+
+## Mellanox mlx5 25 Gbps Dual IB NIC:
+
+* [ 1. Install packages for InfiniBand SmartNIC configuration.](#install-the-necessary-tooling)
+* [ 2. Testing with single card](#testing-with-single-card)
+--- 
+
+## Install the necessary tooling:
+
+
 1. Install the necessary tooling:
+
 
 Install RDMA Stack:
 ```
+sudo dnf install -y rdma-core libibverbs-utils perftest
+# mlnx-tools:  Mellanox userland tools and scripts
+sudo dnf install mlnx-tools
+
+
+# or 
 sudo apt update
 sudo apt install -y rdma-core ibverbs-utils perftest libibverbs1
-```
 
-- `ibverbs-utils`: Contains `ibv_devinfo` to check hardware status.
-- `perftest`: Contains the "Golden Standard" benchmarks (`ib_write_bw`, `ib_send_lat`).
+```
+- `rdma-core`: Base framework and infrastructure. 
+- `libibverbs-utils` / `ibverbs-utils`: provides `ibv_devinfo` to check hardware status.
+- `perftest`: Benchmark suite contains the "Golden Standard" benchmarks (`ib_write_bw`, `ib_send_lat`). 
 
 2. Verify HW Link State:
 
@@ -25,7 +44,16 @@ $ ibv_devinfo
 
 3. IP Configuration
 
+( make sure system Network Manger or other Network services do not automatically configure these interfaces)
+
 For RoCE to work, both NICs must be on the same IP subnet. 
+
+Note: 
+- Each Port on dual-port Mellanox card is treated as completely independent network interface by the Linux
+  Kernel ( enp1s0f0 and enp1s0f1 )
+- And they can be assigned completely different subnet this is standard practice and helps prevent routing
+  confusion ( known as ARP Flux problem ) and makes sure the traffic is properly isolated. 
+
 Assign IPs to the specific interface (e.g., enp1s0f0).
 
 ```
@@ -38,7 +66,8 @@ Bring them up: sudo ip link set enp1s0f0 up
 
 4. The RoCE v2 Connectivity Test
 
-RoCE v2 uses GID (Global ID) index 3 by default on most modern ConnectX cards. We will use `ib_write_bw` to test raw RDMA write bandwidth.
+RoCE v2 uses GID (Global ID) index 3 by default on most modern ConnectX cards. 
+We will use `ib_write_bw` to test raw RDMA write bandwidth.
 
 ```
 #Note A ( server )
@@ -74,6 +103,8 @@ $ sudo ip link set enp1s0f0 mtu 9000`
 ```
 
 --------------------
+
+## Testing with single card
 
 Test With Single ConnectX card: since ConnectX 5 has 2 ports:
 
@@ -307,13 +338,19 @@ XDP performance and features are heavily dependent on the specific version of th
 
 # Testing RoCE with single card:
 
-Testing **RoCE (RDMA over Converged Ethernet)** across namespaces on a single dual-port ConnectX card is a fantastic way to validate your hardware without needing two separate servers.
+Testing **RoCE (RDMA over Converged Ethernet)** across namespaces on a single dual-port ConnectX card is a 
+fantastic way to validate your hardware without needing two separate servers.
 
-Since RoCE relies on the **InfiniBand (IB) subsystem**, moving the network interface (`enp...`) into a namespace is only half the battle. You must also ensure the corresponding **RDMA device** (`mlx5_0`, `mlx5_1`) follows the network interface into that namespace.
+Since RoCE relies on the **InfiniBand (IB) subsystem**, moving the network interface (`enp...`) into a 
+namespace is only half the battle. You must also ensure the corresponding **RDMA device** 
+(`mlx5_0`, `mlx5_1`) follows the network interface into that namespace.
 
 ### The Challenge: RDMA Namespace Isolation
 
-By default, RDMA devices are global. To isolate them so `ns1` only sees port 0 and `ns2` only sees port 1, we must enable "Exclusive" RDMA namespace mode.
+By default, RDMA devices are global. 
+
+To isolate them so `ns1` only sees port 0 and `ns2` only sees port 1, we must enable "Exclusive" RDMA 
+namespace mode.
 
 ---
 
