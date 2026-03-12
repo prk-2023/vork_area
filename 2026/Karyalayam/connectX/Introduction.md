@@ -655,3 +655,84 @@ In high-end systems (like those built with **NVIDIA BlueField** SmartNICs), engi
 | To run custom C/Rust logic | Yes (via eBPF) | No (Logic must be in SmartNIC) |
 | To bypass the CPU | No (Uses CPU cycles) | **Yes** (0% CPU for data movement) |
 
+### AF_XDP: 
+    
+The AF_XDP Address Family:
+- Allows you to get RDMA like performance ( zero-copy) into user-space.
+- It uses UMEM ( pinned memory ) similar to RDMA's Memory registration. 
+- Still this is not RDMA , its just moving raw ethernet frames very quickly to an application, and you dont
+  get remote memory access or the hw level reliability of InfiniBand/RoCE. 
+
+### XDP_REDIRECT 
+
+XDP_REDIRECT : is one of the five core "actions" (return codes) a XDP prog can take after inspecting a pkt.
+
+However, it’s important to clarify exactly what it "redirects" and where it sends it.
+
+---
+
+#### What does `XDP_REDIRECT` actually do?
+
+When your eBPF program returns `XDP_REDIRECT`, it tells the NIC driver: 
+
+    *"Don't pass this up to the Linux networking stack. Instead, send it somewhere else immediately."*
+
+There are two main "somewhere else" destinations:
+
+1. **To another Network Interface (Egress):** 
+    - You can take a packet coming in on `eth0` and instantly shove it out of `eth1`. 
+    - This turns your server into a wire-speed router/forwarder.
+
+2. **To a specific CPU/Socket (AF_XDP):** 
+    - You can redirect the packet into a specialized high-speed "Zero-Copy" queue that a user-space
+      application is listening to. This is the closest XDP gets to the "feeling" of RDMA.
+
+---
+
+#### Note `XDP_REDIRECT` is NOT RDMA
+
+Even though both move data quickly, the "plumbing" is different:
+
+* The "Forwarding" Logic: With `XDP_REDIRECT`, the **CPU** still has to look at every packet header to
+  decide where it goes. 
+* With **RDMA**, the **NIC ASIC** handles the steering based on pre-configured hardware tables.
+
+* **The Payload:** `XDP_REDIRECT` moves the **entire Ethernet frame** (Headers + Payload). 
+
+* *RDMA* (specifically RDMA Write) strips the network headers and places only the **raw data** into a
+  specific memory offset in RAM.
+
+---
+
+#### The "Super-Powered" Redirect: AF_XDP
+
+If you are looking for the "XDP version of RDMA," you are looking for **AF_XDP**.
+
+In this setup, you use `XDP_REDIRECT` to push packets into a **Fill Ring** and **Completion Ring** shared between the kernel and your app.
+
+* **Similarity to RDMA:** It uses "Pinned Memory" (UMEM) and a Ring Buffer architecture (similar to RDMA Queue Pairs).
+* **Difference from RDMA:** It still only works **locally** on one machine. You can't use `XDP_REDIRECT` to "write" into the RAM of a *remote* server across the network. Only RDMA Verbs can do that.
+
+---
+
+#### Summary: The 5 XDP Actions
+
+| Action | What it does |
+| --- | --- |
+| `XDP_ABORTED` | Error state; drops packet and raises a tracepoint. |
+| `XDP_DROP` | Discards the packet immediately (Best for Firewalls). |
+| `XDP_PASS` | Sends the packet up to the normal Linux Kernel stack. |
+| `XDP_TX` | Reflects the packet back out of the same interface it arrived on. |
+| **`XDP_REDIRECT`** | **Bypasses the kernel to send the packet to a different NIC or an AF_XDP socket.** |
+
+---
+
+#### One Cool Exception: Hardware Offloaded XDP
+
+Some SmartNICs (like Netronome or certain FPGA-based NICs) can take your `XDP_REDIRECT` code and **burn it
+into the NIC hardware**.
+
+In this specific case, the "Logic-based Data Plane" you wanted actually happens in the silicon, making it 
+nearly as fast as RDMA, but it still lacks the "Remote Memory Access" features that make RoCE/InfiniBand
+unique.
+
