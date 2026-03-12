@@ -7,9 +7,10 @@ IPS=("10.0.0.9/24" "10.0.0.99/24")
 echo "Environment clean. Proceeding with setup..."
 
 for i in "${!INTERFACES[@]}"; do
+    echo "-=-=-=-=-=-=-=-=-=-=-=-=-="
     IFACE=${INTERFACES[$i]}
     NS=${NAMESPACES[$i]}
-
+    echo "::: $IFACE  ::: $NS"
     # 1. Check if Namespace exists and delete them
     if ip netns list | grep -q "$NS"; then
         echo "Found existing namespace: $NS. Checking for $IFACE..."
@@ -34,7 +35,7 @@ for i in "${!INTERFACES[@]}"; do
     sleep 1
 
     # 4. IP assignment for the interface 
-    echo "Assigning IP ${$IPS[i]} to $IFACE in $NS"
+    echo "Assigning IP $IPS[i] to $IFACE in $NS"
     echo "---------------------------------------"
     sudo ip netns exec $NS ip addr add ${IPS[$i]} dev $IFACE
 
@@ -86,4 +87,4 @@ echo "------------------------------------------------------------------------"
 
 echo " Run top and check the cpu load is zero."
 
-echo "for additional details on the Card: check under /sys/class/infiniband/rocep1s0fX/ "
+echo "Check /sys/class/infiniband/rocep1s0fX/ for additional card details "
