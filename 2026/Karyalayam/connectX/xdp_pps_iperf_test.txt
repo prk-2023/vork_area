@@ -81,4 +81,35 @@ mpstat -P ALL 1
 11:53:28 AM   10    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00  100.00
 11:53:28 AM   11    1.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00   99.00
 
+2026/03/20:
+---
+| Category  | Task  | Progress | Description |Comments|
+| :--- | :--- | :--- | ---: | :--- |
+|XDP| Performance, HW Assistence| On-Going |XDP Support Modes :  1. Offload Mode: Host cpu 100% free, eBPF code runs on NIC's Internal processor. 2. Native mode: ConnectX 3,4,5,7 eBPF program runs on the Host CPU but inside the driver before the kernel allocates an `sk_buff`.  3. SKB Mode: fallback mode if driver has no XDP support, kernel alredy converted the raw pkt to `sk_buff`, eBPF prog runs in `netif_receive_skb()`. Hardware optimizations like Multi-packet WQE and Striding RQ. Includes AF_XDP Zero-Copy support for host-based packet processing.| "Focus is on ""Hardware Assist"" for XDP running on the Host CPU, not on-card execution."|
+|XDP (RoCEV2 like smarter data path) | AF_XDP address family (kerenel) or Zero-Copy | On-Going | Implement a programmable alternative to RDMA/RoCE. Uses AF_XDP to redirect pkts to User-Space application Memory (UMEM), it can also allows custome protocol parsing and filtering before data reaches application. | |
+|XDP vs DPDK | AF_XDP (Zero-Copy) vs DPDK | On-going| High-performance per-packet redirection to user-space. Differs from DPDK's batch-polling, uses eBPF to make real-time decisions before zero-copy DMA. |DPDK Polling mode consumes Host CPU even with no traffic. AF_XDP wakes up only when packet arrives. Power efficient then DPDK|
 
+## snic: meeting:
+
+### Optimization Philosophy: Performance via HW Assistance
+####  1. The primary scope is to leverage Hardware-Assisted XDP to achieve near line-speed packet processing. By offloading the 'decision-making' to the earliest possible stage, we minimize CPU cycles per packet while maintaining the flexibility of a software-defined control plane.
+####  2. This allows the ASIC to handle the "heavy lifting" (like checksums/parsing) while the CPU handles the "intelligence."
+
+### The Architecture: Native Mode Efficiency
+
+#### 1. "By utilizing XDP Native Mode, we intercept traffic in the driver's 'receive path' before the expensive overhead of Linux Kernel sk_buff allocation. This 'Early Hook' architecture allows for immediate actions—such as XDP_DROP, XDP_TX (hairpin), or XDP_REDIRECT—directly within the NIC's DMA ring."
+#### 2. This reduces the "Instruction Per Packet" (IPP) count significantly compared to standard kernel networking.
+
+### Data Delivery: "Programmable Zero-Copy" (AF_XDP)
+
+#### 1. We treat AF_XDP (Zero-Copy mode) as a Programmable RDMA alternative. Unlike fixed-function RoCE, AF_XDP allows us to use eBPF to dynamically steer specific traffic flows directly into user-space application memory (UMEM). This provides the performance of a 'Kernel Bypass' while retaining full programmability of the ingress pipeline.
+#### 2.  You gain the latency benefits of RoCE without being locked into its fixed protocol constraints.
+#### 3.  AF_XDP is "Application-Agnostic." Unlike RoCE, which often requires specific hardware/drivers on both ends of the wire, your XDP program can talk to any standard Ethernet sender while still getting that "Direct-to-App" speed on your end.
+
+### ToDo:
+- What's required for XDP native driver support 
+- Mpps vs. CPU usage
+- AF_XDP  Vs RDMA/RoCE
+- AF_XDP Vs DPDK
+---
+---
