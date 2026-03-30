@@ -122,18 +122,17 @@ rxe0 -g 0 -a ```
   and your `ib_write_bw` process consuming significant CPU.
 
 
-
 ---
 
 ### 3. Comparison: Soft-RoCE vs. ConnectX-5 (Real Hardware) This is the "Aha!" moment of Phase 1. When you
 eventually move this same test to your CX5 cards, the numbers will change drastically.
 
-| Metric | Soft-RoCE (Emulated) | ConnectX-5 (Hardware) | | :--- | :--- | :--- | | **CPU Cycles** | ~500+
-cycles per packet | **~35-50 cycles** per packet | | **Latency** | 20–50 microseconds | **< 1 microsecond**
-| | **Throughput** | Limited by CPU speed | **Line rate** (100Gbps+) | | **Bypass** | Bypasses Application
-Stack only | **Bypasses Kernel AND CPU** |
-
-
+| Metric | Soft-RoCE (Emulated) | ConnectX-5 (Hardware) | 
+| :--- | :--- | :--- | 
+| **CPU Cycles** | ~500+ cycles per packet | **~35-50 cycles** per packet |
+| **Latency** | 20–50 microseconds | **< 1 microsecond**| 
+| **Throughput** | Limited by CPU speed | **Line rate** (100Gbps+) | 
+| **Bypass** | Bypasses Application Stack only | **Bypasses Kernel AND CPU** |
 
 ---
 
