@@ -28,6 +28,26 @@
       header, it can be **routed** across different subnets and data centers. This is what your
       **ConnectX-5** cards use.
 
+## Fabric:
+
+- Fabric is a network technology where nodes (server, storage...etc) are connected via multiple
+  interconnected switches. Unlike traditional hierarchical network which looks like a tree with a single
+  trunk, a Fabric looks like a mesh or a web.
+
+- In a RDMA ecosystem ( InifiniBand, RoCE ) Fabric refers to the entire collection of switches, cables, and
+  adapters that allow one server to read/write directly to the memory of other computer without involving
+  either server's CPU. 
+
+- Characteristics:
+    1. Any-to-Any Connectivity: Ever node can talk to every other node with roughly the same high speed and
+       low latency.
+    2. Flatness: It reduces "hops", In a fabric data usually takes a very different path from point A to
+       point B.
+    3. Non-Blocking: Designed so that many pairs of nodes can communicate simultaneously at full speed
+       without causing bottleneck. 
+    4. Intelligence: Logic of network is distributed across the switches which manage traffic routing
+       dynamically. 
+
 ---
 
 ## How Linux Supports the RDMA Ecosystem
