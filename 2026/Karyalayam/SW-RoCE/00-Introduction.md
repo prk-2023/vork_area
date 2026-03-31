@@ -407,6 +407,7 @@ You asked how a generic command becomes a "ConnectX-5" command.
 4.  **The CX5 Hardware** sees the Doorbell, fetches the command from your RAM, and sends the packet. 
 
 **The Kernel (`ib_core`) is bypassed entirely during the actual data transfer!** It only gets involved to set up the permissions at the beginning.
+
 ---
 
 Next Phase 1:
@@ -414,3 +415,32 @@ Next Phase 1:
   much more sense. 
 - Look at step-by-step commands to enable Soft-RoCE and run your first hardware-emulated ping.
 
+
+
+```mermaid 
+graph TD
+    %% Define Styles
+    classDef hardware fill:#e1f5fe,stroke:#01579b,stroke-width:2px;
+    classDef memory fill:#fff3e0,stroke:#e65100,stroke-width:2px;
+
+    Start((Packet Arrival)) --> L234[<b>1. Header Validation</b><br/>Check MAC/IP/UDP Port 4791]
+    L234 --> Strip[Strip Ethernet/IP/UDP Headers]
+    
+    subgraph SmartNIC_Silicon [Hardware Transport Engine]
+        Strip --> BTH[<b>2. Transport Processing</b><br/>Verify Queue Pair, PSN, & R_Key]
+        BTH --> Integrity{<b>4. Integrity Check</b><br/>ICRC Valid?}
+    end
+
+    Integrity -- Fail --> Drop[Drop Packet / Send NAK]
+    Integrity -- Pass --> DMA[<b>3. Direct Data Placement</b><br/>Translate Virtual to Physical Address]
+
+    subgraph Host_System [Host RAM]
+        DMA --> AppBuffer[Application Memory Buffer]
+    end
+
+    AppBuffer --> Done((Process Complete))
+    
+    %% Formatting
+    class L234,Strip,BTH,Integrity,DMA hardware;
+    class AppBuffer memory;
+```
