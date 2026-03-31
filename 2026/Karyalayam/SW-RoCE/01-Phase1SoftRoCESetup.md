@@ -47,7 +47,9 @@ Even if you aren't connected to a network, you can use your **loopback** interfa
    ```bash
    # Mapping 'rxe0' to the 'lo' interface
    sudo rdma link add rxe0 type rxe netdev lo
+   sudo rdma link add rxe1 type rxe netdev enp3s0
    ```
+
 3. **Verify:**
    ```bash
    rdma link show
