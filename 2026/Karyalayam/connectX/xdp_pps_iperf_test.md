@@ -36,6 +36,14 @@ NOTE: libpf-rs and aya fail to bind connectx interface when MTU set to 9000
       libbpf+C works . 
 TODO: Check Why Rust loader fails to attach. ( related to Rust security checking ? )
 
+- Buffer Constraint: ConnectX hardware uses a specific memory page layout for its Receive Queue (RQ).
+- The Math: Setting MTU to 9000 (Jumbo Frames), the pkt plus the required XDP headroom 
+  often exceeds the size of a single standard memory page ($4\text{ KB}$) or the driver's
+  pre-allocated stride size.
+- The Result: Instead of trying to "guess" how to split the packet, the driver simply returns -EINVAL
+  (Invalid Argument) during the attachment phase because it cannot guarantee a linear buffer that fits
+  both the huge packet and the XDP overhead.
+
 3.
 Host> ipref3 server
 ns1>  iperf3 client
