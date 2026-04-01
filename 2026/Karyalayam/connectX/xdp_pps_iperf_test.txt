@@ -30,7 +30,11 @@ sudo ip netns exec ns1 ip addr add 10.0.0.99/24  dev enp1s0f1np1
 sudo ip netns exec ns1 ip link set enp1s0f1np1 up
 
 NOTE: libpf-rs and aya fail to bind connectx interface when MTU set to 9000
-      libbpf+C works . 
+      libbpf+C works Since:
+      For bpf_set_link_xdp_fd(ifindex, fd, flags)  if we pass 0 as C flag and thekernel uses best
+      effort approach. 
+      On many drivers if Native (DRV) mode fails because the constrain like MTU, the kernel will
+      silently fall back to Genric Mode (SKB) and the attachment is success. 
 TODO: Check Why Rust loader fails to attach. ( related to Rust security checking ? )
 
 - Buffer Constraint: ConnectX hardware uses a specific memory page layout for its Receive Queue (RQ).
