@@ -3,10 +3,8 @@
 
 Refers:
 - [Intro to RDMA](https://www.rdmamojo.com/2014/03/31/remote-direct-memory-access-rdma/)
-- 
 
 ---
-
 
 ## Introduction:
 
@@ -39,6 +37,19 @@ This offers many advantages:
 
    The data is handled as discrete messages and not as a stream, which eliminates the need of the
    application to separate the stream into different messages/transactions.
+   ( In TCP which is byte-stream protocol and its fragmentation nature does not care message boundaries,
+   this puts a overhead on the application to delineation, Add headers like "Length" field to every pkt, so
+   the receiving CPU can scan the stream, find where one message ends and copy it into usable buffer.
+
+   In case of RDMA: ( which is message based ):
+   - When you initiate an RDMA Write or Send you define a specific memory region as a single "message".
+    * The RDMA HW (HCA host channel adapter) ensures that the data arrives at the destination exactly as it 
+      was sent. If you send 4KB block the receiver HW knows exactly when the 4KB block is complete.
+    * "Start" and "End" of transaction is handled by the HW not by OS kernel. 
+
+   Apps doesn't have to maintain a "re-assembly buffer" to stitch fragments back together. When the HW 
+   signals that a "Work Request" is complete, the data is already at the application's memory, fully formed 
+   and ready for use.
 
 5. **Scatter/gather entries support**: 
 
@@ -94,8 +105,34 @@ directly with RDMA-capable network interface cards (RNICs). They define the verb
 establish connections, and perform data transfers without involving the operating system kernel or the CPU,
 resulting in high throughput and low latency.
 
+In other words, "Verbs" are the abstract SW interface used to interact with the RDMA-capable HW (the HCA).
+We can picture them as sockets in standard networking, in RDMA we use *verbs*. 
+
 - Verbs provide a hardware-agnostic interface, applications written to this API can run on different RDMA
   hardware (InfiniBand, RoCE, iWARP).
+
+- Verbs act as bridge between application and RDMA HW, Unlike TCP/IP where data is handed over to OS, Verbs
+  allows applications to bypass kernel and talk directly with the HW. 
+
+### Core Objects: 
+
+To use Verbs, you work with several key components that manage the "plumbing" of the connection:
+
+- **Queue Pair (QP):** 
+    - The fundamental unit of communication. Every connection consists of a **Send Queue** and a **Receive
+      Queue**. It's roughly equivalent to a "socket."
+
+- **Completion Queue (CQ):** 
+    - This is where the hardware "reports back." When a message is sent or received, the hardware places a
+      **Completion Queue Entry (CQE)** here to tell the CPU the job is done.
+
+- **Memory Region (MR):** 
+    - Before RDMA can happen, you must "register" a chunk of your RAM with the hardware. This gives the HCA
+      permission to access that memory directly without asking the CPU.
+
+- **Protection Domain (PD):**  
+    - A "container" that ensures your Queue Pairs can only access the Memory Regions they are authorized to
+      use, providing security.
 
 #### Core Functions of Verbs:
 
@@ -107,6 +144,22 @@ resulting in high throughput and low latency.
       nodes.
     * `Data Transmission`: Initiating RDMA Read, RDMA Write, or Send/Receive operations.
     * `Completion Queue (CQ) Polling`: Checking the status of previously posted work requests.
+
+
+### How Verbs Function (The Workflow)
+
+The interaction follows a specific pattern of "posting" and "polling":
+
+1.  **Post Work Request (WR):** 
+    - The application "posts" a command to the Queue Pair (e.g., *"Hey hardware, send this 10MB of data from
+      Memory Address X"*).
+
+2.  **Hardware Execution:** 
+    - The HCA takes over. It reads the data from RAM and sends it across the wire without the CPU’s help.
+
+3.  **Poll for Completion:** 
+    - The application periodically checks the **Completion Queue** (or waits for an interrupt) to see if the
+      hardware has finished the task.
 
 #### Classification of RDMA Verbs
 
@@ -140,6 +193,96 @@ A queue where the hardware posts a completion notification (Work Completion - WC
 - Memory Region (MR): 
 A registered memory region containing memory keys (Local Key and Remote Key) used for RDMA access.
 
+### Verbs Workflow and Relation with Application:
+
+RDMA Verbs workflow and the relationship between the Application, the Verbs interface, and the HCA hardware.
+
+```mermaid 
+graph TD
+    subgraph Host_System [Host System / User Space]
+        App[Application]
+        subgraph Verbs_Interface [RDMA Verbs API]
+            QP[Queue Pair: Send/Receive Queues]
+            CQ[Completion Queue]
+            PD[Protection Domain]
+            MR[Registered Memory Region]
+        end
+    end
+
+    subgraph Hardware [Network Hardware]
+        HCA[Host Channel Adapter]
+    end
+
+    subgraph Remote_Host [Remote Host]
+        R_HCA[Remote HCA]
+        R_Mem[Remote Memory]
+    end
+
+    %% Workflow Connections
+    App -->|1. Register Memory| MR
+    App -->|2. Create| PD
+    PD -->|Contains| QP
+    PD -->|Secures| MR
+    
+    App -->|3. Post Work Request| QP
+    QP -->|4. Direct Access| HCA
+    HCA -.->|5. DMA Read/Write| MR
+    
+    HCA <==>|6. RDMA Protocol| R_HCA
+    R_HCA -.->|7. Direct Placement| R_Mem
+    
+    HCA -->|8. Push Completion Entry| CQ
+    App -->|9. Poll CQ| CQ
+    
+    style App fill:#f9f,stroke:#333,stroke-width:2px
+    style HCA fill:#69f,stroke:#333,stroke-width:2px
+    style Verbs_Interface fill:#fff,stroke:#333,stroke-dasharray: 5 5
+```
+
+- **Queue Pair (QP)**: The mailbox where the application posts "Work Requests" (commands).
+
+- **Memory Region (MR)**: The specific slice of RAM that the HCA is allowed to access directly.
+
+- **Protection Domain (PD)**: The "glue" or security container that ensures a specific QP can only access
+  its assigned MR.
+
+- **Completion Queue (CQ)**: The "Inbox" where the HCA drops a note (Work Completion) once a task is
+  finished.
+
+- **DMA (Direct Memory Access)**: The process where the HCA bypasses the CPU to read/write data directly
+  from/to the Registered Memory.
+
+```mermaid 
+sequenceDiagram
+    participant App as Application (User Space)
+    participant Lib as libibverbs (API)
+    participant HCA as HCA (Hardware)
+    participant RAM as Registered Memory (MR)
+
+    Note over App, RAM: --- SETUP PHASE ---
+    App->>Lib: ibv_reg_mr (Register Memory)
+    Lib-->>RAM: Pin memory & Map DMA addresses
+    App->>Lib: ibv_create_qp (Create Send/Recv Queues)
+    
+    Note over App, RAM: --- DATA TRANSFER PHASE (The Loop) ---
+    App->>App: Prepare data in MR
+    App->>Lib: ibv_post_send (Work Request)
+    Lib->>HCA: Ring Doorbell (Notify Hardware)
+    
+    rect rgb(240, 240, 240)
+        Note right of HCA: Hardware Takes Over
+        HCA->>RAM: DMA Read (Fetch data directly)
+        HCA->>Remote: Send Data over Fabric
+        HCA->>Lib: ibv_poll_cq (Work Completion)
+    end
+
+    App->>Lib: Poll Completion Queue
+    Lib-->>App: "Success: Message Sent"
+    App->>App: Reuse Buffer / Process Next Task
+```
+
+--- 
+
 #### Programming:
 
 RDMA application lifecycle:
@@ -150,9 +293,14 @@ Before you can communicate, you must create the infrastructure. These verbs set 
 Memory, and Queues.
 
 * **`ibv_open_device()`**: Finds and opens your RNIC (or your Soft-RoCE `rxe0` device).
+
 * **`ibv_alloc_pd()`**: Creates the **Protection Domain**, the "sandbox" for your resources.
-* **`ibv_reg_mr()`**: **The most important setup verb.** It registers a memory buffer, pins it in RAM, and returns the **L_Key** and **R_Key**.
+
+* **`ibv_reg_mr()`**: **The most important setup verb.** It registers a memory buffer, pins it in RAM, and
+  returns the **L_Key** and **R_Key**.
+
 * **`ibv_create_cq()`**: Creates the **Completion Queue** where "receipts" (WC) will be dropped.
+
 * **`ibv_create_qp()`**: Creates the **Queue Pair** (SQ/RQ) and attaches it to a CQ.
 
 2. Management Verbs (The "Handshake" Phase)
@@ -186,6 +334,36 @@ Because the "Post" verbs return immediately, you need a way to know when the har
   new **Work Completions (WC)**.
     * If it returns `1`, you have a success/error message to process.
     * If it returns `0`, the hardware is still working.
+
+### The "Verbs" Translation Table
+
+| Concept | C Function (libibverbs) | Purpose |
+| :--- | :--- | :--- |
+| **Registration** | `ibv_reg_mr()` | Tells the HCA: "You have permission to touch this specific RAM." |
+| **Connection** | `ibv_create_qp()` | Sets up the "Socket-like" transport. |
+| **The Action** | `ibv_post_send()` | The "Post Work Request" step. This is **non-blocking**. |
+| **The Action** | `ibv_post_recv()` | Prepares a buffer to catch an incoming message. |
+| **The Result** | `ibv_poll_cq()` | Checks the "Inbox" to see if the hardware finished the task. |
+
+---
+
+### A Final Implementation Mental Model
+Think of the RDMA process like a **Commercial Kitchen**:
+
+1.  **Registering Memory:** You clear a specific counter-top (RAM) and tell the Prep Cook (HCA) they are
+    allowed to work there.
+
+2.  **Posting a Work Request:** You write a "Ticket" (Work Request) and hang it on the rail. You don't stand
+    there waiting for the food; you go do other things.
+
+3.  **HCA Operation:** The Prep Cook sees the ticket, grabs ingredients from the counter-top (DMA Read), and
+    sends the dish out.
+
+4.  **Polling the CQ:** You occasionally glance at the "Finished" window. When you see a "Done" slip, you
+    know that counter-top space is now free to be used for the next dish.
+
+If you try to clean the counter-top (modify the memory) before you see that "Done" slip in the Completion
+Queue, you're going to create a mess!
 
 ### Interoperability:
 
@@ -477,7 +655,7 @@ RDMA is asynchronous. You don't wait for the function to return; you wait for th
 - **WC (Work Completion)**: This is the C struct your application reads when it polls the CQ. It tells you:
   "Success" or "Error: Local Length Violation," etc.
 
-Diagram maps the flow from a local `C` function call to the remote systems memory via RoCE:
+Diagram maps the flow from a local $C$ function call to the remote systems memory via RoCE:
 
 ```mermaid 
 sequenceDiagram
@@ -518,7 +696,7 @@ has arrived and in your registered memory and you can immediately "post a Send" 
 6. The RNIC drops a CQE into the Completion Queue (CQ).
 7.  Your app polls the CQ and receives a Work Completion (WC).
 
-Diagram maps the transition from high level C code down to RoCE wire and back up to your application:
+Diagram maps the transition from high level $C$ code down to $RoCE$ wire and back up to your application:
 
 ```mermaid 
 sequenceDiagram
