@@ -364,7 +364,7 @@ The MAC core now sees a clean, **byte-aligned stream** with control signals:
 **Important**: The MAC does **not** see preamble or SFD yet – those are still in the byte stream.  
 The MII does **not** strip preamble; it passes everything as-is.
 
-### 2. Mermaid Diagram – MAC Rx Pipeline (Post-MII)
+### 2. MAC Rx Pipeline (Post-MII)
 
 ```mermaid
 flowchart TD
@@ -556,17 +556,18 @@ data into system RAM without bothering CPU.
     6. Move: The DMA engine increments its internal pointer to the next descriptor in the ring.
 
 In short the DMA Engine:
-    1. Fetches next **free descriptor** from host ring
-    2. Extracts host buffer address from descriptor
-    3. Writes frame bytes (DA → Payload) via PCIe/axi
-    4. Updates status word (CRC OK, length, timestamp).
-        - Frame length
-        - CRC pass/fail 
-        - Timestamp 
-        - VLAN tag (if present)
-    5. Clears OWN bit (ownership back to driver).
-    6. Moves to next descriptor.
-    7. No CPU involvement during data transfer.
+    
+1. Fetches next **free descriptor** from host ring
+2. Extracts host buffer address from descriptor
+3. Writes frame bytes (DA → Payload) via PCIe/axi
+4. Updates status word (CRC OK, length, timestamp).
+    - Frame Length 
+    - CRC pass/fail 
+    - Timestamp 
+    - VLAN tag (if present)
+5. Clears OWN bit (ownership back to driver).
+6. Moves to next descriptor.
+7. No CPU involvement during data transfer.
 
 **Descriptor ring example** (simplified):
 ```c
@@ -734,7 +735,7 @@ Once the MAC has a **valid frame** in its **Rx FIFO**:
 
 ---
 
-### 2. Mermaid Diagram – DMA + OS Packet Flow
+### 2. DMA + OS Packet Flow
 
 ```mermaid
 flowchart TD
@@ -1286,7 +1287,7 @@ This is where the heavy lifting happens in the kernel context:
 
 ---
 
-### 5. Flow Visualization (Mermaid)
+### 5. Flow Visualization 
 
 ```mermaid
 graph TD
