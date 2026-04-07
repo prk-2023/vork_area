@@ -9,6 +9,22 @@ Assuming there is no *XDP* intervention, the packet follows a traditional, inter
 
 ## 1. The Hardware Stage (PHY & NIC)
 
+**Signal Processing Stages:**
+
+```mermaid 
+flowchart TD
+    A["Analog electrical signal from media"] --> B["Analog Front-End<br/>Amplification & EQ"]
+    B --> C["Clock & Data Recovery CDR<br/>Sampling at symbol rate"]
+    C --> D["Serial bit stream"]
+    D --> E["Deserializer<br/>Serial → Parallel"]
+    E --> F["Decoder<br/>e.g. 8B/10B, 4B/5B"]
+    F --> G["Descrambler & Lane alignment"]
+    G --> H["MII / GMII / RGMII Interface"]
+    H --> I["MAC Layer<br/>Frame delimiting, CRC check"]
+```
+
+---
+
 ### 1. Signal Reception and Analog Conditioning:
 
 When electrical or optical signals arrive at the **Physical Layer (PHY)** The signal is rarely perfect
@@ -29,7 +45,7 @@ square, its often distorted by noise, attenuation ( loss of signal ) and crossta
 ### 2. Clock and Data Recovery (CDR) 
 
 - The NIC does not know exactly when the sending device clock ticked. It must "lock onto" the incoming
-  stream. As thre is no separate clock wire, PHY must recover clock from data transitions:
+  stream. As there is no separate clock wire, PHY must recover clock from data transitions:
   - PHY Looks at the transitions in the electrical signal to synchronize its internal clock with the
     sender's.
   - PHY uses PLL (phase-locked loop) or DLL.
@@ -47,12 +63,45 @@ square, its often distorted by noise, attenuation ( loss of signal ) and crossta
         end
     ```
 
+- As there is no shared clock wire between two computers( like i2c, SPI ), PHY does have its own internal
+  local oscillator, and the magic happens through a process called **Clock and Data Recovery (CDR)**. 
+
+- How the PHY "locks" onto a stream without a shared clock wire: 
+    - Internal clock vs Reference clock: Every NIC has a local crystal oscillator (25,125 MHx), this is the
+      reference clock.
+    - As no two oscillators are same, senders clock can misread a bit. To fix this PHY uses `PLL`
+        1. PHY listens to the edges of the internal electrical signal. 
+        2. It Compares the timing of these edges to its own internal clock. 
+        3. It micro-adjusts its internal clock's phase and frequency to match the sender's timing perfectly. 
+
+    - The typical time taken for this locking is in microseconds or milliseconds depending on Ethernet
+      standards. 
+    - Transitions: ( Encoding ): If sender sent a long string of zeros (`00000...`) there would be no
+      electrical transitions. The receiver's PHY would lost the beat and clock would drift. To precent this
+      Ethernet uses Line Encoding to force transitions even when the data is quite: 
+      - 10Base-T: uses Manchester Encoding ( every bit has a transition in the middle )
+      - 100Base-Tx: uses 4B5B Encoding. ( mapping 4 bits of data to a 5-bit code that guarantees enough 1s
+        for transitions.)
+      - 1000BASE-T: Uses 8B10B or complex PAM-5 signaling to ensure the wire is never "electrically still."
+
 ### 3. De-Serialization:
 
-- Serial bits after clock and data recovery are too fast for MAC (e.g 1.25 Bbps for GbE) 
+- Serial bits after clock and data recovery are too fast for MAC (e.g 1.25 Bbps for GbE), and processing
+  these bits would overwhelm the main CPU. To handle this PHY performs a process called De-Serialization and
+  Word Alignment. 
 - *DeSerializer*: Converts to parallel words:
   - 10-bit for GbE (8B/10B -> 125 MHz parallel clock)
   - 4bit for 100 Mbps MII (25 MHz)
+  - Serial Input => A parallel Bus.
+
+- The "Comma" or "K-Code" (Finding the Start): If bits are just a stream, then how do we know where it
+  starts. ( Ethernet uses a special bit pattern called *Commas* or *K-Codec* ) Which are specific sequence
+  ( like `001111110` in some protocol) that never appear in normal data. PHY HW logic is constantly scanning
+  the incoming bits for this specific pattern, and snaps its word boundaries to that position, And it knows
+  10 bits starting from that is a *new word*.
+- In Gigabit Ethernet, we don't actually send 8-bit bytes. We send 10-bit symbols.
+- Using 10 bits to represent 8 bits of data, ensures there are always enough transitions (0-to-1 or 1-to-0)
+  to keep the clock locked.
 
 ### 4. Decoding: ( Language of the Wire )
 
@@ -178,14 +227,14 @@ NOTE:
   - Auto-Negotiation: CPU can tell PHY try connect at 1Gbps, but if the other sidfe cant do it drops to
     100Mbps.
   - Power State: OS tells PHY to go to low-power mode if the cable is unplugged. 
-  - Diagnostics: CPU can ask the PHY for "telemetry" like Noise on the line, TDR(time domain reflextometry)
+  - Diagnostics: CPU can ask the PHY for "telemetry" like Noise on the line, TDR (time domain reflextometry)
 
 ---
 
 ## MII: (Rx Path)
 
 MII is is not just a passive bus, it has specific roles: 
-- It a ts as a universal bridge so that any MAC can talk to any PHY ( copper/fiber transceiver )
+- It acts as a universal bridge so that any MAC can talk to any PHY ( copper/fiber transceiver )
 - clock domains ( PHY clock vs MAC clock)
 - Data alignment & control signal decoding 
 - Nibble/Byte packing ( depending on MII, GMII, RGMII, SGMII)
@@ -200,7 +249,7 @@ MII is is not just a passive bus, it has specific roles:
 
 ### 2. Control Signal decoding:
 
-- While the PHY is hearing "noise" or "silence" on the wire, it keeps the RX_DV line Low.
+- While the PHY is hearing "noise" or "silence" on the wire, it keeps the `RX_DV` line Low.
 - The moment the PHY detects the Start Frame Delimiter (SFD) it flips the RX_DV pin to **High**.
 - This acts as a "wake up" call to the MAC, telling it: "Everything I’m about to send you on the data pins
   is a real packet. Start recording."
@@ -209,7 +258,7 @@ MII is is not just a passive bus, it has specific roles:
 
 ### 3. Data width Conversion: 
 
-- In standard MII, the 125 MHz serial stream from the PHY is broken into **4-bit nibbles**.
+- In standard MII, the 125 MHz serial stream from the `PHY` is broken into **4-bit nibbles**.
 - In GMII (Gigabit MII), it is broken into 8-bit bytes.
 -  e.g., 4-bit nibbles (MII) → 8-bit bytes (for MAC internal bus).
 
@@ -223,7 +272,7 @@ MII is is not just a passive bus, it has specific roles:
 
 ### 5. SGMII-specific 
 
-- Serialize/deserialize, auto-negotiation passthrough.
+- Serialize/de-serialize, auto-negotiation pass-through.
 
 ### 6. Error flag generation 
 
@@ -432,6 +481,19 @@ The MAC removes these **before** DMA to host:
 
 > Some NICs optionally keep FCS for diagnostic (promiscuous + keep CRC mode)
 
+Note: 
+1. From above => MAC actually process after Preamble/SFD/FCS are stripped, and the size is:
+    - 1500 (payload) + 6 (Dst) + 6 (Src) + 2 (Type/Len) = 1514 Bytes.
+2. There are 2 more common scenarios where 1514 bytes number can grow:
+    - VLAN Tagging (802.1Q):
+        - If You are using VLANs, a 4-byte tag is inserted between the Source MAC and the EtherType:
+          Which in which case MAC handles 1518 bytes. 
+    - Jumbo Frames:
+        In High performance data centers the payload is increased from 1500 to 9000 bytes, in which case:
+        - MAC is processing 9014 or 9018 bytes.
+
+3. And the Total Electric Foot Print on the wire : 1514+Preamble+SFD+FCS and inter-pkt gap) = 1526 bytes. 
+
 
 #### Stage 7 – Length Check
 After stripping, MAC verifies frame length (without FCS):
@@ -462,18 +524,49 @@ MAC compares **Destination Address** (first 6 bytes of frame) with:
 - Promiscuous mode bypasses all
 
 #### Stage 9 – DMA to Host Memory
-After acceptance, MAC's **DMA engine**:
 
-1. Fetches next **free descriptor** from host ring
-2. Extracts host buffer address from descriptor
-3. Writes frame bytes (DA → Payload) via PCIe/axi
-4. Updates **status word** in descriptor:
-   - Frame length
-   - CRC pass/fail
-   - Timestamp
-   - VLAN tag (if present)
-5. Writes back descriptor with `OWN` bit = 0 (host owns it)
-6. Moves to next descriptor
+After the MAC validates the frame ( and usually strips the FCS), the **DMA Engine** takes over to move the
+data into system RAM without bothering CPU.
+
+1. Setup: ( Descriptor Rings )
+
+- Modern NICs use **Circular Buffer Rings** in host RAM.
+- "Index Card": Each slot in the ring is a **Descriptor**.( i.e its data struct /metadata that provides
+  info about a memory block). It contains the address of an empty memory buffer pre-allocated by the OS. 
+- Each descriptor points to a buffer.
+
+- Ownership: (`OWN` bit): 
+    - `OWN = 1` NIC owns the descriptor ( ready to be filled )
+    - `OWN = 0` The *Host/Driver* owns the descriptor ( data is ready to be read )
+
+2. Step-by-Step flow:
+
+    1. Fetch: DMA engine fetches the next descriptor from the ring and checks the `OWN` bit. 
+        - If `OWN = 0`, the ring is full, and the NIC drops the incoming packet (RX Drop).
+    2. Extract: It extracts the Host Buffer Address from that descriptor.
+    3. Transfer (The Burst): The DMA engine writes the frame bytes (Destination MAC → Payload) directly 
+       into the Host RAM via the PCIe bus.
+    4. Status Write-Back: Once the transfer is complete, the NIC "signs off" by overwriting the descriptor
+       in RAM with:
+       - Actual Frame Length: (Since the buffer might be 2048 bytes but the packet only 64).
+       - Check Results: Hardware-verified Checksum (IPv4/TCP/UDP) and CRC status.
+       - VLAN Info: Any stripped VLAN tags.
+    5. Flip Ownership: The NIC sets the `OWN` bit to 0. This is the signal to the CPU that "This packet is
+       done and ready for you."
+    6. Move: The DMA engine increments its internal pointer to the next descriptor in the ring.
+
+In short the DMA Engine:
+    1. Fetches next **free descriptor** from host ring
+    2. Extracts host buffer address from descriptor
+    3. Writes frame bytes (DA → Payload) via PCIe/axi
+    4. Updates status word (CRC OK, length, timestamp).
+        - Frame length
+        - CRC pass/fail 
+        - Timestamp 
+        - VLAN tag (if present)
+    5. Clears OWN bit (ownership back to driver).
+    6. Moves to next descriptor.
+    7. No CPU involvement during data transfer.
 
 **Descriptor ring example** (simplified):
 ```c
@@ -485,10 +578,40 @@ struct rx_desc {
 };
 ```
 
+– The next stage is Interrupt / Status Update:
+  - After DMA completes (or when RX ring is full), MAC raises interrupt.
+  - Driver reads status, processes frames, refills descriptors.
+
 ---
 
 #### Stage 10 – Interrupt & Driver Notification
-After DMA completes:
+
+1. The Signal: 
+    - After one or more DMAs are complete, the MAC raises an Interrupt (MSI-X/IRQ).
+
+2. Throttling: 
+    - To save CPU cycles, the NIC uses Interrupt Coalescing (waits for a few pkts or a small timer before 
+      "ringing the bell").
+
+3. The Clean-up: 
+    - The Driver sees the interrupt and checks the ring:
+        * It processes all descriptors where `OWN == 0`.
+        * It passes the data up to the Network Stack (IP/TCP).
+
+4. The Refill: 
+    - The Driver places a new empty buffer address in the descriptor and flips the `OWN` bit back to 1, 
+      handing control back to the NIC.
+
+```c 
+struct rx_desc {
+    uint64_t buffer_addr;   // Physical RAM address provided by OS
+    uint16_t length;        // Written by NIC: Size of arrived packet
+    uint16_t status_flags;  // Written by NIC: Checksum OK, End of Packet, etc.
+    uint32_t control;       // Includes the 'OWN' bit (1=NIC, 0=CPU)
+};
+``` 
+
+5. summary
 
 | Condition | Action |
 |-----------|--------|
@@ -1143,23 +1266,19 @@ Now you have the **complete picture** from electrical signal to `recv()` in user
 
 -----------------------------------------------------------------------------------------------------------
 
-* **Reception:** The PHY converts signals into a bitstream and hands it to the **MAC (Media Access Control)** layer.
-* **Validation:** The NIC checks the Frame Check Sequence (FCS) for errors and verifies if the destination MAC matches the interface (or if it's in promiscuous mode).
-* **DMA Transfer:** The NIC doesn't wait for the CPU. It uses **DMA (Direct Memory Access)** to write the packet data directly into a pre-allocated ring buffer in host RAM (the **RX Ring**).
-
-### 2. The Hard IRQ (Hardware Interrupt)
+### 1. The Hard IRQ (Hardware Interrupt)
 Once the packet is in RAM:
 * **The Signal:** The NIC sends a hardware interrupt (**IRQ**) to the CPU to signal that new data has arrived.
 * **The Handler:** The CPU executes the registered IRQ handler for that NIC driver.
 * **NAPI Initiation:** Modern Linux drivers use **NAPI** (New API). Instead of handling every packet via IRQ (which would cause "livelock"), the IRQ handler simply disables further hardware interrupts for the NIC and schedules a **SoftIRQ**.
 
-### 3. The SoftIRQ & Poll (NAPI)
+### 2. The SoftIRQ & Poll (NAPI)
 This is where the heavy lifting happens in the kernel context:
 * **`ksoftirqd`:** The kernel thread (or the end of the hardware interrupt) triggers `NET_RX_SOFTIRQ`.
 * **Polling:** The driver’s `poll()` method is called. It harvests packets from the RX Ring buffer in RAM.
 * **sk_buff Creation:** The raw data is wrapped into a metadata structure called an **`sk_buff`** (socket buffer). This is the primary object used by the Linux stack.
 
-### 4. The Network Stack Entry
+### 3. The Network Stack Entry
 * **`netif_receive_skb()`:** The driver passes the `sk_buff` to this core function.
 * **Taps & Delivery:** If tools like `tcpdump` (AF_PACKET) are running, the packet is cloned and sent to them here.
 * **Protocol Layer:** The kernel looks at the Ethernet header to decide where to send it next (e.g., IPv4, IPv6, or ARP). 
