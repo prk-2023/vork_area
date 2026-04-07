@@ -1,18 +1,18 @@
 1. mpstat
-11:53:27 AM  CPU    %usr   %nice    %sys %iowait    %irq   %soft  %steal  %guest  %gnice   %idle
-11:53:28 AM  all    0.58    0.58    7.80    0.00    0.17    6.06    0.00    0.00    0.00   84.81
-11:53:28 AM    0    0.00    1.02   20.41    0.00    1.02    9.18    0.00    0.00    0.00   68.37
-11:53:28 AM    1    0.00    3.96    1.98    0.00    0.00    0.99    0.00    0.00    0.00   93.07
-11:53:28 AM    2    0.00    0.00    0.00    0.00    0.00    1.01    0.00    0.00    0.00   98.99
-11:53:28 AM    3    0.00    0.00    1.69    0.00    0.00   51.69    0.00    0.00    0.00   46.61
-11:53:28 AM    4    1.00    1.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00   98.00
-11:53:28 AM    5    1.01    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00   98.99
-11:53:28 AM    6    3.03    0.00   21.21    0.00    0.00    0.00    0.00    0.00    0.00   75.76
-11:53:28 AM    7    0.00    0.00    4.04    0.00    0.00    0.00    0.00    0.00    0.00   95.96
-11:53:28 AM    8    0.00    1.00    0.00    0.00    1.00    1.00    0.00    0.00    0.00   97.00
-11:53:28 AM    9    1.08    0.00   48.39    0.00    0.00    0.00    0.00    0.00    0.00   50.54
-11:53:28 AM   10    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00  100.00
-11:53:28 AM   11    1.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00   99.00
+|11:53:27 AM  CPU    %usr   %nice    %sys %iowait    %irq   %soft  %steal  %guest  %gnice   %idle|
+|11:53:28 AM  all    0.58    0.58    7.80    0.00    0.17    6.06    0.00    0.00    0.00   84.81|
+|11:53:28 AM    0    0.00    1.02   20.41    0.00    1.02    9.18    0.00    0.00    0.00   68.37|
+|11:53:28 AM    1    0.00    3.96    1.98    0.00    0.00    0.99    0.00    0.00    0.00   93.07|
+|11:53:28 AM    2    0.00    0.00    0.00    0.00    0.00    1.01    0.00    0.00    0.00   98.99|
+|11:53:28 AM    3    0.00    0.00    1.69    0.00    0.00   51.69    0.00    0.00    0.00   46.61|
+|11:53:28 AM    4    1.00    1.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00   98.00|
+|11:53:28 AM    5    1.01    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00   98.99|
+|11:53:28 AM    6    3.03    0.00   21.21    0.00    0.00    0.00    0.00    0.00    0.00   75.76|
+|11:53:28 AM    7    0.00    0.00    4.04    0.00    0.00    0.00    0.00    0.00    0.00   95.96|
+|11:53:28 AM    8    0.00    1.00    0.00    0.00    1.00    1.00    0.00    0.00    0.00   97.00|
+|11:53:28 AM    9    1.08    0.00   48.39    0.00    0.00    0.00    0.00    0.00    0.00   50.54|
+|11:53:28 AM   10    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00  100.00|
+|11:53:28 AM   11    1.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00    0.00   99.00|
 
 Single card:
 1.
@@ -35,6 +35,7 @@ NOTE: libpf-rs and aya fail to bind connectx interface when MTU set to 9000
       effort approach. 
       On many drivers if Native (DRV) mode fails because the constrain like MTU, the kernel will
       silently fall back to Genric Mode (SKB) and the attachment is success. 
+
 TODO: Check Why Rust loader fails to attach. ( related to Rust security checking ? )
 
 - Buffer Constraint: ConnectX hardware uses a specific memory page layout for its Receive Queue (RQ).
@@ -44,7 +45,6 @@ TODO: Check Why Rust loader fails to attach. ( related to Rust security checking
 - The Result: Instead of trying to "guess" how to split the packet, the driver simply returns -EINVAL
   (Invalid Argument) during the attachment phase because it cannot guarantee a linear buffer that fits
   both the huge packet and the XDP overhead.
-
 
 3.
 Host> ipref3 server
@@ -130,3 +130,26 @@ mpstat -P ALL 1
 - AF_XDP Vs DPDK
 ---
 ---
+
+### NUMA Pinning:
+
+Since the setup uses single card, both ports share the same NUMA node. 
+
+To get cleanest results, ensure your memory and your processes are pinned to the node where the card lives:
+
+```bash 
+#Find the NUMA node ( eg: Node 0)
+cat /sys/class/net/<Your_interface>/device/numa_node 
+
+#Run pinned
+sudo ip netns exec ns_server numactl -N 0 ib_write_bw ...
+```
+
+=> What to look for in your results
+
+When you run `ib_write_bw`, look at the Message Size vs. Bandwidth curve.
+- For small messages (64 - 256 bytes), your bandwidth will be low, but your Message Rate (packets/second) 
+  should be very high.
+
+- At 2KB to 4KB message sizes, you should hit the "Line Rate" (the flat part of the curve near 24.5 Gbps).
+

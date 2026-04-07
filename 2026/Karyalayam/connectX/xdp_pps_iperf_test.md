@@ -133,3 +133,26 @@ mpstat -P ALL 1
 - AF_XDP Vs DPDK
 ---
 ---
+
+### NUMA Pinning:
+
+Since the setup uses single card, both ports share the same NUMA node. 
+
+To get cleanest results, ensure your memory and your processes are pinned to the node where the card lives:
+
+```bash 
+#Find the NUMA node ( eg: Node 0)
+cat /sys/class/net/<Your_interface>/device/numa_node 
+
+#Run pinned
+sudo ip netns exec ns_server numactl -N 0 ib_write_bw ...
+```
+
+=> What to look for in your results
+
+When you run `ib_write_bw`, look at the Message Size vs. Bandwidth curve.
+- For small messages (64 - 256 bytes), your bandwidth will be low, but your Message Rate (packets/second) 
+  should be very high.
+
+- At 2KB to 4KB message sizes, you should hit the "Line Rate" (the flat part of the curve near 24.5 Gbps).
+
