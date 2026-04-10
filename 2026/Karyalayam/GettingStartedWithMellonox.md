@@ -6,6 +6,7 @@ Mellonox NIC are specialized High Performance adapters designed to deliver maxim
 ultra-low latency in data centers, cloud environments, and HPC clusters. 
 They are mainly used to accelerate network traffic, reduce CPU overhead, and enable direct, fast
 communication between servers and storage. 
+
 Areas of interest:
 
 - AI and ML:  Heavily used in AI factories and GPU accelerated workloads, such as AI training and

@@ -1,12 +1,17 @@
-Test Setup with Single NIC ( SmartNIC with 2 ports )
-- mellonox driver considers these two ports as two independent interfaces, this allows us to use single 
-  computer to test using a DAC cable plugged in both ports.
-  
+## ConnectX Mellanox SmartNIC 
+
+### Test Setup with Single NIC ( SmartNIC with 2 ports )
+
+- Mellanox ConnectX-5 Ex Dual-Port PCI Express 3.0 (8GT/s) x8 Ethernet NIC adapter
+- The driver considers these two ports as two independent interfaces, which allows us to use a single card for testing using a DAC Cable plugged into both ports.
+
 - The driver exposes two parts of the SmartNIC:
     - Regular Ethernet 
     - And Inifiband Interface for RoCE 
     
-- To use Single card for testing:
+### HowTo test with Single card:
+
+
 1. Create 2 Network Namespaces ( similar to how its done with containers ) (ns_server, ns_client)
 
 2. Add each interface to the name space and assign an ip address. 
@@ -15,7 +20,7 @@ Test Setup with Single NIC ( SmartNIC with 2 ports )
    to leave port0 and move to port1. And since kernel routing table is isolated in each namespace the only
    way for the packets to get from one interface to other is via physical ports.
    
-4. Standard ethernet bandwith test using iperf can show some CPU usage as kernel has to process every header,
+4. Standard ethernet bandwith test use iperf3, This test can show some CPU usage as kernel has to process every header,
    handle interrupts and copy data from user-space to kernel space.
    
 5. This is where RoCE ( RDMA ) can be tested where the data is copied from memory to memory between 
@@ -35,7 +40,7 @@ Note: If IP address are changes or there is a moves the interface between namesp
       The index for **RoCE v2** (UDP-encapsulated) is the only one that will work for "routable" 
       tests across namespaces.
 
-6. RDMA and Ethernet stack:
+6. RDMA and Ethernet stack:  
    In a RoCE v2 (RDMA over Converged Ethernet) environment, the RDMA stack and the Ethernet stack are 
    tightly coupled.  You cannot have one without the other because of how the ConnectX hardware is designed.
    
@@ -44,7 +49,7 @@ Note: If IP address are changes or there is a moves the interface between namesp
    On a Mellanox card, the RDMA device (e.g., rocep1s0f0) is a "child" of the Ethernet interface
    (e.g., enp1s0f0np0).
    
-   In our test setup with single card when we move move the Ethernet interface into a namespace, 
+   In our test setup with single card when we move the Ethernet interface into a namespace, 
    the RDMA device automatically follows it.
    
    Even though RDMA "bypasses" the kernel during the actual data transfer, the perftest tools 

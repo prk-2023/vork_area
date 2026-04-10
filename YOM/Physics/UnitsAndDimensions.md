@@ -31,13 +31,16 @@ Without Units & Dimensions numbers in science are meaningless, the *Units give P
 Science seeks Objectivity. 
 
 Units and dimensions:
-    * Remove ambiguity from language.
-    * tie abstract numbers to real-world measurements. 
-    * Ensure that scientific knowledge is testable and falsifiable. 
 
-They turn Observations => Laws.
-Experiments in to => Evidence.
-Mathematics into => Physics.
+* Remove ambiguity from language.
+* tie abstract numbers to real-world measurements. 
+* Ensure that scientific knowledge is testable and falsifiable. 
+
+=> They turn Observations => Laws.
+
+=> Experiments in to => Evidence.
+
+=> Mathematics into => Physics.
 
 Units & Dimensions: Is the bridge between mathematics and physical world. Science would collapse without
 them in to meaningless numbers. 
@@ -245,14 +248,12 @@ The general method is always the same.
 #### Example 1: Velocity
 
 Definition:
-$$
-\text{Velocity} = \frac{\text{distance}}{\text{time}}
-$$
+
+$\text{Velocity} = \frac{\text{distance}}{\text{time}}$
 
 Dimensions:
-$$
-[v] = \frac{[L]}{[T]} = [L T^{-1}]
-$$
+
+$[v] = \frac{[L]}{[T]} = [L T^{-1}]$
 
 ---
 
