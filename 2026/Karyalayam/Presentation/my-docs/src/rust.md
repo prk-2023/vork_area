@@ -41,7 +41,7 @@
     "borrow checker", which tracks the object lifetime of references at compile time.
 
 - The Book : "Rust programming Language Book" is a good starting point ( Its free online ).
-- [Docs.rs Opensource website that automatically generates and host docs for ever rust package](https://docs.rs)
+- [Docs.rs Open source website that automatically generates and host docs for ever rust package](https://docs.rs)
   The documents are built using `rustdoc` to build API documentation from source directly ensuring the docs
   are in sync with updates and readily accessible. 
 
@@ -49,15 +49,31 @@
 
 ## Slide 2: Rust a systems programming language
 
-- Rust is a systems programming language, similar to C/C++:
-    - Designed with focus on memory safety, reliability, and maintainability with out sacrificing 
-      performance.
+- Systems Programming Language: ( from wiki )
+    - designed to build SW that manages computer HW and provides essential services to other software such
+      as OS, kernels, device drivers.
+    - The language should have direct HW control and maximum efficiency 
+    - The key requirements:
+        - Direct HW access 
+        - Low-level memory management. 
+        - minimal runtime overhead 
+        - predictable performance 
+        - ability to interact with Assembly 
+        - static compilation. 
+    Languages that can do the above C, Rust, C++ and Go.
+
+- Rust programs are similar to C/C++ with additional goodies:
+    - Its designed with memory safety, reliability, and maintainability with out sacrificing performance.
 
     - Its considered safer than C, and compiles to native making it deployable virtually anywhere. 
+
     - Programs memory remains safe even without a garbage collector. ( => faster and smaller code footprint)
+
     - It has no nulls, and no exceptions, no inheritance, and its ‘variables’ are immutable by default. 
+
     - Memory safety with out garbage collector, is enforced at compile time via ownership, borrowing and
       lifetimes. 
+
     - Borrow checker is Rust’s most major contribution to programming technology ( Its also the cause of 
       most confusion, frustration, and misunderstanding among its users. )
 
