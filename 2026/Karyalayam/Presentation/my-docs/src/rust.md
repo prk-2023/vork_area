@@ -1,6 +1,142 @@
 # Introduction to Rust:
 
-## Introduction: 
+## ToC:
+
+- History 
+- Rust as Systems programming language.
+- Key features and terminology.
+- Rust Ecosystem.
+- Rust in Linux kernel.
+    - quick look at how to build Kernel drivers ( hello world module )
+    - Android.
+- Best practices.
+- eBPF: Overview 
+    - earlier tools
+    - libbpf ( CO-RE )
+    - Process of generating bytecode and user-space loaders 
+- why eBPF with Rust:
+    - Verifier, boiler plate code generation 
+    - cross development & embedded systems 
+    - why use rust for profiling and building high performance applications (xdp) 
+    - Telemetry and more.
+---
+
+## Slide 1: History 
+
+- Rust is a general-purpose programming language. Popular for its emphasis on performance, type safety, 
+  concurrency, and memory safety.
+
+- Software developer Graydon Hoare created Rust in 2006 while working at Mozilla, which officially 
+  sponsored the project in 2009. The first stable release, Rust 1.0, was published in May 2015. 
+
+- Rust's syntax is similar to that of C / C++, although many of its features were influenced by functional
+  programming languages such as `OCaml`.
+
+- Rust supports multiple programming paradigms, It was influenced by ideas from functional programming, 
+  including immutability, higher-order functions, algebraic data types, and pattern matching. 
+  It also supports object-oriented programming via `structs`, `enums`,`traits`, and `methods`. 
+
+  - Rust is noted for enforcing memory safety (i.e., that all references point to valid memory) without a 
+    conventional garbage collector; instead, memory safety errors and data races are prevented by the 
+    "borrow checker", which tracks the object lifetime of references at compile time.
+
+- The Book : "Rust programming Language Book" is a good starting point ( Its free online ).
+- [Docs.rs Opensource website that automatically generates and host docs for ever rust package](https://docs.rs)
+  The documents are built using `rustdoc` to build API documentation from source directly ensuring the docs
+  are in sync with updates and readily accessible. 
+
+--- 
+
+## Slide 2: Rust a systems programming language
+
+- Rust is a systems programming language, similar to C/C++:
+    - Designed with focus on memory safety, reliability, and maintainability with out sacrificing 
+      performance.
+
+    - Its considered safer than C, and compiles to native making it deployable virtually anywhere. 
+    - Programs memory remains safe even without a garbage collector. ( => faster and smaller code footprint)
+    - It has no nulls, and no exceptions, no inheritance, and its ‘variables’ are immutable by default. 
+    - Memory safety with out garbage collector, is enforced at compile time via ownership, borrowing and
+      lifetimes. 
+    - Borrow checker is Rust’s most major contribution to programming technology ( Its also the cause of 
+      most confusion, frustration, and misunderstanding among its users. )
+
+    - Unlike C, where compiler acts as a translator and it trusts you. In Rust, the compiler is a **Static
+      Verifier**. It refuses to translate the code until you prove that your memory access is mathematically
+      sound. 
+
+      As complexity of modern systems grow beyond our ability to manually reason about state, Rust's "type
+      system" and ownership model enforces correctness at compile time, which reduces many bugs, thus
+      improving maintainability, in short it shifts correctness guarantees from humans to compiler. 
+
+    - Compiler's compile-time checks ( Owership and Borrowing rules ) prevent common bugs include: 
+        - Null pointer dereference, data races and buffer overflow. 
+      This translated to fewer bug crashes, predictable behaviour and safer systems. 
+
+- Like C, Rust can interact with with hardware and low-level systems components. 
+
+  At the same time it provides modern language features, such as a strong type system and macros that 
+  enable safer abstractions, reduce boilerplate, and improve maintainability without sacrificing control. 
+
+
+## slide 3 # Rust for operating system development :
+
+- Rust is capable of occupying the same systems-level niches as C ( bare metal, firmware, kernels, embedded
+  etc..) but its adoption varies by domain and its evolving. 
+- For Networking stacks, databases, compilers, the adoption is mature and widely accepted .
+
+- Rust in Linux kernel: Its not replacing C but its growing adoption ( mainly for drivers )
+
+- Linux kernel: Rust for Linux started in 2020 with a goal to add Rust as programming language that could be
+  used within Linux project. In 2022 Kernel version 6.1 Rust was incorporated and as of Dec 2025 its moved
+  from experimental to core part of the kernel. ( expanding the language scope in kernel to C, Assembly,
+  Rust) 
+
+- Rust based components in kernel:
+    - `rnull` a drop in replacement for the `null device`
+    - ASIX AX88772 and Realtek Generic FE-GE Physical layer network drivers 
+    - DRM kernel panic handler, which displays a QR code. 
+
+- Other Notable projects:
+    - `tarfs` : a tar file system 
+    - NVE Express (NVMe) device driver 
+    - Android Binder IPC driver 
+    - Ashai Linux Apple silicon AGX GPU DRM driver 
+    - PuzzleFS, a container fs 
+    - read-only ext2 
+    - Nova: intended to create Rust `nouveau` GPU Driver ( for nvidia hw ).
+
+- Embedded / bare metal: 
+    - Rust supports `no_std`
+    - Direct register access 
+    - zero-cost abstractions 
+    => Embedded-HAL : set of traits forming a HW abstraction layer for embedded systems in Rust, defines
+    platform agnostic interface for peripheral access, enabling driver code to run on multiple
+    microcontrollers and architectures without modifications. ( maintained by Rust embedded working group)
+    = RITC: real time interrupt driven concurrency, a lightweight framework for rust prog-lang designed for
+    embedded systems 
+
+
+### Slide 4: Rust controversy and current state:
+
+- Rust in Linux has not been without controversy, discussions in the kernel community around: 
+    - It adds additional complexity in the build system.
+    - long term maintenance of Rust abstractions. 
+    - interoperability with existing C code. 
+  This discussions are part of normal evolution of the kernel. 
+
+- As IC design house, our focus is not language debates or community politics, but rather focus on building
+  reliable, maintainable and safe systems.
+
+- Despite all, Rust is being adopted into kernel and the reasons could: 
+    - Reduce common memory related bugs 
+    - improve safety in low-level code 
+    - help build more robust drivers and systems components 
+
+- The recent kernel release 6.19 has about 390 rust source files amounting to 25+k lines of rust code,
+  target driver, memory allocators.  
+
+--- 
 
 Rust is a **Systems programming Language** which focused on **Safety, Speed, and Concurrency** at the same
 time. It's a language designed to to enforce memory safety without a Garbage Collector (GC).
@@ -95,6 +231,8 @@ Note: Replace implicit runtime dangers to explicit compile time contracts:
   // Error handling is explicit in the return type
   fn open_socket(port: u16) -> Result<RawFd, String> {
     if port < 1024 {
+        let errstr = "Permission Denied: Privileged Port".to_string();
+        println!("{errstr}");
         return Err("Permission Denied: Privileged Port".to_string());
     }
     // Simulate system call returning a file descriptor
@@ -102,6 +240,7 @@ Note: Replace implicit runtime dangers to explicit compile time contracts:
   }
 
   fn main() {
+    println!("opening socket");
     // The '?' operator provides a low-overhead way to propagate 
     // errors back up the stack without the cost of an exception.
     let fd = open_socket(80).map_err(|e| format!("Network stack init failed: {}", e));
