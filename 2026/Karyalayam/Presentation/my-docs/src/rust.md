@@ -34,12 +34,15 @@
 
 - Rust supports multiple programming paradigms, It was influenced by ideas from functional programming, 
   including immutability, higher-order functions, algebraic data types, and pattern matching. 
-  It also supports object-oriented programming via `structs`, `enums`,`traits`, and `methods`. 
+  It also supports object-oriented programming via `structs`, `enums`,`traits`, and `methods`.
+  (i.e Rust fits into be called a Functional, object-oriented, systems, application development, ..
+  programming language)
 
-  - Rust is noted for enforcing memory safety (i.e., that all references point to valid memory) without a 
+  - It's noted for enforcing memory safety (i.e., that all references point to valid memory) without a 
     conventional garbage collector; instead, memory safety errors and data races are prevented by the 
     "borrow checker", which tracks the object lifetime of references at compile time.
 
+- References:
 - The Book : "Rust programming Language Book" is a good starting point ( Its free online ).
 - [Docs.rs Open source website that automatically generates and host docs for ever rust package](https://docs.rs)
   The documents are built using `rustdoc` to build API documentation from source directly ensuring the docs
@@ -47,9 +50,9 @@
 
 --- 
 
-## Slide 2: Rust a systems programming language
+## Slide 2: Rust as a systems programming language
 
-- Systems Programming Language: ( from wiki )
+- Systems Programming Language: ( from wiki ) The definition:
     - designed to build SW that manages computer HW and provides essential services to other software such
       as OS, kernels, device drivers.
     - The language should have direct HW control and maximum efficiency 
@@ -61,6 +64,9 @@
         - ability to interact with Assembly 
         - static compilation. 
     Languages that can do the above C, Rust, C++ and Go.
+    Note: Go included as its used with Docker/Kubernetes, but comes with a GC and significant runtime, in a
+    hard-systems/kernel context (where you need deterministic memory management and no-std), Go is usually 
+    excluded.
 
 - Rust programs are similar to C/C++ with additional goodies:
     - Its designed with memory safety, reliability, and maintainability with out sacrificing performance.
@@ -75,7 +81,8 @@
       lifetimes. 
 
     - Borrow checker is Rust’s most major contribution to programming technology ( Its also the cause of 
-      most confusion, frustration, and misunderstanding among its users. )
+      most confusion, frustration, and misunderstanding among its users. It moves the debugging phase from
+      runtime to compile time. )
 
     - Unlike C, where compiler acts as a translator and it trusts you. In Rust, the compiler is a **Static
       Verifier**. It refuses to translate the code until you prove that your memory access is mathematically
@@ -94,6 +101,37 @@
   At the same time it provides modern language features, such as a strong type system and macros that 
   enable safer abstractions, reduce boilerplate, and improve maintainability without sacrificing control. 
 
+- Modern techniques: Example "zero-cost" Async: Rust can take high-level modern concepts like asynchronous
+  programming and apply them to most resource constrained environment 
+  Most modern languages require a heavy "runtime" ( like VM or a background mgr ) to handle asynchronous
+  taks. Rust is different in this aspect:
+  - Poll Based Model : Rusts `async/wait` uses state-machine approach that does not require a heap or a
+    bachground thread manager by default.
+  - Concurrency without threads: On tiny microcontrollers with no OS (bare metal) you can `async` to handle
+    multiple HW events ( like sensor reading and button press)  simultaneously without the overhead of a
+    traditional real-time OS (RTOS)
+
+- Embedded Rust (Bare Metal): Rust is moving to be a popular for embedded systems as it provides 
+  "guardrails"where C usually provides landmines:
+    - Peripheral Access Crate (PACs): Rust's typesystem can represent HW registers. => the compiler can
+      prevent accidental writing to a "read-only" pin on a chip. 
+    - No Std: (`#[no_std]`): Rust can compile without its standard library, allowing it to run with only few
+      kilobytes of RAM. And it comes with modern features of error handling via `Result`, `Option`,`match`,
+      even on tiny chips.
+    
+- Safety Control: Combination of **Macros** and **Strong Typing** allows developers build HALs:
+    - *Boilerplate Reduction*: Instead of writing hundreds of lines of code to initialize a clock, a macro
+      can generate that safely based on your chip's datasheet.
+    - *Type-Safe Hardware*: You can use "Stateful Types" to ensure that a pin cannot be used as an Output 
+      until it has been properly initialized—if you try, the code simply won't compile.
+
+> "Rust is a multi-paradigm systems language that bridges the gap between low-level control and high-level
+> safety. It supports functional and object-oriented patterns for maintainability, while its 'zero-cost'
+> philosophy enables modern techniques—like `async`/`await` to run directly on bare-metal hardware. Through
+> its unique ownership model and powerful macro system, it eliminates entire classes of memory bugs without
+> the need for a garbage collector."
+
+--- 
 
 ## slide 3 # Rust for operating system development :
 
@@ -122,6 +160,9 @@
     - read-only ext2 
     - Nova: intended to create Rust `nouveau` GPU Driver ( for nvidia hw ).
 
+> Android use of Rust from the Bluetooth stack to the Keystore. 
+> Since 2022, there have been zero memory safety vulnerabilities found in Android's Rust code. 
+
 - Embedded / bare metal: 
     - Rust supports `no_std`
     - Direct register access 
@@ -129,9 +170,8 @@
     => Embedded-HAL : set of traits forming a HW abstraction layer for embedded systems in Rust, defines
     platform agnostic interface for peripheral access, enabling driver code to run on multiple
     microcontrollers and architectures without modifications. ( maintained by Rust embedded working group)
-    = RITC: real time interrupt driven concurrency, a lightweight framework for rust prog-lang designed for
-    embedded systems 
-
+    = RTIC: real time interrupt driven concurrency, a lightweight framework for rust prog-lang designed for
+    embedded systems. ( Provides dead-lock free execution by design )
 
 ### Slide 4: Rust controversy and current state:
 
@@ -152,6 +192,411 @@
 - The recent kernel release 6.19 has about 390 rust source files amounting to 25+k lines of rust code,
   target driver, memory allocators.  
 
+## Slide 5: Key Features: 
+
+Some of the most common key features of Rust programming language:
+1. Memory Safety: ( with out garbage collector ):
+    - Ensures memory safety through its ownership system, eliminating issues like:
+        * Null pointer dereferencing
+        * Buffer overflows
+        * Use-after-free bugs
+    This happens at compile time, without needing a garbage collector.
+
+2. High Performance: Rust is comparable to languages like C/C++:
+    - Zero-cost abstractions
+    - No runtime overhead from GC
+    - Fine control over system resources
+
+    Making it ideal for systems programming, game engines, and performance-critical apps.
+    High-level features (like iterators, closures) compile down to efficient low-level code without 
+    performance penalties.
+
+3. Ownership, Borrowing and Lifetimes: 
+    - Rust’s unique model includes:
+        1. Ownership: Each value has one owner
+        2. Borrowing: References without taking ownership
+        3. Lifetimes: Ensures references are valid
+
+    This prevents data races and dangling references.
+
+    - Ownership model:
+        - Every piece of memory has one "owner", when the owner goes out of scope the memory is freed in
+          milli-seconds like `free()` in C, but with the risk of forgetting.
+
+        1. Each type has a single owner, every piece of data has exactly one variable that owns it at a
+           time.
+        2. Ownership can be transferred (moved) [exception: types with `copy` trait are copied instead of 
+           move]
+        3. Value gets dropped when owner goes out of scope: when owner leaves the scope, rust automatically 
+           frees the memory. 
+
+    ```C 
+        #include <stdio.h>
+        #include <stdlib.h>
+        #include <string.h>
+        int main() {
+            char *s = malloc(6);
+            strcpy(s, "hello");
+            char *t = s; // both point to same memory
+
+            printf("%s\n", s);
+            printf("%s\n", t);
+            free(s);
+            // t is now a dangling pointer ⚠️
+            ...
+        }
+        // Allows multiple pointers freely, but can lead to dangling pts and use-after-free bugs. 
+    ```
+    ```rust 
+        fn main() {
+            let s = String::from("hello");
+            let t = s; // ownership moves here 
+            // println!("{}", s); // ❌ compile error: s is no longer valid 
+            println!("{}", t);
+        }
+        // when `s` is assigned to `t` ownership moves and `s` becomes invalid. 
+    ```
+    Note some rust code might misslead to violate ownership, example 
+    ```rust  
+    let mut x = 100;
+    let mut y = x;
+    println!("the value of x = {} and y = {}", x, y);
+    ``` 
+    This works as some types like i32, i64, bool, char .. implement `copy` trait , as these types are stored
+    on the stack and are cheap to duplicate and require no resource management. But for types like `String`,
+    `Vec<T>`, `box<T>` do not implement `copy` trait, they require a single owner to avoid double free and
+    memory corruption these are also heap memory. 
+
+    - Borrowing:
+
+    - lifetimes:
+
+4. Borrow-checker: ( Core Feature )
+    - Its the compiler component that enforces Rust's rules around:
+        * Ownership
+        * Borrowing
+        * Lifetimes 
+    Its main job is to ensure memory safety at compile time. ( a key difference from other language )
+
+    - enforces:
+        1. Only one mutable reference OR multiple immutable references
+        2. No dangling pointers 
+        3. Reference must always be valid 
+
+    - Eliminates entire classes of bugs (data races, invalid memory access)
+    - Makes “fearless concurrency” actually possible
+    - Shifts errors from runtime → compile time
+
+5. Fearless concurrency: 
+    - Rust makes concurrent programming safer:
+        * Prevents data races at compile time
+        * Thread safety enforced via the type system
+        * Encourages safe parallelism
+
+6. Rich Type System and Pattern Matching: 
+    - Algebraic data types (enum, struct).
+    - Powerful match expressions.
+    - Type inference with strict checks.
+
+7. Interoperability: 
+    - Can call C libraries easily (FFI)
+    - Works well with existing systems
+    - Useful for embedding or extending other languages
+
+8. Built-in Testing & Documentation
+    - Unit and integration tests built-in
+    - Documentation generation via rustdoc
+    - Examples and tests can live alongside code
+
+9. Cargo (Built-in Package Manager)
+    - Rust includes Cargo, which provides:
+        * Dependency management
+        * Build automation
+        * Testing and benchmarking tools
+        .. more ..
+
+10. Strong Community & Ecosystem
+    - Growing ecosystem via crates.io
+    - Backed by organizations like Mozilla Foundation (historically)
+    - Widely adopted by companies like Microsoft, Google, and Amazon
+    - Now a part of Linux kernel.
+
+## Slide 6: Rust ecosystem:
+    
+Rust ecosystem: Full set of tools, infrastructure, and community resources that work together. 
+
+1. Core Toolchain: (Essentials that are installed with Rust)
+    - `rustc` : Compiler 
+        * Rust compiler that turns source code into binaries. 
+        * Enforce rules like ownership and borrow checker 
+    - Cargo: ( Central hub of the ecosystem )
+        * Build system + Dependency Manager 
+        * Handles:
+            - Project creation ( `cargo new` )
+            - Dependency resolution 
+            - Compilation, testing, benchmarking 
+        * Extensions: ( custom subcommands ) can be extended like a platform 
+            - cargo-<something> automatically becomes `cargo <something>` 
+            - cargo generate → create projects from templates 
+            - cargo audit  → checks for security vulnerabilities
+            - cargo-outdated → shows outdated dependencies
+            .. more ..
+
+2. Package Registry and Libraries: 
+    - `crates.io`: 
+        * Official package registry for Rust libraries (“crates”)
+        * Similar to npm
+    - Crates:
+        * Reusable Rust libraries or binaries
+        * Types:
+            - Library crates
+            - Binary crates
+
+3. Testing, Linting, and Formatting:
+    - Built-in Testing (via Cargo)
+        * Unit tests (inside files)
+        * Integration tests (separate directory)
+    - Clippy: 
+        * Linter for catching common mistakes and improving code quality
+        * Suggests idiomatic Rust patterns
+    - rustfmt:
+        * Automatically formats code
+        * Ensures consistent style across teams
+
+4. Documentation System
+    - rustdoc:
+        * Generates documentation from code comments
+        * Produces clean HTML docs
+    - docs.rs
+        - Hosts documentation for crates published on `crates.io`
+        * Auto-builds docs for every crate
+
+5. Toolchain Management
+    - `rustup` 
+        * Installs and manages Rust versions
+        * Lets you:
+            - Switch between stable, beta, nightly
+            - Add targets (e.g., WebAssembly)
+            - Install components like Clippy, rustfmt
+
+6. IDE & Editor Support:
+    - `rust-analyzer`:
+        * Provides: Autocomplete / Type hints /  Go-to-definition / Inline error checking
+        * Supported editors: VS Code / Neovim / IntelliJ 
+
+7. Rust supports compiling for multiple platforms:
+    - Windows, Linux, macOS
+    - Embedded systems
+    - WebAssembly (Wasm)
+
+    You can add targets via rustup.
+    `rustup add target bpfel-unknown-none --toolchain nightly`
+    `rustup add target aarch64-unknown-linux-gnu`
+
+8. Async & Concurrency Ecosystem
+    - Rust has a rich async ecosystem built on:
+        * async/await syntax
+    - Popular runtimes:
+        * `Tokio`
+        * `async-std` migrate to `smol`
+    - Used for:
+        * Web servers / Networking / High-performance services
+       
+9. Web & Application frameworks
+    - Web frameworks:
+        * Actix Web / Rocket / Axum
+    - Other domains:
+        * CLI tools → clap
+        * Game dev → bevy
+        * Embedded → embedded-hal
+
+10. Interoperability & FFI:
+    - Call C/C++ libraries easily
+    - Use `bindgen` to generate rust bindings from C code 
+    - Integrate with other languages
+
+11. Standard Library
+    - `std` 
+        * Core functionality:  Collections (Vec, HashMap)/ File I/O / Threads
+    - `core` / `alloc`: 
+        * Minimal libraries for embedded/no-std environments
+
+12. Release Channels:
+    - Managed via `rustup`:
+        * Stable → production-ready
+        * Beta → upcoming release testing
+        * Nightly → experimental features
+
+13. `Cargo.toml` (Project Configuration)
+    - Every Rust project managed by Cargo is centered around a file called `Cargo.toml`.
+    - A manifest file written in toml format 
+    - Defines how a project is built, configured, and what it depends on. 
+    - Controls: 
+        * Package metadata [package]
+        * Dependencies: [dependencies]
+        * Features: [features] for condition compilation, 
+        * Build configuration [profile.release] controls optimization levels. config for dev vs release.
+        * Dev dependencies [dev-dependencies] used for testing/benchmarking 
+        * Workspace support : manage multiple crates in a "monorepo"
+
+## Slide 7: Rust in Linux Kernel:
+
+Chronological map of Rust in the Linux kernel:
+
+- 1. Pre-2020 — Early Ideas (Foreshadowing)
+    - Before any real patches:
+        * Linux kernel was almost entirely C
+        * Long-standing discussion about memory safety issues
+        * Rust was already gaining traction in systems programming
+        * Experimental external projects explored Rust for kernel modules
+        Key idea emerging:
+            “Can we reduce kernel memory safety bugs without rewriting everything in C?”
+
+- 2. 2020–2021 — First Formal Proposal
+    - RFC: introduce Rust as a second language in the kernel 
+    - Key design principles:
+        * Rust is optional
+        * No impact on existing C code
+        * Gradual adoption
+        * Focus on safety-critical components first (drivers)
+
+- 3. 2021 — Initial Infrastructure lands ( Highly existing stage )
+    - Kernel gains minimal Rust support
+    - Early toolchain work begins:
+        * custom bindings to C kernel APIs
+        * core-like environment for no_std Rust
+    - First experimental Rust modules compiled against kernel
+
+- 4. 2022 — RFC Acceptance + Mainline Progress
+    - Rust support becomes officially accepted as an experimental feature
+    - Kernel maintainers allow Rust code in tree under strict conditions
+    - Work begins on:
+        * safer abstractions over kernel APIs
+        * memory-safe driver framework
+    - Key milestone:
+        Rust infrastructure merged into kernel source tree
+
+- 5. 2023 — First Functional Rust Driver Framework:
+    - Rust support becomes real and usable for drivers
+    - Core abstractions introduced:
+        * device model bindings
+        * memory management wrappers
+        * safe concurrency primitives
+
+    - Important shift:
+        * Rust is no longer “just experimental glue”
+        * → it becomes a driver-writing language inside Linux
+
+- 6. 2024 — Growing Subsystem Adoption
+    - More subsystems begin allowing Rust components:
+        * sample drivers
+        * experimental GPU / device drivers (limited scope)
+        * kernel modules in Rust for testing
+    - Tooling improves:
+        * better C interop layer
+        * improved Rust-for-Linux CI integration
+    - Reality check:
+        * Still a small fraction of kernel codebase (<1%)
+        * But growing steadily
+
+- 7. 2025 — Stabilization Phase Begins
+    - Rust support becomes more maintainable and structured
+    - Focus shifts from “can it work?” → “how do we scale it safely?”
+    Key improvements:
+        * cleaner abstraction layers over kernel APIs
+        * stricter review policies for Rust code
+        * better alignment with kernel coding standards
+    Ecosystem maturity:
+        * Rust toolchain integration smoother
+        * more kernel maintainers familiar with Rust
+
+- 8. 2026 — Current State (Now) As of today:
+    - Status:
+        * Rust is officially supported in the Linux kernel tree
+        * Still marked experimental in many subsystems
+        * Primarily used for:
+            - new drivers
+            - memory-safe components
+            - proof-of-concept subsystems
+    - Philosophy today:
+        * No rewrite of Linux in Rust
+        * Coexistence of C + Rust
+        * Gradual migration only where it makes sense
+
+    - Current Architecture Reality
+        - Linux kernel today is:
+            * C → core kernel (still dominant)
+            * Rust → safe drivers + new subsystems
+            * FFI layer → glue between them
+
+Rust is being introduced as a safe island inside a massive C ocean. 
+
+## Slide 8: Android: 
+
+1. Android has similar motivation ( memory safety ) but different in adoption strategy and depth. 
+    - More aggressive safety migration strategy
+    - Goal: reduce memory safety bugs in platform layers
+    - Willing to replace more application/framework-level C/C++
+    => 
+    > Android = selective replacement in userspace/platform layers
+
+2. System services (real production usage)
+
+    - Rust is actively used in components like:
+        * Binder-related services (selected parts)
+        * System security services
+        * Media / infrastructure services (increasingly)
+
+    - Google prefers Rust for:
+        * new low-level services
+        * security-sensitive daemons
+        * privileged system components
+
+    - HAL / native layer experiments:
+        * Hardware Abstraction Layer components increasingly allow Rust
+        * Still mixed with C++
+
+    - FFI-heavy interop zones:
+        * Android is heavily hybrid:
+            * Java/Kotlin (framework)
+            * C++ (native)
+            * Rust (new safe components)
+
+    - Rust must interoperate with both:
+        * JNI / AIDL / Binder interfaces
+        * legacy native libraries
+
+3. Why Android can adopt faster:
+    Android has a structural advantage:
+
+    - 1. Layered architecture
+        * Framework (Java/Kotlin)
+        * Native services (C++/Rust)
+        * Kernel (Linux)
+    Rust fits cleanly in the middle layer.
+
+    - 2. New code bias:
+        - Google strongly prefers:
+            “If you write new system code → use Rust”
+        So adoption grows organically.
+
+    - 3. Security pressure
+        Android is:
+            * internet-facing
+            * attack surface heavy
+            * sandboxed but still sensitive
+
+        So memory safety matters more at service level.
+
+4. Rust in Android (real production adoption areas)
+    - Keystore / KeyMint (Cryptographic security layer)
+    - Bluetooth stack (new Rust components)
+    - NFC / Secure communication components (adjacent usage)
+    - Secure system services (platform layer)
+    - Media / codec and parsing-heavy components (selective)
+
+
+--- 
 --- 
 
 Rust is a **Systems programming Language** which focused on **Safety, Speed, and Concurrency** at the same
