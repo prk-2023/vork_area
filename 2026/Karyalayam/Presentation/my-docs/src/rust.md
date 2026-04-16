@@ -21,7 +21,7 @@
     - Telemetry and more.
 ---
 
-## Slide 1: History 
+##  Slide    1: History 
 
 - Rust is a general-purpose programming language. Popular for its emphasis on performance, type safety, 
   concurrency, and memory safety.
@@ -50,7 +50,7 @@
 
 --- 
 
-## Slide 2: Rust as a systems programming language
+##  Slide    2: Rust as a systems programming language
 
 - Systems Programming Language: ( from wiki ) The definition:
     - designed to build SW that manages computer HW and provides essential services to other software such
@@ -173,7 +173,7 @@
     = RTIC: real time interrupt driven concurrency, a lightweight framework for rust prog-lang designed for
     embedded systems. ( Provides dead-lock free execution by design )
 
-### Slide 4: Rust controversy and current state:
+##  Slide    4: Rust controversy and current state:
 
 - Rust in Linux has not been without controversy, discussions in the kernel community around: 
     - It adds additional complexity in the build system.
@@ -192,7 +192,7 @@
 - The recent kernel release 6.19 has about 390 rust source files amounting to 25+k lines of rust code,
   target driver, memory allocators.  
 
-## Slide 5: Key Features: 
+##  Slide    5: Key Features: 
 
 Some of the most common key features of Rust programming language:
 1. Memory Safety: ( with out garbage collector ):
@@ -321,7 +321,7 @@ Some of the most common key features of Rust programming language:
     - Widely adopted by companies like Microsoft, Google, and Amazon
     - Now a part of Linux kernel.
 
-## Slide 6: Rust ecosystem:
+##  Slide    6: Rust ecosystem:
     
 Rust ecosystem: Full set of tools, infrastructure, and community resources that work together. 
 
@@ -439,7 +439,7 @@ Rust ecosystem: Full set of tools, infrastructure, and community resources that 
         * Dev dependencies [dev-dependencies] used for testing/benchmarking 
         * Workspace support : manage multiple crates in a "monorepo"
 
-## Slide 7: Rust in Linux Kernel:
+##  Slide    7: Rust in Linux Kernel:
 
 Chronological map of Rust in the Linux kernel:
 
@@ -501,7 +501,7 @@ Chronological map of Rust in the Linux kernel:
 
 - 7. 2025 — Stabilization Phase Begins
     - Rust support becomes more maintainable and structured
-    - Focus shifts from “can it work?” → “how do we scale it safely?”
+    - Focus shifts from "can it work?" → "how do we scale it safely?"
     Key improvements:
         * cleaner abstraction layers over kernel APIs
         * stricter review policies for Rust code
@@ -531,7 +531,42 @@ Chronological map of Rust in the Linux kernel:
 
 Rust is being introduced as a safe island inside a massive C ocean. 
 
-## Slide 8: Android: 
+## Slide 9: 
+
+- How is Rust introduced in a subsystem:
+    * Like other things in kernel, its up to each subsystem how they want to deal with Rust. 
+    * This means get maintainers involved progressively, to scale the efforts. 
+        - This lead to different approaches: 
+            - sub-systems which accept rust patches and fix issues.
+            - sub-systems that prefer to get new co-maintainer and review ..
+            - some sub-systems may decide they do not want to have rust code for the time being, mainly for
+              bandwidth reasons.
+- Who is responsible if a C change breaks a build with Rust enabled?
+    * The usual kernel policy applies. So, by default, changes should not be introduced if they are known to
+      break the build, including Rust.
+
+- extra work for maintainers?
+    * Community acknowledged the costs and risks a second language introduces. However, they believe its
+      believed, introducing Rust in the kernel outweighs those costs.
+    * Refer to the [RFC](https://lore.kernel.org/lkml/20210414184604.23473-1-ojeda@kernel.org/)
+
+- Current status as original RFC:
+    * Complex Rust Kernel drivers have been written and improvements to the C side were implemented. 
+    * Industry pressure: Outside the kernel, pressure to move to memory safe languages than when we started 
+      years ago.
+
+    * Lot of the required setup work within the kernel is in place, most Rust language features used were 
+      stabilized, Rust compiler features were implemented, other projects improved their support for Rust 
+      as well (e.g. `bindgen`, `Coccinelle` for Rust, `pahole`, `GCC`, `rustc_codegen_gcc`...), and so on.
+
+- duplicated C/Rust drivers allowed?
+    * Usual kernel policy applies. So, by default, "no".
+    * subsystems may decide to allow it, temporarily, to get Rust bootstrapped
+
+- Rust reference drivers:
+    - 
+
+##  Slide    10: Android: 
 
 1. Android has similar motivation ( memory safety ) but different in adoption strategy and depth. 
     - More aggressive safety migration strategy
