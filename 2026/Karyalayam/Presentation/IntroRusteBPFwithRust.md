@@ -3,6 +3,54 @@
 
 Hello everyone, the topic for today's talk is Introduction to Rust, and eBPF with Rust.
 
+**Rust**: 
+    - Rust is a Systems Programming Language that gives you C-level control, but makes memory safety and
+      data-race freedom enforceable at Compile time. 
+
+    - Language Rules are enforced by compiler at build time.
+
+    - Rust talks to HW the same way C does, It just makes you be explicit when you do something unsafe.
+      Hardware Access = pointers, registers, MMIO, inline asm all this exists in Rust, but it splits into:
+        * Safe Rust: ( compiler guarantees correctness )
+        * Unsafe Rust: ( You take full responsibility like C )
+    - Ex1: MMIO:
+    ```c 
+    #define REG ((volatile uint32_t*)0x10000000)
+    *REG = 0x1;
+    ```
+    ```rust 
+    const REG: *mut u32 = 0x10000000 as *mut u32;
+    unsafe {
+        core::ptr::write_volatile(REG, 0x1);
+    }
+    ``` 
+    direct address, volatile write, no abstraction required, but Rust forces `unsafe` -> informing the
+    compiler you acknowledge the risk.
+
+    - Ex2: Raw pointer :
+    ```c 
+    const T* 
+    T* 
+    ```
+    ```rust 
+    *cont T 
+    *mut T 
+    ```
+    de-referencing them required `unsafe`, and prevents accidental misuse in normal code. 
+
+    - Ex3: Inline assembly:
+    ```c
+    asm("nop");    
+    ```
+    ```rust 
+    unsafe {
+        core::arch::asm!("nop");
+    }
+    ```
+    CPU instructions, barriers, special registers ... Nothing is lost with Rust. 
+
+
+
 C programming language has been around since 50+ years and evolved to be the go-to programming language for
 systems programming, as it gives total control over the silicon.
 

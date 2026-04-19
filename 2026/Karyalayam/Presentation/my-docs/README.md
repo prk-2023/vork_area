@@ -86,7 +86,8 @@ graph TD
 
 ### 1. The "Systems-First" Repository Layout
 
-In high-performance systems, you often have a **User-space agent** and a **Kernel/Hardware-space component**. A workspace layout keeps them coupled but distinct.
+In high-performance systems, you often have a **User-space agent** and a **Kernel/Hardware-space
+component**. A workspace layout keeps them coupled but distinct.
 
 ```text
 /my-systems-portfolio
@@ -111,12 +112,14 @@ To demonstrate mastery in these specific areas, focus on these implementation de
 #### **A. Memory Management (The RoCE/RDMA Angle)**
 In RoCE, performance lives and dies by **Zero-Copy**. 
 * **What to show:** Custom `Allocator` implementations that use **Hugepages** or **Pinned Memory**. 
-* **Key Concept:** Use `std::ptr` and `std::mem::MaybeUninit` to show you understand how to manage memory that the NIC hardware can DMA (Direct Memory Access) into without CPU intervention.
+* **Key Concept:** Use `std::ptr` and `std::mem::MaybeUninit` to show you understand how to manage memory
+  that the NIC hardware can DMA (Direct Memory Access) into without CPU intervention.
 
 #### **B. eBPF & XDP (The Networking Angle)**
 Since you mentioned SmartNICs, showing an **XDP (eXpress Data Path)** program is essential. 
 * **Tooling:** Use the [Aya framework](https://aya-rs.dev/). It allows you to write both the kernel-space eBPF and the user-space loader in pure Rust.
-* **The Hook:** Implement a simple "firewall" or "load balancer" that runs on the NIC or at the driver level to drop packets before they even hit the Linux networking stack.
+* **The Hook:** Implement a simple "firewall" or "load balancer" that runs on the NIC or at the driver level
+  to drop packets before they even hit the Linux networking stack.
 
 
 
@@ -130,14 +133,17 @@ If you are doing Linux kernel work, your repo should reflect the current **Rust 
 ### 3. "Powerful" Documentation Strategy
 For systems programming, a `README` isn't enough. People want to see **Numbers**.
 
-1.  **Flamegraphs:** Include a `profiling/` folder with flamegraphs showing where the CPU cycles are spent in your RoCE driver.
-2.  **Benchmark Tables:** Use a table to compare your Rust implementation against a C equivalent (e.g., `libibverbs`).
+1. **Flamegraphs:** Include a `profiling/` folder with flamegraphs showing where the CPU cycles are spent
+   in your RoCE driver.
+2. **Benchmark Tables:** Use table to compare your Rust implementation against a C equivalent 
+    (ex `libibverbs`).
 | Metric | C Implementation | Rust (Your Version) |
 | :--- | :--- | :--- |
 | Latency (μs) | 1.2 | 1.15 |
 | Throughput (Gbps)| 94.2 | 94.1 |
 
-3.  **Hardware Requirements:** Explicitly state what kernel version and NIC hardware (e.g., Mellanox ConnectX-5) your code was tested on.
+3. **Hardware Requirements:** Explicitly state what kernel version and NIC HW (ex: Mellanox ConnectX-5) 
+   your code was tested on.
 
 ### 4. Recommended Resources (The "Missing" Manuals)
 Since you couldn't find tutorials, here are the "gold standards" for these specific niches:
