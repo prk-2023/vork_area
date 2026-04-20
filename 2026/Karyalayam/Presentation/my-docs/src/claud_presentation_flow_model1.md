@@ -6,16 +6,45 @@
 
 ### 1. Memory Safety ( Kernels Original Sin )
 
-Why 2/3 of Linux CVEs are still memory bugs in 2025. The cost our tail already pays. 
+Why 2/3 of Linux Common Vulnerabilities and Exposures are still memory bugs in 2025. The cost our tail already pays. 
+
+####  Talking points:
+
+- ~67% of Linux CVEs traced to memory safety violations (Gaynor & Thomas, Linux Security Summit 2019 — still
+  holds in 2025 audits)
+- Concrete driver examples: use-after-free in USB subsystem, OOB writes in DMA engine code — the kind your
+  team has debugged
+- C gives you the loaded gun; kernel developers are expected not to shoot themselves. This doesn't scale
+  with team size.
+- Frame the cost: CVE triage, patch backports, OEM customer escalations, re-spins. Audience knows this pain
+  directly.
+- Set up the question: what if the compiler could prove correctness at submission time?
 
 ### 2. The Observability Gap ( You can't fix what you can't see )
 
 Traditional Kernel debugging tools vs the eBPF revolution, Why you need both half's.
 
+#### Talking points:
+
+- Traditional tools (printk, ftrace, perf) require kernel rebuild or are too coarse for production SoCs
+- Android production kernel: you can't reboot the device, can't attach GDB, logs go to a black hole.
+- eBPF lets you inject observability — power rails, DMA latency, IRQ storms — without a single kernel patch
+- Bridge slide: Rust solves the "write correct code" problem; eBPF solves the "understand running code"
+  problem. They compose.
+
 ### 3. 
 
 Tokio Maintainers Summit 2025, kernel 6.12/6.13/6.19 milestones, 
 Android 16 in production, CISA memory safety mandates.
+
+#### Talking points:
+
+- Dec 2025 Tokyo summit: "zero pushback" — experimental label removed, Rust is core
+- Android 16 (kernel 6.12): ashmem allocator ships in Rust on millions of devices
+- 6.13: PCI + platform driver bindings upstreamed — almost all driver subsystems can now accept Rust
+- ~390 Rust source files in 6.19 (your own count — cite it, it lands with this audience)
+- US CISA, EU Cyber Resilience Act: regulatory pressure toward memory-safe lang is real and accelerating.
+- This is not a research topic. It is a production skill your team needs in 2025–2026.
 
 ---
 ** Summary : Foundataion established -> Rust Language **
@@ -30,24 +59,81 @@ Android 16 in production, CISA memory safety mandates.
 
 Explain via kernel patterns : spinlocks scoping, DMA buffer lifetimes, interrupt context rules 
 
+#### Talking points:
+
+- Skip the "variables are like boxes" tutorial. These engineers know memory models cold.
+- Ownership = single writer. The kernel already enforces this socially (lock before access). Rust enforces
+  it mechanically.
+- Borrow checker analogy: MutexGuard<T> — while the guard is live, the compiler proves no other code can
+  access T. Same guarantee kernel spinlocks try to give, but verified at compile time.
+- Lifetimes = DMA buffer validity windows. A buffer you hand to hardware must outlive the DMA operation.
+  Rust expresses this in the type system; C hopes the developer remembers.
+- Show the UAF example: C code compiles fine, Rust refuses at compilation.
+
 ### 5. Zero-Cost Abstraction and `#[no_std]`:
 
 How Rust achieves C-Level performance. 
 The `#[no_std]`, no heap constraints of the kernel Rust, what is given up and what is not. 
+
+#### Talking points:
+
+- Zero-cost abstraction: higher-level constructs compile to the same machine code as hand-written C.
+  Monomorphization not vtable dispatch.
+- Kernel Rust is #![no_std] — no standard library, no OS-provided allocator by default. Uses core and a
+  custom alloc backed by the kernel's slab allocator.
+- No garbage collector. No runtime. Binary output is a standard ELF .ko — modinfo, lsmod, rmmod all work
+  identically.
+- What you lose: std::thread, std::fs, std::net — but you gain kernel::sync, kernel::task, kernel::net
+  abstractions instead.
+- Performance benchmark point: Mozilla Firefox data shows ~50% reduction in memory-related crashes after
+  Rust rewrites — no performance regression.
 
 ### 6. `unsafe` -> the escape hatch and why it matters. 
 
 Unsafe blocks are not failures ( in kernel zone ) they're boundary contract, How the kernel uses them
 deliberately at the FFI layer.
 
+####  Talking points:
+
+- Unsafe doesn't disable Rust — it's a marked zone where the programmer asserts invariants the compiler
+  can't verify (raw pointers, FFI calls, memory-mapped I/O)
+- Kernel architecture: rust/bindings/ is all unsafe raw FFI. rust/kernel/ wraps it in a safe API. Drivers
+  use only the safe layer — direct binding calls are forbidden in driver code.
+- This is architectural: unsafe is quarantined to one layer, reviewed once, audited once. Every driver that
+  builds on top inherits safety for free.
+- Compare to C: all kernel C code is implicitly "unsafe". You can't grep for the dangerous parts. In Rust
+  you can: grep -r "unsafe" . gives you the complete audit surface.
+
 ### 7. Rust Concurrency Model: What this means for SMP kernel code:
 
 Send + Sync traits. How the compiler enforces thread-safety for shared kernel data structures.
+
+#### Talking points:
+
+- Send: a type can be moved to another thread. Sync: a type can be shared across threads. These are
+  compile-time traits — the linker knows before the module loads.
+- Kernel implication: if your driver data structure isn't Sync, the compiler refuses to let you store it in
+  a global (or a struct that goes into global context). No more "forgot to take the lock" bugs.
+- Real kernel example: kernel::sync::SpinLock<T> wraps C's spinlock. The SpinLockGuard<T> implements Deref —
+  you literally cannot access the data without holding the lock, because the data is only reachable through
+  the guard type.
+- For SoC teams: interrupt handler data sharing is a constant source of races. Rust makes the sharing
+  contract explicit and verified.
 
 ### 8. Rust Eco-System for kernel work : ( toolchain )
 
 `rustc` pinning, `bindgen`, `rust-analyzer`, `rustfmt`, `clippy`, `rustdoc` 
 roles and integration into kernel build
+
+#### Talking points:
+
+- Recap of the full toolchain from the prior section of the presentation (bridge slide)
+- Emphasize: make LLVM=1 rustavailable is the first command anyone should run — it diagnoses your entire
+  setup
+- rust-analyzer via make LLVM=1 rust-analyzer gives you full LSP in VS Code / Neovim — same IDE experience
+  as application Rust
+- Mention GCC Rust (gccrs) as an emerging alternative compiler — important for architectures where LLVM
+  support is weak (relevant for some embedded SoC targets)
 
 ---
 ** Summary : ** language established -> kernel specifics** 
@@ -63,23 +149,75 @@ roles and integration into kernel build
 `building` -> `kernel crate` -> `driver layer`, the abstraction contract. 
 Why driver never call raw FFI directly. 
 
+#### Talking points:
+
+- Three-layer stack: rust/bindings/ (auto-generated unsafe FFI via bindgen) → rust/kernel/ (safe
+  abstractions: Mutex, SpinLock, Task, WorkQueue, Net…) → driver/subsystem code (safe Rust only)
+- C inline functions and non-trivial macros that bindgen cannot parse go into rust/helpers/ as small C stub
+  wrappers
+- Draw the firewall: drivers are FORBIDDEN from using bindings directly. This is enforced by convention and
+  code review, not currently by the compiler — but that's the goal.
+- pahole / BTF interaction: when CONFIG_DEBUG_INFO_BTF is enabled alongside Rust, pahole must support
+  --lang-exclude=rust to exclude Rust DWARF from BTF generation (important for eBPF CO-RE)
+
 ### 10. SubSystem status map : ( Election: who said  'Yes' and who said 'No'  )
 
 `DRM/Asahi`, `Nova NVIDIA`, `NVMe`, `Android Binder`, `networking`, `filesystems`.
 Where the real action is.
 
+#### Talking points:
+
+- GPU drivers: Asahi (Apple Silicon DRM) — entirely Rust. Nova (open NVIDIA) — Rust from day one. These are
+  the two largest real-world Rust kernel codebases.
+- Android Binder: Rust rewrite upstreamed. The original motivation was eliminating IPC UAF bugs — achieved.
+- NVMe: Rust abstractions for PCI NVMe controller — demonstrates storage driver viability
+- Networking: kernel::net abstractions exist but coverage is partial. sk_buff, netdev bindings are in
+  progress.
+- Filesystems: no major Rust filesystem upstreamed yet. FUSE and VFS abstractions are the frontier.
+- Honest caveat: not all architectures supported equally. GCC Rust (gccrs) is the path for LLVM-weak
+  targets.
+
 ### 11. Writing a kernel module -> Live Demo #1.
 
 Hello World -> misc char device, Show module, Drop-based cleanup, `pr_info!`, and the `.ko` output.
+
+#### Demo script:
+
+- Start from samples/rust/rust_minimal.rs — already in tree, builds immediately
+- Walk through module! macro, impl kernel::Module, impl Drop — contrast with C module_init/module_exit
+- insmod → dmesg → rmmod live. The audience will want to see actual kernel log output.
+- Optionally extend to rust_miscdev.rs to show /dev registration — relevant for driver engineers
+- Prepare fallback: pre-recorded terminal capture in case VM is slow
 
 ### 12. Benifits vs HardShip: ( Honest Engineering assessment )
 
 Memory Safety wins, refactoring confidence, CVE reduction, Against Dual-Language burden, API Churn,
 toolchain pinning, cultural friction. 
 
+#### Talking points:
+
+- This audience will call out if you oversell. Be direct about the hardships — it builds credibility.
+- Win: compiler-verified locking discipline. No more "forgot to unlock on error path" bugs.
+- Win: RAII cleanup. Drop guarantees teardown in the right order — kernel C relies on discipline.
+- Hardship: kernel has no stable internal API. Every Rust binding must track C-side changes. Binding
+  coverage lags the full C surface.
+- Hardship: some maintainers still resistant. Without subsystem maintainer buy-in, patches can languish.
+- Hardship: rustc version pin means you can't just rustup update. Requires coordination across the team.
+
 ### 13. Adoption strategy  ( what could be possible adoption way ) ( IC-Design specific )
 
 Rust Guide model, phased driver adoption, Android BSP Rust readyness, regulatory tailwind (CISA, CRA)
+
+#### Talking points:
+
+- Don't retrain 50 engineers at once. Rust guild: 3–5 dedicated engineers own the abstraction layer and new
+  driver templates. C veterans maintain existing drivers.
+- First Rust target: the next greenfield peripheral driver. Not a rewrite — a new piece of IP getting its
+  first driver.
+- Android angle: Google is pushing Rust throughout AOSP. BSP suppliers who can deliver Rust-capable drivers
+  will have an advantage in 2026 RFQs.
+- Regulatory: CISA memory-safety guidance and EU CRA both move in this direction. Having Rust drivers is a
+  concrete security posture argument to OEM customers.
 
 ---
 ** Summary: Kernel Rust Solid -> pivot to eBPF **
@@ -94,15 +232,53 @@ Rust Guide model, phased driver adoption, Android BSP Rust readyness, regulatory
 
 BPF bytecode, verifier, JIT, maps, Not a scripting language: safe kernel co-processor model. 
 
+#### Talking points:
+
+- eBPF programs are bytecode loaded by userspace, verified by the kernel (DAG, bounded loops, register type
+  tracking), JIT-compiled to native code, and attached to kernel hooks (kprobe, tracepoint, XDP, LSM,
+  cgroup…)
+- The verifier is a formal proof: if it passes, the program cannot crash the kernel, cannot infinite-loop,
+  cannot access out-of-bounds memory. This is the contract.
+- Not a scripting language: no dynamic dispatch, no heap allocation inside BPF programs. Communication with
+  userspace via BPF maps (hash maps, ring buffers, arrays, per-CPU maps).
+- Key hook types for IC/Android work: kprobe/kretprobe (any kernel function), tracepoint (stable hook
+  points), perf_event (hardware PMU counters), xdp (network fast path), lsm (security hooks for Android
+  policy enforcement)
+
 ### 15. eBPF maps: The data bridge 
 
 Hash, ringbuf, per-CPU array, LRU.
 How BPF porgrams communicate with user-space tools. 
 
+#### Talking points:
+
+- Maps are the only I/O channel for BPF programs. Shared memory between kernel BPF code and userspace
+  reader.
+- Key types: BPF_MAP_TYPE_HASH (key-value, configurable size), BPF_MAP_TYPE_RINGBUF (high-throughput event
+  stream, preferred over perf_event_array), BPF_MAP_TYPE_PERCPU_ARRAY (per-CPU stats, lock-free),
+  BPF_MAP_TYPE_LRU_HASH (connection tracking)
+- Android use case: ring buffer map streaming power events or DMA completion latencies to a userspace daemon
+  that aggregates metrics — zero kernel change required.
+- CO-RE (Compile Once, Run Everywhere): BPF programs compiled against BTF type info can run on kernels with
+  different struct layouts — critical for Android where kernel versions vary by OEM.
+
 ### 16. eBPF use case for IC design houses: 
 
 Power rail profiling, DMA latency tracing, IRQ attribution, Android LSM policy, network fast path on SoC
 NPU.
+
+#### Talking points:
+
+- Power profiling: attach to cpufreq tracepoints + PMU events. Correlate CPU frequency transitions with
+  workload phases. No kernel rebuild — works on production Android builds.
+- DMA latency: kprobe on dma_map_sg / dma_unmap_sg. Measure time-in-flight per DMA descriptor. Identify
+  which driver is causing latency spikes on shared interconnects.
+- IRQ attribution: trace irq_handler_entry/irq_handler_exit tracepoints. Build per-IRQ latency histograms.
+  Identify interrupt storms from new peripheral IP without touching driver code.
+- Android LSM: eBPF LSM programs enforce MAC policy at the kernel level, composable with SELinux. Used by
+  Android for network policy per-app UID filtering.
+- XDP on SoC NICs: bypass kernel network stack for certain packet types. Relevant for automotive or
+  industrial SoCs with real-time networking requirements.
 
 ### 17. eBPF tooling landscape: libbpf, bpftool, bpftrace 
 
@@ -111,10 +287,34 @@ The Loader, introspection tool,
 One-liner tracer, 
 Setting up for the Rust bridge. 
 
+#### Talking points:
+
+- libbpf: the canonical C library for loading and managing BPF programs. Used by bpftool, bpftrace, and the
+  Android kernel team internally.
+- bpftool: Swiss army knife — inspect loaded programs, dump maps, generate skeletons, introspect BTF types.
+  Your first debugging tool when a BPF program fails to load.
+- bpftrace: DTrace-like one-liner eBPF frontend. Excellent for ad-hoc kernel investigation on development
+  boards. bpftrace -e 'kprobe:dma_map_sg { @[comm] = count(); }'
+- Limitation of C eBPF: verbose, error-prone map management, no type safety in userspace/kernel boundary.
+  This is where Rust (Aya) enters.
+
 ### 18. CO-RE and BTF: the portability layer ( critical for Android )
 
 How BPF programs survive across kernel versions without recompilation, why this matters for SoC BSP
 distribution.
+
+#### Talking points:
+
+- The Android kernel fragmentation problem: OEM kernels diverge. Struct layouts differ between 5.10, 6.1,
+  6.6, 6.12. A BPF program compiled against one version crashes on another.
+- CO-RE solution: __builtin_preserve_access_index() macros in BPF C code emit relocation records. libbpf (or
+  Aya) patches them at load time using BTF from the running kernel.
+- Practical result: one binary BPF program works across all kernels that export BTF — which is most modern
+  Android kernels with CONFIG_DEBUG_INFO_BTF=y
+- For BSP teams: ship one eBPF-based diagnostic tool that works across your customers' OEM kernel variants.
+  This is a real product differentiator.
+- pahole tie-in: BTF generation requires pahole. The Rust+BTF interaction (pahole must exclude Rust DWARF)
+  is a config gotcha your team will hit.
 
 --- 
 ** Summary: eBPF solid -> Rust + eBPF covergence. **
@@ -132,25 +332,83 @@ ___
 Aya vs libbpf-rs vs redbpf. 
 Type safe maps, shared structs between kernel BPF and user-space loader, one language end-to-end 
 
+#### Talking points:
+
+- The C eBPF pain: kernel-side C BPF program shares a map key/value struct with userspace C loader. No
+  compile-time guarantee they agree on layout. Subtle mismatch = silent data corruption.
+- Aya solution: define the map struct once in a shared Rust crate (my-prog-common). Both the BPF program
+  (my-prog-ebpf) and the userspace loader (my-prog) import the same type. The compiler enforces layout
+  agreement across the boundary.
+- Aya architecture: BPF program compiled to BPF bytecode by rustc (via bpf-linker). Userspace loader written
+  in Rust using Aya's libbpf-compatible loader. No C required anywhere in the stack.
+- Compare libbpf-rs: Rust bindings to C libbpf. Aya is a pure-Rust reimplementation — no libelf, no
+  libbpf.so dependency. Better for static binaries and Android deployment.
+
 ### 20: Aya project structure ( Work-space model )
 
 Three crate workspace: eBPF ( BPF bytecode ), Common ( Shared types ), user-space ( loader and more ).
 Cargo generate ( template ) .. walk through ... 
+
+#### Talking points:
+
+- my-prog-ebpf/: the BPF program. #![no_std], #![no_main]. Uses aya-bpf crate. Compiled to BPF bytecode.
+- my-prog-common/: shared struct definitions (map key/value types, event types). No-std compatible. Both the
+  BPF program and userspace import this.
+- my-prog/: userspace loader + consumer. Loads the BPF object, attaches to hooks, reads maps/ring buffer.
+  Full std available.
+- cargo generate --git https://github.com/aya-rs/aya-template scaffolds the entire workspace. Demo this live
+  — it's a 30-second setup.
+- Build: cargo build --package my-prog automatically builds the BPF side first, embeds the BPF bytecode into
+  the userspace binary via include_bytes!. One binary ships and loads itself.
 
 ### 21: Live demo : DMA Latency tracer with Aya ( Mellanox: ConnectX: on PCIe 3.0 )
 
 kprobe: `dma_map_sg`, latency histogram in `BPF_MAP_TYPE_PERCPU_ARRAY`, printed from Rust - user-space
 loader program.
 
+#### Demo outline:
+
+- BPF program: kprobe on dma_map_sg records bpf_ktime_get_ns() in per-CPU map keyed by PID. kretprobe
+  computes delta, increments histogram bucket.
+- Common crate: struct DmaEvent { pid: u32, latency_ns: u64 } — one definition, used by both sides
+- Userspace: poll ring buffer map every 100ms, pretty-print histogram. Show which process (by comm string)
+  is generating the most DMA activity.
+- Run against a workload (e.g. dd if=/dev/zero of=/dev/null routed through a DMA-capable device). Audience
+  sees real kernel data without touching the kernel source.
+- Fallback: pre-recorded output if live demo hardware isn't available
+
 ### 22. eBPF + Rust for Android: Practical patterns.
 
 Deploying Aya binaries on Android, BTF on Android kernels, UID-based network policy, power profiling without
-root. 
+root.
+
+#### Talking points:
+
+- Android 12+ kernels (5.10+) with GKI enable BTF and many tracepoints. Aya programs can be loaded by a
+  privileged Android service.
+- Static Aya binary (musl-linked) + embedded BPF bytecode = single APK-deliverable native binary. No
+  libelf.so dependency to fight Android's linker namespace rules.
+- UID-based tracing: bpf_get_current_uid_gid() inside a BPF program gives per-app granularity. Correlate
+  network traffic, CPU usage, or IRQ load per Android UID without modifying framework code.
+- Power profiling: attach to power_cpu_frequency and cpu_idle tracepoints. Feed data to an Android HAL for
+  battery diagnostics — replaces fragile sysfs polling.
+- Security note: BPF program loading requires CAP_BPF or CAP_SYS_ADMIN. On user Android builds this means a
+  privileged system service or signature-level permission.
 
 ### 23. eBPF LSM with Aya: Security enforcement: ( Android Security )
 
 Writing LSM hook programs in Rust, Composing with SELinux, Enforcing SoC-Specific security policy without
 kernel patches. 
+
+#### Talking points:
+
+- eBPF LSM (kernel 5.7+): BPF programs can attach to LSM hooks. Run after SELinux but can further restrict
+  operations. Additive-only — cannot grant permissions SELinux denies.
+- Aya support: #[lsm(hook = "file_open")] attribute on a Rust BPF function. Cleaner than raw C BPF LSM code.
+- IC use case: enforce that only approved processes can access a custom /dev/your_ip device node, without
+  touching the driver code or SELinux policy. Ship the policy as a userspace binary update.
+- Android angle: supplemental security policy for new peripheral IP can be delivered via OTA as an Aya
+  binary, not a kernel patch. Faster security response cycle.
 
 ---
 ** Summary: Synthesis -> Wrap up **
@@ -166,9 +424,35 @@ kernel patches.
 Rust for writing correct kernel code. eBPF for Observability and enforcing running kernel behavior. 
 Two tools one coherent safety story. 
 
+#### Talking points:
+
+- Rust eliminates memory bugs at write time (compiler). eBPF catches behavioral anomalies at run time
+  (verifier + runtime probes). Together: defense in depth at both layers.
+- They share infrastructure: both require LLVM, both benefit from BTF, both are loaded/managed via kernel
+  APIs. Your team's LLVM investment works for both.
+- The IC product story: drivers written in Rust (fewer CVEs, faster review cycles). Aya-based diagnostics
+  and power telemetry shipped alongside (no kernel patch needed for updates). Android BSP that a customer's
+  security team can actually audit.
+- One-line summary for leadership: "Rust gives us correctness guarantees the C compiler cannot. eBPF gives
+  us production observability without source code changes. Together they reduce our security exposure and
+  our debug cycle time."
+
 ### 25. Team action plan: 12 months roadmap: ( IC specific )
 
 Phased training, pilot project selection , Aya deployment target, upstream contribution strategy. 
+
+#### Talking points:
+
+- Month 1–3: Rust guild formation (3–5 engineers). Toolchain setup. Complete kernel samples. First Aya
+  "hello kprobe" on development board.
+- Month 3–6: Shadow a C driver in Rust (GPIO, I2C, or simplest new peripheral). Deploy Aya power-profiling
+  tool to Android dev board. Gather credibility data (CVEs caught, debug time saved).
+- Month 6–12: First greenfield peripheral driver in Rust. Aya-based diagnostic suite as a product
+  deliverable alongside next SoC SDK. Consider upstream submission for visibility.
+- Upstream strategy: even if not required, upstreaming Rust drivers builds goodwill with kernel community,
+  attracts contributors, and signals product maturity to OEM customers.
+- Training resources: Rustlings, the kernel's own Documentation/rust/, Aya book (aya.rs), Aya template as
+  starting point.
 
 ### 26. Q&A: Preloaded hard questions: (demo 3:)
 
@@ -176,6 +460,21 @@ Anticipate: "why not just fix C tooling?", "What about GCC Rust", "is the eBPF v
 "Licensing?"... 
 make sure you have crisp answers ready. 
 
+#### Anticipated hard questions::
+
+- "Why not just use better C static analysis?" — Coverity, Coccinelle, sparse all help but are heuristics.
+  Rust's ownership checker is a formal proof. The question is about guarantees, not detection rates.
+- "What about GCC Rust (gccrs)?" — Active development, important for architectures where LLVM support is
+  weak. Not production-ready for kernel work yet but the kernel team tracks it. Mention if you have
+  ARM/RISC-V niche targets.
+- "Is the eBPF verifier formally verified?" — Not yet, but there's active academic work (Jitterbug, Serval).
+  The verifier has had bugs (e.g. JIT spectre gadgets). For security-critical use, pair with LSM and CAP_BPF
+  restrictions.
+- "GPL implications for Rust kernel modules?" — Same as C. Rust kernel modules must be GPL-2.0 or
+  GPL-2.0-only to use GPL-exported kernel symbols. Dual-licensed modules are possible but limited to
+  GPL-only interfaces for in-kernel calls. Aya userspace programs are Apache-2.0/MIT — no issue.
+- "Compile time?" — Yes, Rust compiles slower than C. Incremental builds help. For CI pipelines, this is a
+  real cost. Offset by fewer debug cycles downstream.
 
 ----------------------------------------------------------------------------------------------
 
