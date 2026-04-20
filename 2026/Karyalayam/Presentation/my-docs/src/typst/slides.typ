@@ -81,9 +81,9 @@
   config-info(
     title:       [Introduction to Rust and eBPF with Rust],
     subtitle:    [Kernel Safety · Linux Internals · Production Observability],
-    author:      [Your Name],
+    author:      [Pulumati Ram],
     date:        datetime.today(),
-    institution: [IC Design Division],
+    institution: [ < RealTek Semiconductor Corporation > ],
   ),
 )
 
