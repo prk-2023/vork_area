@@ -112,12 +112,12 @@
     subtitle:    [Memory Safety · Compiler Guarantees · Modern Concepts · Performance],
     author:      [Pulumati Ram],
     date:        datetime.today(),
-    institution: [ < Realtek Semiconductor Corporation >],
+    institution: [ Realtek Semiconductor Corporation ],
   ),
 )
 
-#set text(font: ("Noto Sans","Noto Sans","Liberation Sans"), size: 19pt)
-#show raw:  set text(font: ("Noto Sans","JetBrains Mono","Liberation Mono"), size: 0.82em)
+#set text(font: ("Noto Sans","Noto Sans","Liberation Sans"), size: 15pt)
+#show raw:  set text(font: ("Noto Sans","JetBrains Mono","Liberation Mono"), size: 0.81em)
 #show link: set text(fill: rust-red)
 #set heading(numbering: numbly("{1}.", default: "1.1"))
 
@@ -126,16 +126,55 @@
 // ─────────────────────────────────────────────────────────────────────────────
 #title-slide()
 
+// Disclaimer: 
+#focus-slide[
+  #text(size: 1.2em, weight: "bold")[#underline(stroke: 1pt + rust-red)[> Disclaimer <] 
+  ]
+
+  #v(0.8em)
+
+  #text(fill: rgb("#f66"))[
+  Focus on systems evolution, not a language war 
+  ]
+  #line(length: 63%, stroke: 1pt + rust-red)
+  #v(0.5em)
+
+    \- Rust in the Linux kernel \- #linebreak()
+    \- Direction and practical utility \- 
+]
+
+#focus-slide[
+  #v(0.4em)
+  #text(fill: rust-red )[_Part 1_] #linebreak()
+  #text(fill: rgb("#f93"))[Rust as a systems programming language]
+
+  #v(0.4em)
+  #text(fill: rust-red)[_Part 2_] #linebreak()
+  #text(fill: rgb("#f93"))[Rust in the Linux kernel]
+
+  #v(0.4em)
+  #text(fill: rust-red)[_Part 3_] #linebreak()
+  #text(fill: rgb("#f93"))[`eBPF` programming with Rust]
+
+]
 // ─────────────────────────────────────────────────────────────────────────────
 //  AGENDA
 // ─────────────────────────────────────────────────────────────────────────────
-== Agenda <touying:hidden>
-#outline(title: none, indent: 1.5em, depth: 1)
+== Part 1: Rust as Systems Programming Language <touying:hidden>
 
+=== The Problem — Why Another Systems Language?
+- #text(fill: rust-red)[$`C`$] is the de-facto industry standard for systems programming.
+- #text(fill: rust-red)[$`C`$] built system (can contain errors that are easy to make and difficult to detect even with rigorous code review.
+- Safety in the currently developer-dependent ( complexity + cost of maintenance )
+- Linux kernel: evolved over 30+ years, there is a growing concern that new developers are less interested 
+  in working with the risks associated with "manual" C.
+
+#text(fill: rust-red)[*`rust`*] 
+  - Language philosophy aims to address the above #text(fill: rust-red)[$`C`$] challenges, with out compromising on security,performance or reliability.
 // ─────────────────────────────────────────────────────────────────────────────
 //  1. THE PROBLEM — WHY ANOTHER SYSTEMS LANGUAGE?
 // ─────────────────────────────────────────────────────────────────────────────
-= The Problem — Why Another Systems Language?
+//== The Problem — Why Another Systems Language?
 
 == The eternal memory bug
 
@@ -169,13 +208,30 @@
     [Uninit. read], [reading before a write path has initialised a field],
     [Integer overflow], [signed overflow, UB, silent wrong results],
   )
-
-  #callout(color: safe-green)[
-    Rust *eliminates every row in this table* at compile time,\ with zero runtime overhead.
-  ]
 ]
 
-== The design space before Rust
+---
+
+#cols[
+#callout(color: safe-green)[
+    Rust *eliminates every row in this table* at compile time, with zero runtime overhead.
+  ]
+][
+  #table(
+    columns: (auto, 1fr),
+    stroke: (x: none, y: 0.4pt + gray.lighten(40%)),
+    inset:  (left: 1pt, top: 1pt, bottom: 7pt, right: 0pt),
+    [*Cause*], [*C has no protection against...*],
+    [Use-after-free], [accessing freed memory via a dangling pointer],
+    [Buffer overflow], [writing past the end of an allocation],
+    [Data race], [two threads accessing shared memory without synchronisation],
+    [Null deref], [dereferencing a pointer that might be `NULL`],
+    [Uninit. read], [reading before a write path has initialised a field],
+    [Integer overflow], [signed overflow, UB, silent wrong results],
+  )
+]
+
+== Space before Rust
 
 #cols[
   *Safe but slow* (GC languages)
@@ -270,10 +326,10 @@
 
 == Ownership vs C: use-after-free
 
-The single most common kernel CVE class — caught at compile time in Rust.
+Most common kernel CVE class : caught at compile time in Rust.
 
 #cols[
-  #codeblock(title: "C — compiles, crashes or corrupts silently")[
+  #codeblock(title: "C : compiles, crashes or corrupts silently")[
     ```c
     struct dma_buf *buf = dma_alloc(dev, size);
     submit_dma(dev, buf);
@@ -286,7 +342,7 @@ The single most common kernel CVE class — caught at compile time in Rust.
     ```
   ]
 ][
-  #codeblock(title: "Rust — compile error, zero runtime cost")[
+  #codeblock(title: "Rust : compile error, zero runtime cost")[
     ```rust
     let buf = DmaBuf::alloc(dev, size)?;
     submit_dma(dev, &buf);
@@ -303,15 +359,17 @@ The single most common kernel CVE class — caught at compile time in Rust.
 ]
 
 #callout[
-  The error message names the *exact line* where the value was moved and the *exact line* of the illegal use — before the code ever runs. No Valgrind, no KASAN, no OEM escalation.
+  The error message names the *exact line* where the value was moved and the *exact line* of the illegal use, before the code ever runs. No Valgrind, no KASAN, no OEM escalation.
 ]
 
 == Ownership prevents leaks — RAII in kernel drivers
 
-In C, every error exit path in a driver must remember to call the right cleanup. Rust makes this structurally impossible to get wrong.
+In C, every error exit path in a driver must remember to call the right cleanup. 
+
+Rust makes this structurally impossible to get wrong.
 
 #cols[
-  #codeblock(title: "C — common leak pattern")[
+  #codeblock(title: "C : common leak pattern")[
     ```c
     int my_driver_probe(struct pci_dev *pdev) {
         void *res_a = alloc_a();
@@ -334,7 +392,7 @@ In C, every error exit path in a driver must remember to call the right cleanup.
     ```
   ]
 ][
-  #codeblock(title: "Rust — Drop handles every exit path")[
+  #codeblock(title: "Rust : Drop handles every exit path")[
     ```rust
     fn my_driver_probe(pdev: &PciDev) -> Result {
         let res_a = ResourceA::alloc()?;
@@ -355,7 +413,7 @@ In C, every error exit path in a driver must remember to call the right cleanup.
   ]
 
   #callout(color: safe-green)[
-    *Zero goto cleanup; chains.* The compiler guarantees cleanup runs on every path. Linux has thousands of `goto err_free_X` labels that this eliminates.
+    *Zero `goto` cleanup; chains.* The compiler guarantees cleanup runs on every path. Linux has thousands of `goto err_free_X` labels that this eliminates.
   ]
 ]
 
@@ -367,14 +425,14 @@ In C, every error exit path in a driver must remember to call the right cleanup.
 == Borrowing — the aliasing rules formalised
 
 #callout[
-  *Borrowing* is Rust's system for temporary access without transferring ownership. It formalises the aliasing rules that C developers know informally — and often violate.
+  *Borrowing* is Rust's system for temporary access without transferring ownership. \ It formalises the aliasing rules that C developers know informally but often violate.
   #ref-badge[Rust Reference §10: "References & Borrowing"]
 ]
 
 #v(0.6em)
 
 #cols[
-  *Shared (immutable) borrows — `&T`*
+  *Shared (immutable) borrows : `&T`*
 
   - Multiple readers can coexist
   - None can write while readers exist
@@ -389,7 +447,7 @@ In C, every error exit path in a driver must remember to call the right cleanup.
   // ring is still valid and owned here
   ```
 ][
-  *Exclusive (mutable) borrow — `&mut T`*
+  *Exclusive (mutable) borrow : `&mut T`*
 
   - *One* writer, *no* concurrent readers
   - Maps to: write-lock held, spinlock held
@@ -405,7 +463,7 @@ In C, every error exit path in a driver must remember to call the right cleanup.
   ```
 
   #callout(color: safe-green)[
-    The compiler *proves* that at any point in the program, either *one writer* or *N readers* holds access to any memory location — but never both. This is the data race freedom guarantee.
+    The compiler *proves* that at any point in the program, either *one writer* or *N readers* holds access to any memory location, but never both. This is the data race freedom guarantee.
   ]
 ]
 
@@ -1080,4 +1138,13 @@ Rust's ownership model extends to asynchronous code. The same borrow checker tha
   a missing error path, or an uninitialised pointer.
 
   Every kernel bug it catches is a CVE that never ships.
+]
+
+== 
+#focus-slide[
+  #text(size: 1.6em, weight: "bold")[
+    Thank you.
+  ]
+
+  Questions?
 ]
