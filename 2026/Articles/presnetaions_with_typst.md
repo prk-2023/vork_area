@@ -168,3 +168,269 @@ You use the `#pause` keyword to tell the presentation to create a new sub-slide.
 * **Math:** 
     - Remember that math in Typst is enclosed in `$` symbols but uses a leaner syntax (ex: `$sum_(i=1)^n$` 
       instead of `\sum_{i=1}^{n}`).
+
+---
+
+# example:
+
+- Touying: ( Its like UI framework )
+    - Engine / framework: 
+
+    It provides the functionality for presentations:    
+        * slide system (#slide, #focus-slide)
+        * navigation, overlays, incremental reveals
+        * layout primitives
+
+- Metropolis:( Its like CSS )
+    → Theme / styling layer
+    
+    It controls the appearance:
+        * `fonts`, `sizes`, `colors`
+        * `spacing`, `alignment`
+        * visual style of slides (minimal, modern look)
+
+# Touying and Metropolis:  
+
+--- 
+
+1. Theme initialization & global config
+```typst 
+#import "@preview/touying:0.7.1": *
+#import themes.metropolis: *
+
+#show: metropolis-theme.with(
+  aspect-ratio: "16-9",
+  progress-bar: true,
+)
+```
+- Controls Aspect ratio 
+- Controls progress bar 
+- base topography feel
+
+---
+
+2. Title slide 
+
+```typst 
+#title-slide(
+  title: [Rust + Linux Kernel],
+  subtitle: [Systems evolution, not a language war],
+  author: [Your Name],
+  date: [2026],
+)
+```
+- Metropolis gives you a clean, centered, minimal title layout.
+
+--- 
+
+3. Standard content slides
+
+```typst
+#slide[
+  #text(weight: "bold")[Why Rust?]
+
+  - Memory safety
+  - Concurrency guarantees
+  - Growing ecosystem
+]
+```
+
+Metropolis automatically:
+
+* sets spacing
+* chooses readable font scale
+* keeps margins clean
+
+--- 
+
+4. Focus slides (your main tool)
+
+```typst
+#focus-slide[
+  #text(size: 1.8em, weight: "bold")[
+    Not a language war.
+  ]
+
+  Systems evolution.
+]
+```
+
+Use for:
+
+* transitions
+* strong statements
+* section breaks
+
+---
+
+5. Section divider slides
+
+```typst
+#section-slide[
+  Part 1
+
+  Rust as a systems language
+]
+```
+
+Gives you a **visual break** with strong hierarchy.
+
+---
+
+6. Incremental reveals (overlays)
+
+```typst
+#slide[
+  #text(weight: "bold")[Key Points]
+
+  #itemize(
+    reveal: true,
+  )[
+    Rust safety model
+    Kernel constraints
+    Real-world adoption
+  ]
+]
+```
+
+Metropolis keeps it subtle—no flashy animations.
+
+---
+
+7. Two-column layouts
+
+```typst
+#slide[
+  #columns[
+    [
+      *Pros*
+      - Safety
+      - Performance
+    ],
+    [
+      *Cons*
+      - Learning curve
+      - Integration complexity
+    ]
+  ]
+]
+```
+
+---
+
+8. Image slides
+
+```typst
+#slide[
+  #image("architecture.png", width: 80%)
+
+  #v(0.5em)
+
+  Kernel architecture overview
+]
+```
+
+Metropolis ensures:
+
+* centered layout
+* consistent spacing
+
+---
+
+9. Code blocks (important for your talk)
+
+````typst
+#slide[
+  #text(weight: "bold")[Rust in Kernel]
+
+  ```rust
+  fn init() -> Result<()> {
+      pr_info!("Hello kernel!\n");
+      Ok(())
+  }
+````
+
+]
+
+````
+
+Pairs nicely with Metropolis’ minimal style.
+
+---
+
+10. Color & typography overrides
+
+Metropolis is intentionally minimal—but you can tweak:
+
+```typst
+#show: metropolis-theme.with(
+  primary-color: rgb("#268bd2"),
+  font-size: 11pt,
+)
+````
+
+Or local emphasis:
+
+```typst
+#text(fill: rgb("#888"))[Secondary text]
+```
+
+---
+
+11. Spacing control (very important)
+
+```typst
+#slide[
+  Title
+
+  #v(1em)
+
+  Content block 1
+
+  #v(0.5em)
+
+  Content block 2
+]
+```
+
+Metropolis relies heavily on **whitespace instead of borders**.
+
+---
+
+12. Closing slide
+
+```typst
+#focus-slide[
+  #text(size: 1.6em, weight: "bold")[
+    Thank you.
+  ]
+
+  Questions?
+]
+```
+
+---
+
+- What Metropolis *does not* do
+
+Important so you don’t fight it:
+
+* ❌ No heavy animations
+* ❌ No flashy transitions
+* ❌ No complex decorative layouts
+* ❌ No “PowerPoint-style” themes
+
+It’s designed for:
+
+> clean, technical, content-first presentations
+
+---
+
+- Pro tips (where Metropolis shines)
+
+* Use **more `#focus-slide` than you think**
+* Keep slides **under ~20 words**
+* Use **muted secondary text instead of bullets when possible**
+* Let **spacing carry structure**
+
+---
