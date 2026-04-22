@@ -162,7 +162,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 == Part 1: Rust as Systems Programming Language <touying:hidden>
 
-=== The Problem — Why Another Systems Language?
+The Problem: Why Another Systems Language?
 - #text(fill: rust-red)[$`C`$] is the de-facto industry standard for systems programming.
 - #text(fill: rust-red)[$`C`$] built system (can contain errors that are easy to make and difficult to detect even with rigorous code review.
 - Safety in the currently developer-dependent ( complexity + cost of maintenance )
@@ -171,6 +171,17 @@
 
 #text(fill: rust-red)[*`rust`*] 
   - Language philosophy aims to address the above #text(fill: rust-red)[$`C`$] challenges, with out compromising on security,performance or reliability.
+
+  - Linux Kernel adoption: Purpose make OS more stable, secure and maintainable. 
+    * Not intended for replacing #text(fill: rust-red)[$`C`$]
+    * Intended as a pear language, mainly for :
+      - Device Drivers 
+      - File Systems 
+      - New sub-systems. 
+
+- Kernel maintainers spend a big part of their time reviewing code for memory leaks or pointer errors. Rust adoption would significantly reduce time in fixing basic memory bugs.
+
+- Survey that pushed for Rust's adoption as second language into Linux Kernel:
 // ─────────────────────────────────────────────────────────────────────────────
 //  1. THE PROBLEM — WHY ANOTHER SYSTEMS LANGUAGE?
 // ─────────────────────────────────────────────────────────────────────────────
@@ -194,7 +205,7 @@
     Better tooling (ASAN, Coverity, sparse) *reduces* the rate — it does not *eliminate* the class. The only way to eliminate a class of bugs is to make them unrepresentable in the type system.
   ]
 ][
-  *The two root causes*
+  *The root causes*
 
   #table(
     columns: (auto, 1fr),
@@ -235,11 +246,11 @@
 
 #cols[
   *Safe but slow* (GC languages)
-  - Java, Go, Python — garbage collector guarantees no UAF
-  - *Cost*: GC pauses, unpredictable latency, large runtimes
-  - Unsuitable for kernel code, real-time, interrupt handlers
+  - Java, Go, Python : garbage collector guarantees no help for use after free ( UAFs ).
+  - `GC` introduces pauses in program execution => unpredictable latency, large run-times.
+  - These languages unsuitable for kernel code, real-time, interrupt handlers
 
-  *Fast but unsafe* (C, C++)
+  *Fast but unsafe* (C, C++) ( depends on developer )
   - Maximum control, minimum overhead
   - *Cost*: all memory bugs are the programmer's problem
   - 30+ years of CVEs are the empirical evidence
@@ -279,23 +290,25 @@
 == The three ownership rules
 
 #callout[
-  *Rust's ownership system* is its type-theoretic answer to manual memory management. It was first formally verified by *RustBelt* (Jung et al., POPL 2018) using the Iris separation logic framework in Coq. #ref-badge[Jung et al., Proc. ACM Program. Lang. 2, POPL, Art. 66, 2018]
+  *Rust's ownership system* it's a type theoretic answer to manual memory management. 
+  - It's a memory management model where each value has a single owner at a time, and the Compiler enforces rules about ownership/borrowing/lifetimes. 
+  - Shifts memory safety from a runtime concern (like GC) to a compile time verification handled by the type system. 
 ]
 
 #v(0.6em)
 
 #cols[
-  *Rule 1 — Each value has exactly one owner*
+  *Rule 1 : Each value has exactly one owner* \
+  *Rule 2 : There can only be one owner at a time (ownership can be moved).*
 
   ```rust
   let s1 = String::from("hello"); // s1 owns the heap data
   let s2 = s1;          // ownership MOVES to s2
   // println!("{}", s1); // ← compile error: s1 was moved
   ```
-
   The compiler tracks ownership *statically*. No runtime bookkeeping.
-
-  *Rule 2 — When the owner goes out of scope, the value is dropped*
+][
+  *Rule 3 : When the owner goes out of scope, the value is dropped*
 
   ```rust
   {
@@ -303,27 +316,27 @@
   }   // ← Drop::drop() called HERE, automatically
       // No free() to forget. No leak possible.
   ```
-][
-  *Rule 3 — One mutable reference OR many immutable references, never both*
-
-  ```rust
-  let mut v = vec![1, 2, 3];
-  let r1 = &v;           // immutable borrow
-  let r2 = &v;           // another immutable borrow — OK
-  // let r3 = &mut v;    // ← compile error:
-                         //   cannot borrow as mutable
-                         //   while borrowed as immutable
-
-  // Once r1, r2 are no longer used:
-  let r3 = &mut v;       // now OK — exclusive access
-  v.push(4);
-  ```
-
-  #callout(color: safe-green)[
-    Rule 3 *is* the aliasing XOR mutability discipline. The same invariant that makes the Linux kernel's `rcu_read_lock` / spinlock discipline correct — enforced by the type checker, not by convention.
+  #callout(color: safe-green)[ -> Shifts memory safety from a runtime concern (like garbage collection) to a compile-time verification problem handled by the type system.
   ]
 ]
-
+// [
+//   *Rule 3 : One mutable reference OR many immutable references, never both*
+//
+//   ```rust
+//   let mut v = vec![1, 2, 3];
+//   let r1 = &v;           // immutable borrow
+//   let r2 = &v;           // another immutable borrow — OK
+//   // let r3 = &mut v;    // ← compile error: cannot borrow as mutable
+//                          //   while borrowed as immutable
+//   // Once r1, r2 are no longer used:
+//   let r3 = &mut v;       // now OK — exclusive access
+//   v.push(4);
+//   ```
+//   #callout(color: safe-green)[
+//     Rule 3 *is* the aliasing XOR mutability discipline. The same invariant that makes the Linux kernel's `rcu_read_lock` / spinlock discipline correct : enforced by the type checker, not by convention.
+//   ]
+// ]
+//
 == Ownership vs C: use-after-free
 
 Most common kernel CVE class : caught at compile time in Rust.
@@ -359,7 +372,8 @@ Most common kernel CVE class : caught at compile time in Rust.
 ]
 
 #callout[
-  The error message names the *exact line* where the value was moved and the *exact line* of the illegal use, before the code ever runs. No Valgrind, no KASAN, no OEM escalation.
+  - The error message names the *exact line* where the value was moved and the *exact line* of the illegal use, before the code ever runs. 
+  - no `valgrind`, no `KASAN`, no `OEM` execution.
 ]
 
 == Ownership prevents leaks — RAII in kernel drivers
@@ -413,7 +427,8 @@ Rust makes this structurally impossible to get wrong.
   ]
 
   #callout(color: safe-green)[
-    *Zero `goto` cleanup; chains.* The compiler guarantees cleanup runs on every path. Linux has thousands of `goto err_free_X` labels that this eliminates.
+    - *Zero `goto` cleanup; chains.* The compiler guarantees cleanup runs on every path. 
+    - Linux has thousands of `goto err_free_XYZ` labels that this eliminates.
   ]
 ]
 
@@ -426,7 +441,6 @@ Rust makes this structurally impossible to get wrong.
 
 #callout[
   *Borrowing* is Rust's system for temporary access without transferring ownership. \ It formalises the aliasing rules that C developers know informally but often violate.
-  #ref-badge[Rust Reference §10: "References & Borrowing"]
 ]
 
 #v(0.6em)
@@ -1026,7 +1040,6 @@ Rust's ownership model extends to asynchronous code. The same borrow checker tha
       }
   }
   ```
-
   #callout(color: safe-green)[
     The *same type-system property* that prevents data races *also enables better codegen*. Safety and performance are not in tension — they arise from the same source.
   ]

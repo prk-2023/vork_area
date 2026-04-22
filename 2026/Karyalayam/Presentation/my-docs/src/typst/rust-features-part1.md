@@ -20,10 +20,11 @@ Part 3:
 
 ### Slide 1: ( Rust as a systems programming language)
 
-- `C` remains the de-facto industry standard for systems programming.
+- `C` remains the de-facto industry standard for systems programming. 
 - Systems built with C often contain errors that are easy to make and difficult to detect even during rigorous code review.
-- Safety in the currently developer-dependent ( complexity + cost of maintenance )
-- Linux kernel: evolved over 30+ years, there is a growing concern that new developers are less interested 
+- Safety in the currently developer model is  developer dependent (and adds complexity + cost of maintenance )
+- Linux kernel: As of 2025 late december 
+evolved over 30+ years, there is a growing concern that new developers are less interested 
   in working with the risks associated with "manual" C.
 
 Rust Model Philosophy: Address many of these challenges with out compromising on security,performance or reliability.
@@ -31,15 +32,31 @@ Rust Model Philosophy: Address many of these challenges with out compromising on
 
 ### Slide 2: Memory safety: ( The eternal memory bug)
 
-- ~67% of Linux CVEs traced to memory safety violations (Gaynor & Thomas, Linux Security Summit 2019 — still
-  holds in 2025 audits)
+- ~67% of Linux Common Vulnerability Exposures ( CVEs ) are traced to memory safety violations 
+  (Gaynor & Thomas, Linux Security Summit 2019 — still  holds in 2025 audits)
+
 - Concrete driver examples: use-after-free in USB subsystem, OOB writes in DMA engine code — the kind your
   team has debugged
+
 - C gives you the loaded gun; kernel developers are expected not to shoot themselves. This doesn't scale
   with team size.
+
+
+- Set up the question: what if the compiler could prove correctness at submission time?
+
+- Linux Kernel adoption: Purpose make OS more stable, secure and maintainable. 
+    * Not intended for replacing `C`
+    * Intended as a pear language, mainly for :
+      - Device Drivers 
+      - File Systems 
+      - New sub-systems. 
+
+- Kernel maintainers spend a big part of their time reviewing code for memory leaks or pointer errors. Rust adoption would significantly reduce time in fixing basic memory bugs.
+
+- Survey that pushed for Rust's adoption as second language into Linux Kernel:
+
 - Frame the cost: CVE triage, patch backports, OEM customer escalations, re-spins. Audience knows this pain
   directly.
-- Set up the question: what if the compiler could prove correctness at submission time?
 
 => Root cause: use-after-free, Buffer overflow, Data Race, Null Deref, un-init reads, integer overflow.
 Better tooling(ASAN, Coverity, ..) can only reduce the bug rate, but can not eliminate the bugs. 
@@ -47,14 +64,21 @@ The only way to eliminate a class of bugs is to make them un-representable in th
 
 ### slide 3:
 => Rust eliminates every one of the listed bugs at compilation time ( static analysis ) and with Zero
-runtime cost.
+runtime cost that is it requires no additional CPU cycles to achieve this.
 
 ### Slide 4: before Rust:
 
+The choice for OS developer was a binary tradeoff:
+1. stability with over head ( GC languages, python, Go, Java ... )
+2. performance with danger ( C, C++ )
 -  *Safe but slow* (GC languages)
   - Java, Go, Python — garbage collector guarantees no UAF
   - *Cost*: GC pauses, unpredictable latency, large runtimes
   - Unsuitable for kernel code, real-time, interrupt handlers
+
+Example : `mpstat` results of running `fzf` and `skim` on your root folder: 
+    fzf : go implementation ( uses GC ) mpstats => lower cpu utilization and wait for I/O compared with
+    `skim` 
 
 -  *Fast but unsafe* (C, C++)
   - Maximum control, minimum overhead
@@ -65,6 +89,23 @@ runtime cost.
     - offers safety without a *GC*, 
     - performance matching C 
     - zero-cost abstractions ( no additional cpu cycles )
+
+### Slide 5: 
+
+Ownership Memory safety at compile time:
+
+Ownership is a memory management model where each value has a single owner at a time, and the Compiler
+enforces rules about ownership, borrowing and lifetimes. This shifts memory safety from a runtime concern (
+like garbage collection) to a compile time verification problem handled by the type system. 
+
+- Ownership in Rust is a concept that is baked into the very syntax and rules of the language:
+  The 3 rules are:
+  1. Each value has a single owner.
+  2. There can only be one owner at a time ( ownership can be transferred, i.e moved )
+  3. When Owner goes out of scope, the value gets dropped ( memory is freed ).
+
+-  
+  
 
 --- 
 
