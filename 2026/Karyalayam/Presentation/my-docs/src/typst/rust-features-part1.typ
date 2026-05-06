@@ -91,6 +91,18 @@
 // Section divider annotation
 #let anno(body) = align(right, text(size: 0.6em, fill: gray.lighten(20%), style: "italic", body))
 
+
+#let fancy-block(title, subtitle) = box(
+    fill: rgb("#2b2b2b"),
+    stroke: none,
+    radius: 12pt,
+    inset: 12pt,
+  )[
+    #text(fill: rust-red, weight: "bold")[#title]
+    #linebreak()
+    #text(fill: rgb("#ccc"), size: 1.1em)[#subtitle]
+  ]
+
 // ── Theme ─────────────────────────────────────────────────────────────────────
 #show: metropolis-theme.with(
   aspect-ratio: "16-9",
@@ -108,8 +120,9 @@
   ),
 
   config-info(
-    title:       [Why Rust — A Systems Programmer's Perspective],
-    subtitle:    [Memory Safety · Compiler Guarantees · Modern Concepts · Performance],
+    title:       [Introduction to Rust & eBPF with Rust],
+    // title:       [Why Rust — A Systems Programmer's Perspective],
+    // subtitle:    [Memory Safety · Compiler Guarantees · Modern Concepts · Performance],
     author:      [Pulumati Ram],
     date:        datetime.today(),
     institution: [ Realtek Semiconductor Corporation ],
@@ -143,33 +156,57 @@
     \- Direction and practical utility \- 
 ]
 
+//
+// #focus-slide[
+//   #v(0.4em)
+//   #text(fill: rust-red )[_Part 1_] #linebreak()
+//   #text(fill: rgb("#f93"))[Rust as a systems programming language]
+//
+//   #v(0.4em)
+//   #text(fill: rust-red)[_Part 2_] #linebreak()
+//   #text(fill: rgb("#f93"))[Rust in the Linux kernel]
+//
+//   #v(0.4em)
+//   #text(fill: rust-red)[_Part 3_] #linebreak()
+//   #text(fill: rgb("#f93"))[`eBPF` programming with Rust]
+//
+// ]
+
 #focus-slide[
-  #v(0.4em)
-  #text(fill: rust-red )[_Part 1_] #linebreak()
-  #text(fill: rgb("#f93"))[Rust as a systems programming language]
+  #v(0.6em)
 
-  #v(0.4em)
-  #text(fill: rust-red)[_Part 2_] #linebreak()
-  #text(fill: rgb("#f93"))[Rust in the Linux kernel]
+  #fancy-block[Part \# 1][ Rust as a systems programming language  ]
 
-  #v(0.4em)
-  #text(fill: rust-red)[_Part 3_] #linebreak()
-  #text(fill: rgb("#f93"))[`eBPF` programming with Rust]
+  #v(0.6em)
 
+  #fancy-block[Part \# 2][ Rust in the Linux kernel ]
+
+  #v(0.6em)
+
+  #fancy-block[Part \# 3][ `eBPF` programming with Rust ]
 ]
+
+// Part 1:
 // ─────────────────────────────────────────────────────────────────────────────
 //  AGENDA
 // ─────────────────────────────────────────────────────────────────────────────
+= Why Rust — A Systems Programmer's Perspective:
+
+#text(fill: black)[`Memory Safety`]
+#text(fill: black)[· `Compiler Guarantees`]
+#text(fill: black)[· `Modern Concepts`]
+#text(fill: black)[· `performance`]
+
 == Part 1: Rust as Systems Programming Language <touying:hidden>
 
 The Problem: Why Another Systems Language?
 - #text(fill: rust-red)[$`C`$] is the de-facto industry standard for systems programming.
-- #text(fill: rust-red)[$`C`$] built system (can contain errors that are easy to make and difficult to detect even with rigorous code review.
-- Safety in the currently developer-dependent ( complexity + cost of maintenance )
+- #text(fill: rust-red)[$`C`$] built systems (can contain errors that are easy to make and difficult to detect even with rigorous code review )
+- Safety of programs is developer-dependent ( $->$ adds complexity and cost of maintenance )
 - Linux kernel: evolved over 30+ years, there is a growing concern that new developers are less interested 
   in working with the risks associated with "manual" C.
 
-#text(fill: rust-red)[*`rust`*] 
+#text(fill: rust-red, size: 1.6em)[_*`Rust`*_] 
   - Language philosophy aims to address the above #text(fill: rust-red)[$`C`$] challenges, with out compromising on security,performance or reliability.
 
   - Linux Kernel adoption: Purpose make OS more stable, secure and maintainable. 
