@@ -2,110 +2,198 @@
 
 ### Disclaimer: 
 
-This talk focuses on the ongoing evolution of systems programming, not on promoting a “language war.” The
-goal is to highlight the direction of the ecosystem and the practical utility emerging from Rust’s
-integration with the Linux kernel.
 
-The talk is split into 3 parts:
+A No-hype disclaimer and Scope:
 
-Part 1:
-    Introduction to rust as systems programming language (Ideas of Rust that has made it popular in short time).
-Part 2: 
-    Rust in Linux Kernel ( Chronological update, Hello World, build flow and which stacks are adopting and
-    which are not, and the push from Industry )
-Part 3: 
-    eBPF programming with Rust ( Aya, example dma latency, xdp, AF_XDP an alternative to dpdk and RDMA )
+This talk focuses on the ongoing evolution in systems programming, and not intended to be a debate about  
+“language war.” 
+
+We are evaluating a tool and not religion. 
+
+From an evolutionary rather than revolutionary perspective, Rust should be views as a complementary tool for
+solving specific classes of bugs - particularly spatial and temporal memory safety issues which are
+historically difficult to eliminate in a large C-based codebase. 
+
+The main objective is to analyze technical "why" and "how"  behind Rust's integration into the Linux kernel
+and along with its practical utility for modern systems engineer. 
+
+The talk is divided into 3 parts:
+
+Part 1: Introduction to rust as systems programming language 
+
+We will explore what makes rust a systems programming language.
+    - zero-cost abstraction: High level ergonomics without Garbage collection tax 
+    - Borrow Checker as static analyzer: Rust moves Use-after-free, Race Conditions from runtime to
+      compile-time. 
+    - Memory Layout control: precise control over memory representation using features such as (#[repr(C)])
+      enabling seamless FFI interoperability and suitability for BSPs, firmwares and low-level system work.
+    - Fearless Concurrency: Rusts type system enforces thread-safety guarantees by design, helping prevents 
+      data races in SMP env. 
+
+(These are some of the ideas that has made Rust popular in short time).
+
+Part 2: Rust in Linux kenrnel:
+    - Chronological update from initial proposal to current stable ( pinned ) types.
+    - Build flow: How rust is integrated into the exisiting kernel build system. 
+    - Role of `bindgen` ( generates Rust FFI from C headers)
+    - Abstractions layer: why we do not call C fun's directly but wrap them in safe Rust interfaces.
+    - Hello world: a brief comparison between rust  `module!` macro vs the traditional `module_init/exit`
+      pattern.
+    - Adoption Map:
+        Early Adopters: NVMe drivers, DRM abstractions, and Android Binder. 
+        Wait and watch zone: Core MM ( Memory management ) and deeply entrenched legacy subsystem. 
+        Industry Push: google, Microsoft( funding to reduce long tail of security Vulnerabilities), amazon. 
+
+Part 3: eBPF programming with Rust 
+    - Aya Framework: A purely Rust-based eBPF library that doesn't depend on libbpf or llvm at runtime.
+    - Observability Case Study: Tracking DMA latency with microsecond precision using BPF maps.
+    - The Fast Path: XDP & AF_XDP: 
+        - XDP: Programmable packet processing at the NIC driver level.
+        - AF_XDP: efficient zero-copy packet processing using shared UMEM regions managed safely from Rust.
+    - Rust + AF_XDP vs DPDK:  Why parts of the industry is looking at Rust + AF_XDP as a mem-safe, 
+      maintainable alternative to traditional DPDK for user-space networking stacks.
+
+NOTE: 
+- that Rust is not going to replace C in Linux kernel.
+- The more realistic question is: where does stronger compile-time correctness meaningfully reduce risks in
+  modern systems software. 
 
 ## Part 1:
 
 ### Slide 1: ( Rust as a systems programming language)
 
-- `C` remains the de-facto industry standard for systems programming. 
-- Systems built with C often contain errors that are easy to make and difficult to detect even during rigorous code review.
-- Safety in the currently developer model is  developer dependent (and adds complexity + cost of maintenance )
-- Linux kernel: As of 2025 late december 
-evolved over 30+ years, there is a growing concern that new developers are less interested 
-  in working with the risks associated with "manual" C.
+- `C` remains the de-facto industry standard for systems programming across operating systems, kernels,
+  embedded systems, and runtime infrastructure. 
 
-Rust Model Philosophy: Address many of these challenges with out compromising on security,performance or reliability.
+- However systems written in C  are prone to classes of errors that are both easy to introduce and difficult
+  to detect, even under careful code-review and testing ( ex: mem-safety issues, undefined behaviour,
+  concurrency issues) 
+- In this model safety is largely developer-dependent, leading to complexity and maintenance cost.
+- In the case of Linux kernels after 30+ years of evolution, there is a concern about the sustainability of 
+  onboard new contributors who are expected to work within the constrains and risks of manual memory
+  management in C.
+
+Rust design philosophy:
+Rust aims to address many of these challenged by shifting correctness guarantees to the compiler, while
+preserving performance, low-level control, and reliability expected from systems programming. 
 
 
 ### Slide 2: Memory safety: ( The eternal memory bug)
 
+Memory safety has not meaningfully improved: the Number of issues over the past 20 years have not changed. 
+- 70% of Microsoft CVEs are memory safety issues.
 - ~67% of Linux Common Vulnerability Exposures ( CVEs ) are traced to memory safety violations 
   (Gaynor & Thomas, Linux Security Summit 2019 — still  holds in 2025 audits)
+- 70% of high-severity chromium bugs are memory safety related. 
+- Android ecosystem estimates attribute $68B in security costs ( 2019 ) to memory safety issues. 
 
-- Concrete driver examples: use-after-free in USB subsystem, OOB writes in DMA engine code — the kind your
-  team has debugged
+Insights: 
+- Tooling ASan, Coverity, Sparse : reduce bug rates but do not eliminate entire classes of bugs.
+- fundamental limitation is architectural: ** As long as type-system allows these states, they remain
+  possible at runtime. 
 
-- C gives you the loaded gun; kernel developers are expected not to shoot themselves. This doesn't scale
-  with team size.
+- Elimination of these bugs: Make them un-representable in the type-system and with help of compiler. 
 
+Root-causes :
+The table shows some common root causes for bugs:
 
-- Set up the question: what if the compiler could prove correctness at submission time?
+- These are not “rare edge cases”
+- They are systemic failure modes of the memory model itself
+- They persist because C prioritizes performance and control over safety invariants and kernel developers
+  are expected not to shoot themselves. But generally this doesn't scale with team size.
 
-- Linux Kernel adoption: Purpose make OS more stable, secure and maintainable. 
-    * Not intended for replacing `C`
-    * Intended as a pear language, mainly for :
-      - Device Drivers 
-      - File Systems 
-      - New sub-systems. 
+### slide 3:
 
-- Kernel maintainers spend a big part of their time reviewing code for memory leaks or pointer errors. Rust adoption would significantly reduce time in fixing basic memory bugs.
+=> Rust eliminates every one of the listed bugs at compilation time ( static analysis ) and with Zero
+runtime cost that is it requires no additional CPU cycles to achieve this.
 
-- Survey that pushed for Rust's adoption as second language into Linux Kernel:
+- Kernel maintainers spend a big part of their time reviewing code for memory leaks or pointer errors. 
+  Rust adoption would significantly reduce time in fixing basic memory bugs.
+
+- The above survey on CVEs and How rust eliminates them has been the main reason for its adoption into Linux
+  kernel as a second language.
 
 - Frame the cost: CVE triage, patch backports, OEM customer escalations, re-spins. Audience knows this pain
   directly.
 
-=> Root cause: use-after-free, Buffer overflow, Data Race, Null Deref, un-init reads, integer overflow.
-Better tooling(ASAN, Coverity, ..) can only reduce the bug rate, but can not eliminate the bugs. 
-The only way to eliminate a class of bugs is to make them un-representable in the type system.
-
-### slide 3:
-=> Rust eliminates every one of the listed bugs at compilation time ( static analysis ) and with Zero
-runtime cost that is it requires no additional CPU cycles to achieve this.
 
 ### Slide 4: before Rust:
 
-The choice for OS developer was a binary tradeoff:
-1. stability with over head ( GC languages, python, Go, Java ... )
-2. performance with danger ( C, C++ )
--  *Safe but slow* (GC languages)
-  - Java, Go, Python — garbage collector guarantees no UAF
-  - *Cost*: GC pauses, unpredictable latency, large runtimes
-  - Unsuitable for kernel code, real-time, interrupt handlers
 
-Example : `mpstat` results of running `fzf` and `skim` on your root folder: 
-    fzf : go implementation ( uses GC ) mpstats => lower cpu utilization and wait for I/O compared with
-    `skim` 
+OS and system developers have historically faces a binary tradeoff:
+1. Safe but slower ( GC - based languages )
+    - Java, Go, Python ..
+    - memory safety is enforced via garbage collector.
+    - eliminates entire classes of bugs like use-after-free. 
+These come at a cost:
+    - GC pauses leading to unpredictable latency. 
+    - Runtime overhead ( consumes additional cpu cycles )
+    - large execution footprint.
+    - poor fit for kernel code, interrupt context, and real-time constrains. 
 
--  *Fast but unsafe* (C, C++)
-  - Maximum control, minimum overhead
-  - *Cost*: all memory bugs are the programmer's problem
-  - 30+ years of CVEs are the empirical evidence
+2. *Fast but unsafe* (C, C++) 
+    - Maximum control, minimum overhead
+    - *Cost*: all memory bugs are the programmer's problem
+    - 30+ years of CVEs are the empirical evidence
 
-- Rust closes the gap: 
-    - offers safety without a *GC*, 
-    - performance matching C 
-    - zero-cost abstractions ( no additional cpu cycles )
+Rust closes the gap: 
 
+Rust is positioned to bridge this long-standing divide:
+    - provides memory safety without a garbage collector. 
+    - Maintains performance comparable to C.
+    - Enables zero-cost abstractions ( no hidden runtime over head ==> no additional cpu cycles)
+
+This allows Rust to combine:
+    - The control of systems programming.
+    - with safety guarantees previously only available in managed run-times.
+
+=> Rust is not just another general purpose language: It represents a new point in the systems programming
+design space, where safety and performance are no longer mutually exclusive. 
+ 
 ### Slide 5: 
 
 Ownership Memory safety at compile time:
 
-Ownership is a memory management model where each value has a single owner at a time, and the Compiler
-enforces rules about ownership, borrowing and lifetimes. This shifts memory safety from a runtime concern (
-like garbage collection) to a compile time verification problem handled by the type system. 
+Ownership is a memory management model where each value has a single owner at any given time.
 
-- Ownership in Rust is a concept that is baked into the very syntax and rules of the language:
-  The 3 rules are:
-  1. Each value has a single owner.
-  2. There can only be one owner at a time ( ownership can be transferred, i.e moved )
-  3. When Owner goes out of scope, the value gets dropped ( memory is freed ).
+The compiler enforces rules around Ownership, moves and scope, shifting memory safety from runtime
+enforcement to compile-time verification. 
 
--  
-  
+Core rules:
+1. Each value has a single owner.
+2. There can only be one owner at a time ( ownership can be transferred, i.e moved )
+3. When Owner goes out of scope, the value gets dropped ( memory is freed ).
+
+=> The key idea here is the rules are enforced by the compiler, making invalid memory states
+un-representable at runtime.
+
+Next slide: Use-after-free:
+
+In C memory ownership is implicit and manual:
+    - memory can be freed while pointer still reference it. 
+    - Compiler does not track lifetime relationships.
+    - This leads to use-after-free (UAF) and dangling pointer bugs. 
+
+Rust Prevents this class of bugs by construction:
+    - Once ownership is moved the old reference is invalidated.
+    - The compiler tracks lifetimes and enforces validity.
+    - use-after-free becomes a compile-time-error, not a runtime bug.
+
+Ownership model is one of the Rust's defining contributions, reshaping how memory safety can be expressed at
+compile time. 
+It encodes memory safety directly into the type system rather than relying on runtime checks or developer
+discipline. 
+
+Next Slide: ownership prevents leaks:
+
+Ownership prevents leaks — RAII in kernel drivers
+
+In C, every error exit path in a driver must explicitly handle cleanup.
+This makes resource management error-prone and path-dependent, especially as control flow grows.
+
+While Rust makes this structurally reliable.
+
+( check at gemini: "what is RAII with respect to linux kernel")
 
 --- 
 

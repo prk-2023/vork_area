@@ -92,7 +92,7 @@
 #let anno(body) = align(right, text(size: 0.6em, fill: gray.lighten(20%), style: "italic", body))
 
 
-#let fancy-block(title, subtitle) = box(
+#let fancy-block(title, subtitle,pts) = box(
     fill: rgb("#2b2b2b"),
     stroke: none,
     radius: 12pt,
@@ -100,7 +100,9 @@
   )[
     #text(fill: rust-red, weight: "bold")[#title]
     #linebreak()
-    #text(fill: rgb("#ccc"), size: 1.1em)[#subtitle]
+    #text(fill: rgb("#ccc"), size: 0.9em)[#subtitle]
+    #linebreak()
+    #text(fill: rgb("#999"), size: 0.63em)[#pts]
   ]
 
 // ── Theme ─────────────────────────────────────────────────────────────────────
@@ -173,17 +175,17 @@
 // ]
 
 #focus-slide[
-  #v(0.6em)
+  #v(0.3em)
 
-  #fancy-block[Part \# 1][ Rust as a systems programming language  ]
+  #fancy-block[Part \# 1][ Rust as a systems programming language  ][zero-cost abstraction, Borrow checker, memory layout ctrl, Fearless concurrency ]
 
-  #v(0.6em)
+  #v(0.3em)
 
-  #fancy-block[Part \# 2][ Rust in the Linux kernel ]
+  #fancy-block[Part \# 2][ Rust in the Linux kernel ][ chronological update, build, adoption map ]
 
-  #v(0.6em)
+  #v(0.3em)
 
-  #fancy-block[Part \# 3][ `eBPF` programming with Rust ]
+  #fancy-block[Part \# 3][ `eBPF` programming with Rust ][Aya framework, observability caseStudy]
 ]
 
 // Part 1:
@@ -316,6 +318,9 @@ The Problem: Why Another Systems Language?
     #text(size: 0.65em, fill: gray)[
       Rust uniquely occupies the upper-right cell.
     ]
+  #callout[
+    Rust is not just another general purpose language, it represents a new point in systems programming design space. With Safety and Performance.
+  ]
   ]
 ]
 
@@ -377,6 +382,11 @@ The Problem: Why Another Systems Language?
 == Ownership vs C: use-after-free
 
 Most common kernel CVE class : caught at compile time in Rust.
+
+#callout[
+  - This is not a bug detection problem.
+  - This is program expressiveness problem. 
+]
 
 #cols[
   #codeblock(title: "C : compiles, crashes or corrupts silently")[
@@ -463,10 +473,13 @@ Rust makes this structurally impossible to get wrong.
     ```
   ]
 
-  #callout(color: safe-green)[
-    - *Zero `goto` cleanup; chains.* The compiler guarantees cleanup runs on every path. 
-    - Linux has thousands of `goto err_free_XYZ` labels that this eliminates.
-  ]
+]
+#callout(color: safe-green)[
+  - Cleanup is automatic and deterministic via scope exit, each resource implements `Drop`, ensuring release on all return paths.
+  - No explicit error-path cleanup logic required.
+  - Rust turns "developer-managed control flow problem" $->$ "compiler-enforced lifetime and scope rule"
+ // - *Zero `goto` cleanup; chains.* The compiler guarantees cleanup runs on every path. 
+ // - Linux has thousands of `goto err_free_XYZ` labels that this eliminates.
 ]
 
 // ─────────────────────────────────────────────────────────────────────────────
