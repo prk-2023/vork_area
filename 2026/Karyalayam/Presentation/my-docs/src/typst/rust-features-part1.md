@@ -1,5 +1,26 @@
 # Introduction to Rust and eBPF with Rust:
 
+
+Introduction:
+
+Systems programming is evolving but the core constraints remain the same:
+    - performance 
+    - determinism
+    - hardware control 
+    - low-level safety 
+
+- C language has evolved along with this ideas, is the dominant language as it maps closely to hardware and
+  the programs are predictable. 
+
+- How ever modern systems face a recurring class of issues:
+    - Memory safety bugs ( use-after-free, buffer overflow )
+    - concurrency bugs ( data race in kernel contexts )
+    - security vulnerabilities in privileged code paths. 
+
+Its key to understand that these changes are not meant about replacing existing foundation, but about
+expanding the toolbox for safer systems development. 
+
+
 ### Disclaimer: 
 
 
@@ -76,7 +97,6 @@ NOTE:
 Rust design philosophy:
 Rust aims to address many of these challenged by shifting correctness guarantees to the compiler, while
 preserving performance, low-level control, and reliability expected from systems programming. 
-
 
 ### Slide 2: Memory safety: ( The eternal memory bug)
 
@@ -196,7 +216,114 @@ While Rust makes this structurally reliable.
 ( check at gemini: "what is RAII with respect to linux kernel")
 
 --- 
+### slide 5: Borrowing & Lifetimes - Preventing Data Races:
 
+- If Ownership were the only mechanism then code would become impractical very quickly because, the program
+  needs to transfer ownership just to read or temporarily use data. 
+  This where Borrowing comes in:
+- Borrowing lets temporary access data without taking ownership. 
+
+- Borrowing allows rust to safely support:
+    - Shared access 
+    - mutation 
+    - function calls 
+    - efficient code without copying 
+    - concurrency safely 
+- while still preventing:
+    - dangling pointers 
+    - use-after-free 
+    - data races 
+    - double free bugs 
+
+- Borrowing is the mechanism of accessing data without taking ownership. This is implemented via
+  **References**, which are distinct types in the Rust Compilers view. 
+  1. So a `String`, `&String` and `&mut String` are 3 different types with different capabilities. 
+  2. Physical vs Logical: Physically references are just pointers ( mem addresses) like in C. Logically they
+     are "permission slips" that the compiler tracks to ensure memory safety. 
+  3. => Rust allows Shared Read-Access ( many &T ) or Exclusive Write-Access ( &mut T ) But never both
+     simultaneously, This eliminates data race at compilation time. ( As in the slides example  shows)
+     i.e 
+     Data race = Aliasing + Mutation + No synchronization 
+     Rust solves this by banning the combination. 
+
+
+Next-Slide: ( Lifetimes and Dangling pointers )
+
+This slide moves from *permission* ( what you can do ) to **duration** ( how long you can do it ).
+=> Lifetimes are the compiler's way to ensuring that every reference points to valid memory. 
+
+- Rust lifetimes are a compile-time mechanism used by the borrow checker to ensure that all references to
+  data are valid and never dangle, preventing memory safety bugs. 
+
+- A lifetime is the scope for which a reference is valid. 
+
+- Every reference in Rust has a lifetime, even if the compiler usually infers it for you. 
+
+- Core Rule: **A Reference cannot outlive its owner** 
+
+- In C or other languages you can accidentally free memory while a pointer is still looking at it. ( this
+  creates a dangling pointer )
+
+- In Rust Borrow Checker compares the scope of the data ( The Owner ) and scope of reference (the Borrower). 
+
+- If the Borrower scope is longer then owner the code fails to compile. 
+
+- Explicit lifetime annotations (` 'a `)
+    - Sometimes the compiler needs help, especially when a function returns a reference. 
+    - Explain that ` 'a ` doesn't change how long a variable lives; it simply described the relationship
+      between the inputs and outputs so the compiler can verify them. 
+    - Analogy: Its like a contract stating. This return value is guaranteed to be valid as long as this
+      specific input is still around. 
+
+- Unlike C where there is freedom to point to garbage, Rust gives you guarantee that if a pointer exists,
+  the data behind it exists too. This ensures there you never meet with `NullPointer` or `use-after-free`
+  error in production. 
+
+- In kernel : `struct device` is often managed by reference counting ( like `Kobject`). However raw `C`
+  doesn't stop you from storing a pointer to that device in a structure that exists longer than the device
+  itself. ( Rust lifetime system turns this logic to compilation error )
+
+- Device Drivers: 
+    - Drivers often deal with HW that can be hot-plugged ( USB, PCIe )
+    - When a device is removed ( unplugged) kernel must ensure no active code ( mainly interrupt handler )
+      tries to access that memory. 
+
+    - If interrupt handler holds a  reference to `&Device` Rust lifetime system ensures the handler's
+      registration cannot outlive the `Device` Object. 
+
+    - Compiler forces a relationship:  `Lifetime(Handler) < Lifetime(Device)` 
+
+- Race to grave: 
+    - In C you might unregister the interrupt, but if a thread is still executing that handler and the 
+      device memory is freed, the system crashes.
+
+    - In Rust, the API for registering a handler can be designed to "borrow" the device. 
+      If you try to drop the device while the borrow (the handler) is still active, the code won't compile.
+
+- Static Analysis vs Runtime debugging.
+    - C Approach: Rely on developer discipline and complex `kref` incrementing/decrementing. 
+      Debugging failures requires analyzing memory dumps.
+    - Rust Approach: The "Borrow Checker" acts as a static analyzer. 
+      If the driver logic is unsound, the build fails. 
+      It shifts the "cost" of the error from the end-user (a crash) to the developer (a compiler message).
+
+Todo: update the slide with mermaid
+
+
+...
+- Borrowing looks similar to pointers in C, but they behave differently to the compilers. 
+- In C we can have any number of pointers to a same integer, they can read and write to it simultaneously,
+  the language does not stop you from doing anything dangerous ( leaving synchronization to developer ),
+  In Rust Borrowing , a references is an address + permission slip, that is checked by the compiler at every
+  step. 
+
+- So adding `&` and `&mut` to a base type, is creating a new distinct types in the Eyes of the compiler.
+
+
+- It formalises the aliasing rules that C developers know informally but often violate.
+
+
+--- 
 ### Slide 4: 
 - Rust is a Systems programming Language, a relatively new programming language on the block.
 

@@ -17,6 +17,7 @@
 #import "@preview/touying:0.7.1": *
 #import themes.metropolis: *
 #import "@preview/numbly:0.1.0": numbly
+#import "@preview/mmdr:0.2.2": mermaid
 
 // ── Palette ───────────────────────────────────────────────────────────────────
 #let rust-red    = rgb("#CE422B")
@@ -192,7 +193,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 //  AGENDA
 // ─────────────────────────────────────────────────────────────────────────────
-= Why Rust — A Systems Programmer's Perspective:
+= Why Rust : A Systems Programmer's Perspective:
 
 #text(fill: black)[`Memory Safety`]
 #text(fill: black)[· `Compiler Guarantees`]
@@ -327,7 +328,7 @@ The Problem: Why Another Systems Language?
 // ─────────────────────────────────────────────────────────────────────────────
 //  2. OWNERSHIP — THE CORE MECHANISM
 // ─────────────────────────────────────────────────────────────────────────────
-= Ownership — Memory Safety at Compile Time
+= Ownership : Memory Safety at Compile Time
 
 == The three ownership rules
 
@@ -487,10 +488,11 @@ Rust makes this structurally impossible to get wrong.
 // ─────────────────────────────────────────────────────────────────────────────
 = Borrowing & Lifetimes — Preventing Data Races
 
-== Borrowing — the aliasing rules formalised
+== Borrowing : the aliasing rules formalised
 
 #callout[
-  *Borrowing* is Rust's system for temporary access without transferring ownership. \ It formalises the aliasing rules that C developers know informally but often violate.
+  *Borrowing* is Rust's system for temporary access without transferring ownership. \ This is implemented via References, which are distinct in Rust compiler view. 
+  //  It formalises the aliasing rules that C developers know informally but often violate.
 ]
 
 #v(0.6em)
@@ -510,6 +512,9 @@ Rust makes this structurally impossible to get wrong.
   print_all(&ring.entries);  // another borrow — fine
   // ring is still valid and owned here
   ```
+  #callout(color: rust-red)[
+    *Data Race* = aliasing + mutation + no synchronisation
+  ]
 ][
   *Exclusive (mutable) borrow : `&mut T`*
 
@@ -555,6 +560,12 @@ Lifetimes are the compiler's proof that a reference never outlives the data it p
 #callout[
   In kernel drivers: a reference to a `struct device` inside an interrupt handler *must not outlive the device*. Lifetimes encode and verify this invariant statically. No more `dev_hold()` / `dev_put()` mismatches.
 ]
+
+=== Rust life time in kernel :
+
+//TODO: Life time example for kernel driver 
+//Use the mermaid code blocks from mark down file ( lifetime.md )
+
 
 == Lifetimes prevent data races — the formal proof
 
