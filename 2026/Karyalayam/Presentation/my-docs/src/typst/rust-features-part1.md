@@ -9,8 +9,8 @@ Systems programming is evolving but the core constraints remain the same:
     - hardware control 
     - low-level safety 
 
-- C language has evolved along with this ideas, is the dominant language as it maps closely to hardware and
-  the programs are predictable. 
+- C language has evolved along with this ideas, and is the dominant language as it maps closely to hardware
+  and the programs are predictable. 
 
 - How ever modern systems face a recurring class of issues:
     - Memory safety bugs ( use-after-free, buffer overflow )
@@ -29,20 +29,21 @@ A No-hype disclaimer and Scope:
 This talk focuses on the ongoing evolution in systems programming, and not intended to be a debate about  
 “language war.” 
 
-We are evaluating a tool and not religion. 
+The aim is to evaluating a tool and not religion. 
 
 From an evolutionary rather than revolutionary perspective, Rust should be views as a complementary tool for
 solving specific classes of bugs - particularly spatial and temporal memory safety issues which are
 historically difficult to eliminate in a large C-based codebase. 
 
 The main objective is to analyze technical "why" and "how"  behind Rust's integration into the Linux kernel
-and along with its practical utility for modern systems engineer. 
+and along with its practical utility for modern systems engineer as this matters the most for your companies
+work.
 
 The talk is divided into 3 parts:
 
 Part 1: Introduction to rust as systems programming language 
 
-We will explore what makes rust a systems programming language.
+We will explore what features makes rust a systems programming language.
     - zero-cost abstraction: High level ergonomics without Garbage collection tax 
     - Borrow Checker as static analyzer: Rust moves Use-after-free, Race Conditions from runtime to
       compile-time. 
@@ -50,6 +51,10 @@ We will explore what makes rust a systems programming language.
       enabling seamless FFI interoperability and suitability for BSPs, firmwares and low-level system work.
     - Fearless Concurrency: Rusts type system enforces thread-safety guarantees by design, helping prevents 
       data races in SMP env. 
+    - Hardware/System Fit: #[repr(C)] and Zero-Cost abstractions, proves Rust can "talk" to the hw and the 
+      existing C codebase without overhead.
+      Rust does'nt mess with memory layout unless you ask for it, we can share a struct between C and Rust bit-for-bit."
+    - Borrow checker and Concurrency is what is missing with C.
 
 (These are some of the ideas that has made Rust popular in short time).
 
@@ -57,13 +62,20 @@ Part 2: Rust in Linux kenrnel:
     - Chronological update from initial proposal to current stable ( pinned ) types.
     - Build flow: How rust is integrated into the exisiting kernel build system. 
     - Role of `bindgen` ( generates Rust FFI from C headers)
-    - Abstractions layer: why we do not call C fun's directly but wrap them in safe Rust interfaces.
+    - Abstractions layer: why we do not call C fun's directly but wrap them in safe Rust interfaces. This is
+      for "safety," but to provide idiomatic interfaces that prevent the user of the driver from ever being
+      able to cause a Null pointer dereference or a Use-after-free.
     - Hello world: a brief comparison between rust  `module!` macro vs the traditional `module_init/exit`
       pattern.
     - Adoption Map:
-        Early Adopters: NVMe drivers, DRM abstractions, and Android Binder. 
-        Wait and watch zone: Core MM ( Memory management ) and deeply entrenched legacy subsystem. 
-        Industry Push: google, Microsoft( funding to reduce long tail of security Vulnerabilities), amazon. 
+
+
+| adoption status  | sub-systems  | 
+| :--- | :--- | 
+| Early Adopters: | NVMe drivers, DRM abstractions, and Android Binder. |
+| Wait and watch zone:| Core MM ( Memory management ) and deeply entrenched legacy subsystem. |
+| Industry Push:| google, Microsoft( funding to reduce long tail of security Vulnerabilities), amazon. |
+
 
 Part 3: eBPF programming with Rust 
     - Aya Framework: A purely Rust-based eBPF library that doesn't depend on libbpf or llvm at runtime.
@@ -97,6 +109,20 @@ NOTE:
 Rust design philosophy:
 Rust aims to address many of these challenged by shifting correctness guarantees to the compiler, while
 preserving performance, low-level control, and reliability expected from systems programming. 
+
+In short Rust hits all essential markers of a systems programming language:
+
+    - NO GC: Unlike Java or Python, Rust has no runtime overhead or "stop-the-world" pauses. It manages memory via RAII and a Compile-time Borrow Checker. This ensures deterministic performance and a minimal footprint, making it a viable replacement for C in kernels, drivers, and real-time systems.
+
+    Note: RAII (Refer raii.md)[./raii.md]  ( refer to this doc if some one ask for how it raii works)
+
+    - Zero-Cost Abstractions: Key for systems programmer. It means that high-level features (like iterators, closures, or generics) compile down to the same efficient machine code you would have written by hand in C.i.e compiler is smart enough to "erase" the high-level syntax, leaving only the raw assembly behind.
+
+    - Memory Safety without Overhead: Rust prevents "segmentation faults" and "dangling pointers"—the bane of C/C++—at compile time. It does this through Ownership and Borrowing, which track who "owns" a piece of data and for how long.
+
+    - Bare Metal Capability: Rust can run "No-Std" (without a standard library), making it suitable for microcontrollers, OS kernels, and firmware where there is no operating system to rely on.
+
+    - Fearless Concurrency: In systems programming, multi-threading is necessary but dangerous (leading to data races). Rust’s type system ensures that data cannot be modified by two threads at once, catching race conditions before the code even runs.
 
 ### Slide 2: Memory safety: ( The eternal memory bug)
 
@@ -294,7 +320,7 @@ This slide moves from *permission* ( what you can do ) to **duration** ( how lon
     - Compiler forces a relationship:  `Lifetime(Handler) < Lifetime(Device)` 
 
 - Race to grave: 
-    - In C you might unregister the interrupt, but if a thread is still executing that handler and the 
+    - In C you might un-register the interrupt, but if a thread is still executing that handler and the 
       device memory is freed, the system crashes.
 
     - In Rust, the API for registering a handler can be designed to "borrow" the device. 

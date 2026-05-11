@@ -159,34 +159,18 @@
     \- Direction and practical utility \- 
 ]
 
-//
-// #focus-slide[
-//   #v(0.4em)
-//   #text(fill: rust-red )[_Part 1_] #linebreak()
-//   #text(fill: rgb("#f93"))[Rust as a systems programming language]
-//
-//   #v(0.4em)
-//   #text(fill: rust-red)[_Part 2_] #linebreak()
-//   #text(fill: rgb("#f93"))[Rust in the Linux kernel]
-//
-//   #v(0.4em)
-//   #text(fill: rust-red)[_Part 3_] #linebreak()
-//   #text(fill: rgb("#f93"))[`eBPF` programming with Rust]
-//
-// ]
-
 #focus-slide[
   #v(0.3em)
 
-  #fancy-block[Part \# 1][ Rust as a systems programming language  ][zero-cost abstraction, Borrow checker, memory layout ctrl, Fearless concurrency ]
+  #fancy-block("Part #1", "Rust as a systems programming language","zero-cost abstraction, Borrow checker, memory layout ctrl, Fearless concurrency" )
 
   #v(0.3em)
 
-  #fancy-block[Part \# 2][ Rust in the Linux kernel ][ chronological update, build, adoption map ]
+  #fancy-block("Part #2", "Rust in the Linux kernel", "chronological update, build, adoption map")
 
   #v(0.3em)
 
-  #fancy-block[Part \# 3][ `eBPF` programming with Rust ][Aya framework, observability caseStudy]
+  #fancy-block("Part #3", "eBPF programming with Rust","Aya framework, observability case study")
 ]
 
 // Part 1:
