@@ -239,7 +239,7 @@ This makes resource management error-prone and path-dependent, especially as con
 
 While Rust makes this structurally reliable.
 
-( check at gemini: "what is RAII with respect to linux kernel")
+( check [RAII docuemtnt](./raii.md) )
 
 --- 
 ### slide 5: Borrowing & Lifetimes - Preventing Data Races:

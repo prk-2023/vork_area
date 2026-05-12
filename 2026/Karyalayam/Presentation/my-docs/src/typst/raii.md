@@ -49,7 +49,9 @@ free_mem;`).
 
 * **The Risk:** If you have five different resources to clean up, your `goto` logic must be perfectly
   ordered. One mistake leads to a "Use-After-Free" or a leak.
-* **The Rust Fix:** Rust’s RAII handles this automatically and in the correct reverse order of acquisition. If the function returns early due to an error, the compiler ensures every resource acquired up to that point is cleaned up, and nothing more.
+* **The Rust Fix:** Rust’s RAII handles this automatically and in the correct reverse order of acquisition. 
+  If the function returns early due to an error, the compiler ensures every resource acquired up to that 
+  point is cleaned up, and nothing more.
 
 ### 3. Resource "Guards"
 
