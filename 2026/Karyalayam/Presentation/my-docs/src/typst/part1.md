@@ -391,11 +391,208 @@ This slide moves from *permission* ( what you can do ) to **duration** ( how lon
 
 ### ( Slide #11 : sync and send: thread safety in type system) 
 
-(TODO: talking points sync with slide or update if required )
+- Thread safety is baked into the type system through `marker traits`: `Send` and `Sync`, these traits act
+  as a language's way of proving to the compiler that your data won't cause a data race when moved or shared
+  across threads.
+
+- `Send` trait: Ownership of a value can be safely transferred between threads. 
+
+    - Rule : If a type `T` is `Send`. You can move a value of that type from Tread A to B. 
+    - Primitive types ( i32,f64,bool ,, ) and types composed entirely of `Send` types are automatically
+      `Send`.
+    - exception: Type `Rc<T>` ( reference counted) is not `Send` since the reference count is not updated
+      automatically, moving to another thread could lead to race condition, and cause memory corruption. 
+
+- `Sync` trait: This indicates its safe to share a reference to a value between multiple threads. 
+
+    - Rule: A type `T` is `Sync` if and only if a shared reference `&T` is `Send`.
+    - The Implication: If multiple threads can hold a reference to the same data without causing a data race, that type is `Sync`.
+    - Exception: `RefCell<T>` and `UnsafeCell<T>` are not `Sync`. They allow "interior mutability" without
+      thread-safe synchronization. If two threads tried to borrow the contents of a `RefCell` at the same
+      time, the internal borrow counter would break.
+
+-  relationship between `Send` and `Sync` usually follows a simple logic, but there are distinct difference
+   based on how you handle memory:
+
+| Type | Send | Sync | Reason |
+| --- | --- | --- | --- |
+| **`i32`, `String**` | Yes | Yes | Standard immutable/owned data is safe. |
+| **`Mutex<T>`** | Yes | Yes | Internal locking ensures thread safety. |
+| **`Rc<T>`** | No | No | Non-atomic reference counting is not thread-safe. |
+| **`Arc<T>`** | Yes | Yes | Atomic reference counting makes it safe to share. |
+| **`RefCell<T>`** | Yes | No | Can be moved to a thread, but not shared between them. |
+
+In languages like C++.Java, you can accidentally pass a non-thread safe object to a background thread,
+leading to a crash that only happens "sometimes"
+
+In Rust the compiler checks these traits at compile time:
+- If you try pass `Rc` into `std::thread::spawn` compiler will look for `Send` trait. 
+- Since `Rc` does not implement `Send` the code will not compile. 
+
+Note: `Send` and `Sync` are auto traits => we do not implement them. Compiler automatically grants them to
+your struct if all the fields within that struct also implement them. 
+Manual implementation is only done when handling `raw pointers` in `unsafe` Rust. 
+
+### ( Slide #12 : Compiler )
+
+- When we say Rust is safe we generally are not referring to runtime safety or optional tooling: But we
+  are referring to something more strict:
+  - Rust compiler enforces a large class of system-level correctness rules at compile time, before the
+    program ever runs.
+
+1. Memory Safety — enforced by ownership + borrow checker:
+    - Memory safety is not optional its built into type system it-self.
+    - At compile time it checks:
+        - No user-after-free 
+        - No dangling pointers
+        - No data races
+        - No null dereferences
+        - No uninitialized memory usage
+
+If Code can compile then these class of memory bugs are eliminated.
+These are generally runtime failures or undefined behaviour in C code, which is why it required external
+tools.
+
+2. Type System Guarantees — correctness by construction
+    - Rust’s type system does more than classify data — it encodes correctness rules.
+    - Example: Integer overflow behavior
+        * In debug builds → overflow triggers panic
+        * In release builds → explicit wrapping behavior
+
+Rust prevents silent undefined behavior. You always get a defined, visible outcome.
+Example: Exhaustive pattern matching
+    With enums, Rust forces completeness.
+    ```rust 
+        match direction {
+            DmaDir::ToDevice => { ... },
+            DmaDir::FromDevice => { ... },
+        }
+    ```
+If a new variant like Bidirectional is added, compilation fails until it is handled.
+
+    - The compiler ensures your code stays correct even as the system evolves.
+
+3.  Error Handling — no silent failures
+
+In Rust, error handling is not optional or implicit.
+
+## `Result<T, E>` enforcement
+
+```rust
+#[must_use]
+fn map_dma(...) -> Result<SgTable, DmaError>
+```
+
+If you ignore the result:
+
+```rust
+map_dma(...); // compiler warning
+```
+
+> Rust assumes errors matter — and forces you to acknowledge them.
+
+- In C kernel code, returning `-ENOMEM` and forgetting to check it is a very common class of bugs.
+
+  - Rust eliminates this entire category by design:
+    * `Result` must be handled
+    * compiler warns on discard
+    * APIs explicitly encode failure paths
+
+4. Unsafe Isolation — explicit risk boundary
+
+This is one of the most important design differences from C/C++.
+
+- In Rust:
+    * `unsafe` is not hidden
+    * it is explicitly marked
+    * it creates a visible boundary
+
+```rust
+unsafe { ... }
+```
+
+- Key operational benefit:
+    - Unsafe code becomes searchable and auditable.
+
+Example:
+
+```bash
+grep -r "unsafe"
+```
+
+This gives a complete map of all low-level risk zones.
+
+- Strong guarantee:
+
+> Safe Rust code cannot accidentally call unsafe operations.
+
+This is critical for large codebases:
+    * reduces audit scope
+    * isolates hardware/FFI complexity
+    * prevents accidental undefined behaviour (UB) propagation
+
+5. Key Contrast with C ecosystem
+
+In traditional C development, safety depends on tooling chains such as:
+
+* ASAN / UBSAN
+* clang-tidy
+* sparse
+* Coccinelle
+* GCC sanitizers
+
+But:
+> None of these are mandatory, and none provide complete coverage across all builds and configurations.
+
+---
+
+- Rust’s key difference:
+
+> In Rust, safety is not an add-on. It is the default compilation model.
+
+---
 
 
-### ( Slide #12 : Compiler ) 
+“So the key takeaway is:
+
+Rust compiler is not just a syntax checker — it is a **correctness engine**.
+
+At every build, it enforces:
+
+* Memory safety through ownership rules
+* Type safety through exhaustive checks
+* Error safety through explicit handling
+* Risk isolation through `unsafe` boundaries
+
+Which means:
+
+> If Rust code compiles, a large class of system-level bugs is already eliminated — permanently and 
+consistently across all builds.
+
+---
+
+=> Rust shifts system reliability from runtime debugging and external tooling to compile-time enforcement 
+   by the language itself.
+
+---
+
+### ( Slide #13 : Compiler )
+
+Comparison with C and Rust 
+
+The "?" operator  magic it is a `match result { Ok(v) => v, Err(e) => return Err(e.into) }`
+This is purely compile time transformation.
 
 
+### ( Slide #14 : match : pattern matching )
+
+### ( Slide #15 : Type systems eliminates `NULL`)
 
 
+### ( Slide #16 : Modern Programming concepts )
+
+- traits 
+- Error handling Return<T,E>
+- Fearless Concurrency. ( async channel )
+
+- Performance
