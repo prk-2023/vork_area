@@ -98,31 +98,17 @@
     #text(fill: rgb("#999"), size: 0.63em)[#pts]
   ]
 
+
 // ── MASTER THEME CONFIGURATION ──────────────────────────────────────────────
 // This function wraps the entire document. When you call 'show: setup-presentation',
 // all the logic inside here is applied to your slides.
-#let setup-presentation(title: "", author: "", institution: "",logo: "", doc) = {
+#let setup-presentation(title: "", author: "", institution: "", doc) = {
   
   // Initialize the Metropolis theme logic
   show: metropolis-theme.with(
     aspect-ratio: "16-9",
     footer: self => self.info.institution, // Footer pulled from config-info
-    // ── Background Configuration ──
-    // config-common(
-    //   // This sets the background for all standard slides
-    //   background: if background-img != none {
-    //     // Place the image, usually set to fill the slide
-    //     // 'box' or 'rect' helps with centering and scaling
-    //     set image(width: 100%, height: 100%, fit: "cover")
-    //     //// This adds a white semi-transparent overlay to "wash out" the image
-    //       // rect(width: 100%, height: 100%, fill: white.with(alpha: 80%))
-    //     // You can also add a slight transparency/dimmer here
-    //     block(fill: white.lighten(95%), image(background-img))
-    //   } else {
-    //     none
-    //   }
-    // ),
-    // Map our brand colors into the Metropolis theme engine
+
     config-colors(
       primary: rust-red,
       primary-dark: rust-red.darken(20%),
@@ -140,10 +126,8 @@
       author: author,
       date: datetime.today(),
       institution: institution,
-      logo: logo,
     ),
   )
-
   // GLOBAL STYLING
   // Set the default sans-serif font stack for readability
   set text(font: ("Noto Sans","Noto Sans","Liberation Sans"), size: 15pt)
@@ -161,6 +145,53 @@
   doc
 }
 
+#let hero-slide(
+  img: none, topic-title: "", topic-subtitle: ""
+) = {
+  focus-slide[
+    #place(
+      top + left,
+      dx: 0pt,
+      dy: 0pt,
+      image(
+        img,
+        width: 100%,
+        height: 100%,
+        fit: "cover",
+      )
+    )
+
+    // dark overlay
+    #place(
+      top + left,
+      rect(
+        width: 100%,
+        height: 100%,
+        stroke: none,
+      )
+    )
+
+    #v(54%)
+
+    #align(center)[
+      #text(
+        fill: white,
+        size: 18pt,
+        weight: "bold",
+        style:"italic"
+      )[
+        #topic-title
+      ]
+
+      #text(
+        fill: white,
+        size: 12pt,
+      )[
+        #topic-subtitle
+      ]
+    ]
+  ]
+}
 
 // How to use this theme: 
 // Example file:  rust_intoduction.typ
