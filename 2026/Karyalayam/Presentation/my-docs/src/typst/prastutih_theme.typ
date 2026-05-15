@@ -22,6 +22,7 @@
 #let st-color     = rgb("#A6E3A1")
 #let er-color     = rgb("#F38BA8")
 #let hi-color     = rgb("#FAB387")
+#let skyblue      = rgb("#40A3FF")
 
 // ── UI COMPONENTS & HELPERS ──────────────────────────────────────────────────
 
@@ -98,7 +99,6 @@
     #text(fill: rgb("#999"), size: 0.63em)[#pts]
   ]
 
-
 // ── MASTER THEME CONFIGURATION ──────────────────────────────────────────────
 // This function wraps the entire document. When you call 'show: setup-presentation',
 // all the logic inside here is applied to your slides.
@@ -113,7 +113,7 @@
       primary: rust-red,
       primary-dark: rust-red.darken(20%),
       primary-light: rust-red.lighten(55%),
-      secondary: safe-green,
+      secondary: safe-green, //skyblue, //safe-green,
       neutral-lightest: rgb("#F9F8F6"),
       neutral-light: rgb("#EBEBEA"),
       neutral-dark: rgb("#3A3A3A"),
