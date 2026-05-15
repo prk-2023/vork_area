@@ -70,7 +70,8 @@
     radius: if title != none { (bottom: 5pt) } else { 5pt },
     inset: 12pt,
     width: 100%,
-    text(font: ("Noto Sans","JetBrains Mono","Liberation Mono"), fill: code-fg, size: 0.72em, body)
+    //text(font: ("Noto Sans","JetBrains Mono","Liberation Mono"), fill: code-fg, size: 0.72em, body)
+    text(fill: code-fg, size: 0.72em, body)
   )
 }
 
@@ -130,10 +131,12 @@
   )
   // GLOBAL STYLING
   // Set the default sans-serif font stack for readability
-  set text(font: ("Noto Sans","Noto Sans","Liberation Sans"), size: 15pt)
+  //set text(font: ("Noto Sans","Noto Sans","Liberation Sans"), size: 15pt)
+  set text(size: 15pt)
   
   // Style all raw code blocks globally
-  show raw: set text(font: ("Noto Sans","JetBrains Mono","Liberation Mono"), size: 0.81em)
+  //show raw: set text(font: ("Noto Sans","JetBrains Mono","Liberation Mono"), size: 0.81em)
+  show raw: set text(size: 0.81em)
   
   // Make links match the brand color
   show link: set text(fill: rust-red)
