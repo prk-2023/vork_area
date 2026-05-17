@@ -123,6 +123,7 @@
     
     // Slide metadata
     config-info(
+      logo: image("./rust-r.png", height: 1.5em),
       title: title,
       author: author,
       date: datetime.today(),
@@ -160,19 +161,19 @@
         img,
         width: 100%,
         height: 100%,
-        fit: "cover",
+        fit: "stretch",
       )
     )
 
     // dark overlay
-    #place(
-      top + left,
-      rect(
-        width: 100%,
-        height: 100%,
-        stroke: none,
-      )
-    )
+    // #place(
+    //   top + left,
+    //   rect(
+    //     width: 100%,
+    //     height: 100%,
+    //     stroke: none,
+    //   )
+    // )
 
     #v(54%)
 

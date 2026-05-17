@@ -10,7 +10,7 @@
 
 // Focus slides are specialized Metropolis layouts for big, centered text
 #hero-slide(
-  img: "./Realtek.jpg", 
+  img: "./realtek_icons.png", 
   topic-title: " Introduction to Rust & eBPF with Rust ",
   topic-subtitle: "[Pulumati Ram] 
   [RealTek Semiconductor Corporation]"
@@ -18,11 +18,28 @@
 // Renders the automatic title slide based on the config-info in your theme
 #title-slide()
 
+#focus-slide[
+  #text(size: 1.2em, weight: "bold")[#underline(stroke: 1pt + rust-red)[> Disclaimer <] 
+  ]
+
+  #v(0.8em)
+
+  #text(fill: rgb("#f66"))[
+  Focus on systems evolution, not a language war 
+  ]
+  #line(length: 63%, stroke: 1pt + rust-red)
+  #v(0.5em)
+
+    \- Rust is not here to replace C everywhere \- #linebreak()
+    \- Complementary systems programming tool \- #linebreak() 
+    \- focus on spatial/temporal memory safety bugs. \-
+]
+
 // Another focus slide using the 'fancy-block' helper defined in theme.typ
 #focus-slide[
   #v(0.3em)
 
-  #fancy-block("#1", "Rust as a systems programming language","zero-cost abstraction, Borrow checker, memory layout ctrl, Fearless concurrency, Rust in Linux kernel" )
+  #fancy-block("#1", "Rust as a systems programming language","zero-cost abstraction, borrow checker, memory layout ctrl, fearless concurrency, Rust in Linux kernel" )
 
   #v(0.3em)
 
@@ -66,10 +83,11 @@
   )
 ]
 
-== The eternal memory bug
+== The eternal memory bugs
 
 // Using the 'cols' helper for side-by-side layout
 #cols[
+  #block(fill:luma(220), inset:.5em, radius: .2em, width:100%) 
   *The numbers haven't moved in 20 years*
 
   - *~70 %* of Microsoft CVEs are memory safety bugs
@@ -77,8 +95,10 @@
     
   - *~67 %* of Linux kernel CVEs are memory safety violations
     #ref-badge[Gaynor & Thomas, 2019]
+  
 
 ][
+  #block(fill:luma(220), inset:.5em, radius: .2em, width:100%) 
   *The root causes*
   #table(
     columns: (auto, 1fr),
@@ -89,6 +109,7 @@
     [Buffer overflow], [writing past the end of an allocation],
     [Data race], [two threads accessing shared memory without synchronisation],
   )
+  
 ]
 
 // Three dashes (---) create a new slide while keeping the same title
@@ -104,20 +125,27 @@
     - type-system, compiler.
   ]
 
-== Why Rust:
+== Why Rust and Landscape before Rust ( 3rd programming model )
 
-- Current systems are powerful but they also come with limitations
-- developer centric 
-- Rust meets all the systems programming requirements.
+#cols[
+  *Status :*
 
-== Landscape before Rust:
+  - Current systems are powerful but they also come with limitations 
+    - absolute performance (C/C++) (manual memory mgmt)
+    - absolute safety (Java/python/go) (automatic mem mgmt) 
+  - Developer centric
+  - Rust meets all the systems programming requirements.
+    - 3rd Programming model. ( mem mgmt via Ownership & borrowing )
 
+  ][
+  *Before Rust:*
 
-- GC and fail to meet the needs. 
-- How Rust provides a third programming model to fix this
-- Change from developer centric to languge+compiler mandates
+  - GC and fail to meet the needs. 
+  - How Rust provides a third programming model to fix this
+  - Change from developer centric to languge+compiler mandates
+  ]
 
-== Rust Programming model and feaures:
+== Rust Programming model and feaures: ( summarized )
 
   To solve memory related issues:
   - C/C++ : manual memory management 
@@ -143,87 +171,335 @@
 - Lifetimes 
 - Thread Safety 
 
-== Ownership:
 
-- What is Ownership and its importance. 
-- What are the Ownership rules.
-- Ownership rules and memory management model. 
-- Who enforces these rules ( developer to compiler shift )
+== Ownership : Memory Safety at Compile Time
 
-== Ownership and RAII 
+*The three ownership rules*
 
-- resource acquisition is initialization 
-- key point for its acceptance into Linux kernel 
+#cols[
+  - *Rule 1 : Each value has exactly one owner* 
+  - *Rule 2 : There can only be one owner at a time (ownership can be moved).*
 
-== Borrowing 
+  #codeblock(title: "C : compiles, crashes or corrupts silently")[
+  ```rust
+  let s1 = String::from("hello"); // s1 owns the heap data
+  let s2 = s1;          // ownership MOVES to s2
+  // println!("{}", s1); // ← compile error: s1 was moved
+  ```
+  ]
 
-- trouble Ownership can introduce, and how borrowing helps.
-- references.
-- Borrowing and Its Rules.
-- Features of Borrowing and what it helps fix/prevent.
-- Compiler.
+  The compiler tracks ownership *statically*. No runtime book keeping.
 
-== Borrowing and Lifetimes:
+  - *Rule 3 : When the owner goes out of scope, the value is dropped*
 
-- What is Lifetime.
-- How compiler helps to ensure every reference points to valid memory. 
-- Lifetime annotation (`'a`), ( developer help compiler with additional info on references )
-- compare it with C ( How lifetime lead to no NULLPointer and UAF ).
-- Example Device driver /Bor
+  #codeblock(title: "C : compiles, crashes or corrupts silently")[
+  ```rust
+  {
+      let buf = alloc_dma_buf(); // allocation
+  }   // ← Drop::drop() called HERE, automatically
+      // No free() to forget. No leak possible.
+  ```
+  ]
+][
+#callout[
+  *Rust's ownership system* it's a type theoretic answer to manual memory management. 
+  - It's a memory management model where each value has a single owner at a time, and the Compiler enforces rules about ownership/borrowing/lifetimes. 
+  - Shifts memory safety from a runtime concern (like GC) to a compile time verification handled by the type system. 
+]
+  #callout(color: safe-green)[ -> Shifts memory safety from a runtime concern (like garbage collection) to a compile-time verification problem handled by the type system.
+  ]
+]
 
-== `Sync` and `Send` ( Thread safety )
+== Ownership vs C: use-after-free
 
-- Thread safety is baked into Type system through *marker traits*: `Send` & `Sync`
-- Send trait 
-- Sync trait 
-- How other languages allow passing of non-thread safe object leading to crash (that happen sometimes).
-- `Send` & `Sync` prevent data-race
+Most common kernel CVE class : caught at compile time in Rust.
 
-== Other important concepts:
+#callout[
+  - This is not a bug detection problem.
+  - This is program expressiveness problem. 
+]
 
-- Traits
-- Generics
-- Trait-bounds
-- Smart pointers
-- iterators
-- macros 
-- attributes 
+#cols[
+  #codeblock(title: "C : compiles, crashes or corrupts silently")[
+    ```c
+    struct dma_buf *buf = dma_alloc(dev, size);
+    submit_dma(dev, buf);
 
-= Compiler 
+    kfree(buf);           /* freed */
 
-== Compiler Task: 
+    /* … 500 lines later … */
+    read_completion(buf); /* UAF — undefined behaviour */
+    /* gcc/clang: no warning, no error */
+    ```
+  ]
+][
+  #codeblock(title: "Rust : compile error, zero runtime cost")[
+    ```rust
+    let buf = DmaBuf::alloc(dev, size)?;
+    submit_dma(dev, &buf);
 
-- Memory Safety 
-- TypeSystem Guarantees ( correctness )
-- Error handling ( risk isolation with `unsafe` boundaries )
-- Shift System reliability from runtime debugging and external tooling to compile-time enforcement by the
-  language itself. 
+    drop(buf);            // buf is freed here
 
-==  Rust ecosystem: 
+    // read_completion(&buf);
+    // ^^^ error[E0382]: use of moved value: `buf`
+    //     value used here after move
+    //     |  drop(buf);
+    //     |       --- value moved here
+    ```
+  ]
+]
 
-- Language 
-- Compiler 
-- Cargo
-- tooling
-- crates 
-- docs 
+#callout[
+  - The error message names the *exact line* where the value was moved and the *exact line* of the illegal use, before the code ever runs. 
+  - no `valgrind`, no `KASAN`, no `OEM` execution.
+]
 
-== Linux Kernel 
 
-- Rust is not going to replace C, The strong compile-time correctness helps to meaningfully reduce risks. 
-- Chronological update of Rust in Linux kernel. 
-- No more experimental 
-- Adoption Map.
+== Ownership prevents leaks — RAII ( kernel )
 
-== Concepts useful for kernel/firmware work:
+In C, every error exit path in a driver must remember to call the right cleanup. 
 
-- FFI ( precise control over memory ) Which is key for BPS/Firmware/low-level work.
-- Bitlevel layout control ( Key to access HW registers , MMIO ...)
-- `bindgen` 
-- Abstraction: C functions are not called directly by via wraps in safe Rust interfaces .
-- safe and unsafe encapsulation 
-- For kernel: kernel build flow 
+Rust makes this structurally impossible to get wrong.
 
+#cols[
+  #codeblock(title: "C : common leak pattern")[
+    ```c
+    int my_driver_probe(struct pci_dev *pdev) {
+        void *res_a = alloc_a();
+        if (!res_a) return -ENOMEM;
+
+        void *res_b = alloc_b();
+        if (!res_b) {
+            free_a(res_a);   /* easy to forget */
+            return -ENOMEM;
+        }
+
+        void *res_c = alloc_c();
+        if (!res_c) {
+            free_b(res_b);   /* must remember order */
+            free_a(res_a);   /* and every prior alloc */
+            return -ENOMEM;
+        }
+        /* … */
+    }
+    ```
+  ]
+][
+  #codeblock(title: "Rust : Drop handles every exit path")[
+    ```rust
+    fn my_driver_probe(pdev: &PciDev) -> Result {
+        let res_a = ResourceA::alloc()?;
+        // If this fails, res_a.drop() is called —
+        // even on the ? early return
+
+        let res_b = ResourceB::alloc()?;
+        // res_b drops if res_c fails below
+
+        let res_c = ResourceC::alloc()?;
+
+        // All three are freed in reverse order
+        // automatically when the function returns
+        // — success or failure
+        Ok(MyDriver { res_a, res_b, res_c })
+    }
+    ```
+  ]
+
+]
+#callout(color: safe-green)[
+  - Cleanup is automatic and deterministic via scope exit, each resource implements `Drop`, ensuring release on all return paths.
+  - No explicit error-path cleanup logic required.
+  - Rust turns "developer-managed control flow problem" $->$ "compiler-enforced lifetime and scope rule"
+ // - *Zero `goto` cleanup; chains.* The compiler guarantees cleanup runs on every path. 
+ // - Linux has thousands of `goto err_free_XYZ` labels that this eliminates.
+]
+
+
+
+// ──────────────────────
+//  BORROWING & LIFETIMES
+// ──────────────────────
+= Borrowing & Lifetimes — Preventing Data Races
+
+== Borrowing : the aliasing rules formalised
+
+#callout[
+  *Borrowing* is Rust's system for temporary access without transferring ownership. \ This is implemented via References, which are distinct in Rust compiler view. 
+  //  It formalises the aliasing rules that C developers know informally but often violate.
+]
+
+#v(0.6em)
+
+#cols[
+  *Shared (immutable) borrows : `&T`*
+
+  - Multiple readers can coexist
+  - None can write while readers exist
+  - Maps to: read-lock held, RCU read section
+
+  ```rust
+  fn print_all(items: &[DmaEntry]) { /* read-only */ }
+
+  let ring = RingBuffer::new(256);
+  print_all(&ring.entries);  // borrow
+  print_all(&ring.entries);  // another borrow — fine
+  // ring is still valid and owned here
+  ```
+  #callout(color: rust-red)[
+    *Data Race* = aliasing + mutation + no synchronisation
+  ]
+][
+  *Exclusive (mutable) borrow : `&mut T`*
+
+  - *One* writer, *no* concurrent readers
+  - Maps to: write-lock held, spinlock held
+
+  ```rust
+  fn add_entry(ring: &mut RingBuffer, e: DmaEntry) {
+      ring.entries.push(e); // exclusive access
+  }
+
+  let mut ring = RingBuffer::new(256);
+  add_entry(&mut ring, entry);
+  // `ring` is fully accessible again after add_entry returns
+  ```
+
+  #callout(color: safe-green)[
+    The compiler *proves* that at any point in the program, either *one writer* or *N readers* holds access to any memory location, but never both. This is the data race freedom guarantee.
+  ]
+]
+
+== Lifetimes — dangling pointers eliminated
+
+Lifetimes are the compiler's proof that a reference never outlives the data it points to. Named by the programmer, verified by the borrow checker.
+
+#codeblock(title: "Dangling pointer caught at compile time")[
+  ```rust
+  fn get_ptr() -> &str {           // ← error: missing lifetime
+      let local = String::from("DMA buffer");
+      &local   // ← would return pointer to stack data
+  }  // `local` dropped here — pointer would dangle
+
+  // Rust requires an explicit lifetime annotation that proves
+  // the returned reference lives as long as the input:
+  fn longest<'a>(x: &'a str, y: &'a str) -> &'a str {
+      if x.len() > y.len() { x } else { y }
+  }
+  // 'a = "the output lives at least as long as both inputs"
+  // If this invariant cannot be satisfied, the code does not compile.
+  ```
+]
+
+#callout[
+  In kernel drivers: a reference to a `struct device` inside an interrupt handler *must not outlive the device*. Lifetimes encode and verify this invariant statically. No more `dev_hold()` / `dev_put()` mismatches.
+]
+
+
+== Important additional concepts:
+
+Additional topics that are for those who want to go down the rabbit hole: 
+
+- *Traits*: Rust's explicit code interfaces, defining shared behavior across different data types.
+
+- *Generics*: Compile-time templates that allow you to write algorithms that work with multiple data types
+  without code duplication, evaluated entirely at build time.
+
+- *Trait-bounds*: Compile-time constraints on generics, allowing you to tell the compiler: 
+  'This generic function only works on types that implement a specific hardware interface or trait.'
+
+- *Smart pointers*: Custom data structures that act like pointers but wrap raw memory with automatic 
+  lifecycle tracking, like managing a reference-counted memory region.
+
+- *iterators*: Highly optimized, composable pointer-traversal abstractions that let you loop through arrays 
+  or ring buffers safely without raw index pointer arithmetic.
+
+- *macros*: Code-generation tools that compile down at build time, allowing you to write highly expressive 
+  code without incurring any runtime or performance overhead.
+
+- *attributes*:  Declarative metadata attached to your code, used for things like conditional compilation for 
+  different processor targets or forcing explicit struct packing layout alignment.
+// - Traits
+// - Generics
+// - Trait-bounds
+// - Smart pointers
+// - iterators
+// - macros 
+// - attributes 
+
+// ───────────────────
+//  4. COMPILER CHECKS
+// ───────────────────
+
+= Compiler Checks — Beyond Memory Safety
+
+== What the Rust compiler verifies at every build
+
+#cols[
+  *Memory safety* (previous sections)
+  - No use-after-free
+  - No dangling references
+  - No data races
+  - No null dereferences (`Option<T>` instead of `NULL`)
+  - No uninitialized reads (all fields must be initialised)
+
+  *Type system*
+  - Integer overflow in debug builds → panic (not UB)
+  - Exhaustive `match` — all enum variants handled
+    ```rust
+    match direction {
+        DmaDir::ToDevice   => { … },
+        DmaDir::FromDevice => { … },
+        // error if DmaDir::Bidirectional not handled
+    }
+    ```
+][
+  *Error handling*
+  - `Result<T, E>` — ignoring an error is a *compiler warning*
+    ```rust
+    #[must_use = "this Result must be handled"]
+    fn map_dma(...) -> Result<SgTable, DmaError> { … }
+
+    map_dma(dev, sg, nents); // warning: unused Result
+    // The kernel C equivalent: silently dropping -ENOMEM
+    ```
+  - `Option<T>` — no null, no null-deref
+
+  *Unsafe quarantine*
+  - `unsafe { }` blocks are *explicitly marked*
+  - `grep -r "unsafe"` gives the *complete* audit surface
+  - Safe code cannot call `unsafe` functions accidentally
+
+  #callout[
+    In C, all of the above require separate tools: ASAN, UBSAN, sparse, Coccinelle, clang-tidy, GCC sanitizers — none of them are mandatory, and none are exhaustive.
+  ]
+]
+
+==  ecosystem: 
+
+#callout[
+  - Unlike C, where langauge/compiler/build system are seperate.
+  - Rust rejects this fragmented approach and provides an entire unified development platform out of the box.
+]
+- Cargo ( Build system, package manager, test runner, doc generator all in one )
+- tooling ( rustfmt, clippy )
+- crates ( crate.io central repo)
+- docs   ( docs.rust-lang.org)
+
+// == Linux Kernel 
+//
+// - Rust is not going to replace C, The strong compile-time correctness helps to meaningfully reduce risks. 
+// - Chronological update of Rust in Linux kernel. 
+// - No more experimental 
+// - Adoption Map.
+//
+// == Concepts useful for kernel/firmware work:
+//
+// - FFI ( precise control over memory ) Which is key for BPS/Firmware/low-level work.
+// - Bitlevel layout control ( Key to access HW registers , MMIO ...)
+// - `bindgen` 
+// - Abstraction: C functions are not called directly by via wraps in safe Rust interfaces .
+// - safe and unsafe encapsulation 
+// - For kernel: kernel build flow 
 
 = eBPF 
 
