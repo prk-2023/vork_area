@@ -503,13 +503,46 @@ Additional topics that are for those who want to go down the rabbit hole:
 
 = eBPF 
 
+- overview.
+- Rust features for eBPF programs.
+- Aya 
 
-== Introduction eBPF with Rust.
+== Rust for eBPF programming:
 
-- With official support in kernel and possible to experiment Rust with eBPF.
-- eBPF bytecode verifier. 
-- Crates and current status. 
+#callout[
+  - Kernel does not care the bytecode is generated from C/Rust/Go/Zig.\ Rust is chosen for its type system & owenership model which make is safe and align with eBPF verifier's strict rules, reducing time and frustration. 
+]
+#cols[
+  eBPF Bytecode generation is mainly about:
+  - Predictable low level compilation 
+  - Restricted Runtime behavior 
+  - Controllable Memory Model 
+  - Ability to Target the BPF Backend in LLVM. 
+][
 
+  #table(
+    columns: (1fr, 1fr),
+    stroke: (x: 0.4pt + rust-red.lighten(25%), y: 0.4pt + rust-red.lighten(25%)),
+    inset: (left: 9pt, top: 4pt, bottom: 7pt, right: 0pt),
+    [ *Rust Feature*           ],[    ],
+    [ Native compilation     ],[ Yes    ],
+    [ _no_std_, _no_main_    ],[ Yes    ],
+    [ No mandatory runtime   ],[ Yes    ],
+    [ No GC                  ],[ Yes    ],
+    [ Memory safety          ],[ Yes    ],
+    [ LLVM support           ],[ Yes    ],
+    [ Low-level control      ],[ Yes    ],
+    [ Deterministic behavior ],[ Mostly ]
+  )
+]
+#callout[
+  - small runtime footprint, deterministic execution, compile-time safety, LLVM BPF backend support
+  - makes Rust more practical to write eBPF programs then others.
+]
+// #callout[
+//   - Programming eBPF with Rust: Fast path for kernel developers to become familiar with Rust, shared tooling and abstraction. 
+// ]
+//
 ==  `eBPF` CO-RE overview 
 
 - Recap of eBPF ( libbpf/ CO-RE )

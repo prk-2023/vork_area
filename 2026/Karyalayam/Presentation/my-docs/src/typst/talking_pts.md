@@ -883,3 +883,98 @@ And these tools are not mandatory and they are not unified and they dont cover 1
   toolchain target automatically. 
 
 
+---
+
+## slide 20: eBPF
+
+We will not be covering what eBPF is and what existing workflows are in use, these are covered
+excellently in earlier presentations :
+The idea here to explore what changes when we bring Rust into the eBPF ecosystem:
+we can look at what stays same, what actually improves, what are new trade-offs, And this would give a us
+idea if Rust meaningfully improves eBPF development workflow.
+
+As Rust increasingly getting production ready for systems programming, eBPF is a practical way to
+experiment with Rust in Kernel-adjacent environment with out modifying the kernel itself. 
+
+With Rust or C, eBPF programming is interesting:
+- we sill interact with kernel internals 
+- still deal with same verifier constrains 
+- still operate in constrained execution environment 
+Rust allows to do it with safer tooling and modern language. 
+
+The areas I feel is worth the try for writing eBPF with Rust are:
+- you deal with a single language for both eBPF and user-space loader code which translates to less 
+friction between :
+    - ABI mismatches: No more alignment or padding between different compiler outputs. 
+    - map definitions: Maps are strongly types and verified at compile time.
+    - user-space and kernel-space synchronisation: A single data layout can be shared between both
+      world. 
+    - Tooling complexity, no more multi compiler pipelines.
+
+The strict compiler check, should reduce the kernel eBPF Verifier to more friendly.
+Rusts aggressive compile time checks helps in catching wide range of logical and memory geometry errors
+before the code ever reaches the kernel. 
+
+--- 
+
+## slide 21: Introduction to eBPF with Rust:
+
+  eBPF Bytecode generation is mainly about:
+  - Predictable low level compilation 
+  - Restricted Runtime behavior 
+  - Controllable Memory Model 
+  - Ability to Target the BPF Backend in LLVM 
+  - Compared with many languages, Rust eco
+  
+Programming eBPF with Rust: Fast path for kernel developers to become familiar with Rust, shared tooling and abstraction. 
+
+
+Talking points: 
+
+Before we go ahead in writing eBPF programs with Rust, we look if its fits the stringent requirements of
+eBPF programs. 
+
+And its is to note that we can generate bytecode using any langauge C/Rust/Go/Zig.
+the only requirement is to generate bytecode that:
+
+- As eBPF code runs inside kernel space the code cannot emit unpredictable branches or complex runtime
+hooks. It has to map closely to BPF instruction set ( 11 64-bit registers, 1 PC, and 512 bytes stack ), C
+or Rust the compiler must output tight deterministic bytecode that kernel can easily parse. 
+
+- bytecode generation must respect boundaries that the kernel verifier will later enforce such as:
+ no loops unless they are proven to terminate (bounded loops ), no unreachable code, strict limits on
+ program size ( instruction count ), Compiler must structure bytecode such that its does not get
+ rejected by verifier. 
+
+- eBPF has no arbitrary Heap allocation  at runtime, memory access is rigidly constrained to:
+    - A tiny 512 byte stack.
+    - pre-defined maps (key:val pairs for sharing data)
+    - Context pointer ( like network packet or tracepoint data) passed directly by the kernel.
+    
+  Bytecode generation must strictly adhere to these memory boundaries. 
+  Any attempt to dereference a wild pointer will cause the verifier to fail the program. 
+
+- Ability to Target the BPF Backend in LLVM: eBPF bytecode generation is possible because LLVM includes a dedicated BPF target backend.
+    - Clang (C) uses LLVM to emit BPF bytecode.
+    - rustc (Rust) also uses LLVM as its backend, meaning it can target `bpfel-unknown-none` or `bpfeb-unknown-none`.
+
+=> kernel doesn't know, nor does it care, if that bytecode originated from C, Rust, or Zig.
+  Rust is chosen simply because its type system and ownership model make it excellent at writing safe
+  code that inherently aligns with the eBPF verifier's strict rules, reducing development frustration.
+
+Table highlights features that make Rust attractive to write eBPF programs.
+- Native compilation: `rustc` uses LLVM, it can seamlessly hook into the LLVM BPF backend to emit target-specific bytecode ( `bpfel-unknown-none` ).
+
+- `no_std`, `no_main`:  eBPF has no standard library, no os abstraction layer, and no standard main entry point. Programs must be freestanding, injecting directly into kernel hooks.
+
+- no GC, bytecode must be  deterministic, GC adds pauses. 
+
+- compile-time borrow checker enforces pointer safety before the code even reaches the LLVM backend. Reduces the frustration of writing low-level code only to have the kernel verifier reject it for unsafe memory access.
+
+- When it comes to deterministic behaviour, Rust gives incredible low-level control, but developers still have to be careful not to introduce panics (like out-of-bounds array indexing). 
+  In a standard binary, a panic prints a backtrace and exits; in an eBPF context, a potential panic path will cause cause the kernel verifier to reject the program entirely. 
+  
+  Aya solve this by forcing you to use verifier-safe alternatives.
+
+
+
