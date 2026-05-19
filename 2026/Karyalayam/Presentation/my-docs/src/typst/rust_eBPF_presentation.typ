@@ -504,8 +504,14 @@ Additional topics that are for those who want to go down the rabbit hole:
 = eBPF 
 
 - overview.
-- Rust features for eBPF programs.
+- Why Rust for eBPF programsay999(1(1, 2, 3).
 - Aya 
+
+== Overview: 
+
+- eBPF process 
+- source -> bytecode -> loader -> attach .. 
+
 
 == Rust for eBPF programming:
 
@@ -524,7 +530,7 @@ Additional topics that are for those who want to go down the rabbit hole:
     columns: (1fr, 1fr),
     stroke: (x: 0.4pt + rust-red.lighten(25%), y: 0.4pt + rust-red.lighten(25%)),
     inset: (left: 9pt, top: 4pt, bottom: 7pt, right: 0pt),
-    [ *Rust Feature*           ],[    ],
+    [ *Rust Feature*         ],[ ---    ],
     [ Native compilation     ],[ Yes    ],
     [ _no_std_, _no_main_    ],[ Yes    ],
     [ No mandatory runtime   ],[ Yes    ],

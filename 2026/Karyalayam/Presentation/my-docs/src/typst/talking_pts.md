@@ -7,9 +7,9 @@
 
 Good Afternoon, 
 
-Today we’ll be looking at the Rust programming language which has turning to be a new tool in systems 
-programming toolbox.Specifically we'll explore why its has gained popularity for delivering memory safety 
-without sacrificing performance.
+Today we’ll be looking at the Rust programming language from the point of systems programming and how its
+becoming a new tool for systems programming toolbox.Specifically we'll explore why its has gained popularity for delivering memory safety 
+without sacrificing performance. 
 
 Rust is a general-purpose language, but it fits perfectly into the systems programming domain occupying the
 exact same space as C, it give direct control over memory layout, compiles straight to machine code and has
