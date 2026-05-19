@@ -75,6 +75,22 @@
   )
 }
 
+#let pipe-box(n, title, body, color: ebpf-teal) = block(
+  fill:   color.lighten(90%),
+  stroke: 0.5pt + color,
+  radius: 6pt,
+  inset:  10pt,
+  width:  100%,
+  stack(dir: ltr, spacing: 8pt,
+    circle(fill: color, radius: 9pt,
+      align(center + horizon,
+        text(fill: white, size: 0.65em, weight: "bold", str(n)))),
+    stack(dir: ttb, spacing: 3pt,
+      text(size: 0.75em, weight: "bold", fill: color, title),
+      text(size: 0.68em, fill: luma(40%), body),
+    ),
+  ),
+)
 // Inline syntax highlighting helpers (usage: #kw[fn], #cm_[// comment])
 #let kw(t)  = text(fill: kw-color,  raw(t))
 #let cm_(t) = text(fill: cm-color,  raw(t))
