@@ -23,6 +23,7 @@
 #let er-color     = rgb("#F38BA8")
 #let hi-color     = rgb("#FAB387")
 #let skyblue      = rgb("#40A3FF")
+#let ebpf-teal   = rgb("#0D7377")
 
 // ── UI COMPONENTS & HELPERS ──────────────────────────────────────────────────
 
