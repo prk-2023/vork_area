@@ -512,12 +512,8 @@ Additional topics that are for those who want to go down the rabbit hole:
 
 == Quick Overview: 
 
-- eBPF process 
-- source -> bytecode -> loader -> attach .. 
- 
-== What is eBPF?
-
-#cols[
+#cols(
+  [
   *eBPF: in one sentence*
 
   `eBPF` is a Linux Kernel model that lets you load user-supplied programs into the kernel *without a kernel patch, without a module, and without rebooting*, the kernel verifier guarantees safety.
@@ -530,25 +526,29 @@ Additional topics that are for those who want to go down the rabbit hole:
   4. *Attach* — hook point (kprobe, tracepoint, XDP, LSM, …) fires on event
 
   #callout[
-    If the verifier accepts the program, it *cannot* crash the kernel, infinite-loop, or access out-of-bounds memory. This is a formal proof, not a heuristic.
+  If the verifier accepts the program, it *cannot* crash the kernel ( checks for infinite-loop, or access out-of-bounds memory... more)
   ]
-][
-  *Common Hook types that are used*
+  ],[
+  #image("./ebpf_plumbing.png")
+  // *Common Hook types that are used*
+  //
+  // #table(
+  //   columns: (auto, 1fr),
+  //   stroke: (x: none, y: 0.3pt + luma(220)),
+  //   inset: (y: 5pt),
+  //   [`kprobe` / `kretprobe`], [any kernel function entry/return],
+  //   [`tracepoint`], [stable kernel trace points],
+  //   [`tp_btf`], [typed tracepoints — CO-RE friendly],
+  //   [`perf_event`], [hardware PMU counters],
+  //   [`xdp`], [NIC fast path — pre network stack],
+  //   [`lsm`], [Linux Security Module hooks],
+  //   [`cgroup_skb`], [per-cgroup packet filtering],
+  //   [`raw_tp`], [raw tracepoints — lowest overhead],
+  // )
+], 
+ratio: (1.5fr, 0.7fr),
+)
 
-  #table(
-    columns: (auto, 1fr),
-    stroke: (x: none, y: 0.3pt + luma(220)),
-    inset: (y: 5pt),
-    [`kprobe` / `kretprobe`], [any kernel function entry/return],
-    [`tracepoint`], [stable kernel trace points],
-    [`tp_btf`], [typed tracepoints — CO-RE friendly],
-    [`perf_event`], [hardware PMU counters],
-    [`xdp`], [NIC fast path — pre network stack],
-    [`lsm`], [Linux Security Module hooks],
-    [`cgroup_skb`], [per-cgroup packet filtering],
-    [`raw_tp`], [raw tracepoints — lowest overhead],
-  )
-]
 
 == eBPF maps — the data bridge
 
@@ -572,7 +572,7 @@ Additional topics that are for those who want to go down the rabbit hole:
     [`ARRAY`], [fixed-size indexed data],
   )
 ][
-  *Ring buffer — the preferred choice*
+  *Ring buffer : the preferred choice*
 
   #ref-badge[Introduced: Linux 5.8 — BPF_MAP_TYPE_RINGBUF]
 
@@ -580,8 +580,9 @@ Additional topics that are for those who want to go down the rabbit hole:
   - Single contiguous allocation — cache-friendly
   - `epoll` / `AsyncFd` compatible — Tokio-native in Aya
   - Dropped-event counter exposed to userspace for monitoring
-  - *In Aya*: `#[map] static EVENTS: RingBuf = RingBuf::with_byte_size(4 * 1024 * 1024, 0);`
-
+  - #codeblock(title: "In Aya")[
+  `#[map] static EVENTS: RingBuf = RingBuf::with_byte_size(4 * 1024 * 1024, 0);`
+]
   #callout[
     Prefer `RINGBUF` over `PERF_EVENT_ARRAY` for all new work — lower overhead, simpler consumer, no per-CPU complexity.
   ]
@@ -610,9 +611,11 @@ Additional topics that are for those who want to go down the rabbit hole:
 ][
   *Type safety across the kernel boundary*
 
-  The most expensive eBPF bug class in C: a map struct definition in the BPF program and the userspace loader that silently diverge.
+  The most expensive eBPF bug class in C: a *map* `struct` definition in the BPF program and the userspace loader that silently diverge.
 
+#codeblock()[
   ```c
+
   // BPF program (C):
   struct event { u64 ts; u32 pid; };
   bpf_ringbuf_output(&rb, &e, sizeof(e), 0);
@@ -621,58 +624,93 @@ Additional topics that are for those who want to go down the rabbit hole:
   struct event { u64 ts; u64 pid; }; // u64 ≠ u32 !
   // Reads wrong data — no compile error, no warning
   ```
+]
 
-  *Aya's solution*: one `#[no_std]` *common crate*, compiled for both targets. The struct is defined *once*. Layout disagreement is a *compile error*, not a runtime bug.
+  *Aya's solution*: one `#[no_std]` *common crate*, compiled for both targets. The `struct` is defined *once*. Layout disagreement is a *compile error*, not a runtime bug.
 
   #callout(color: rust-red)[
     This is the highest-value safety property of Rust for eBPF — not just memory safety in the BPF program, but *type-safe communication across the kernel/userspace boundary*.
   ]
 ]
 
-== The bytecode generation question
+== Key differences: 
+
+#cols[
+1. C based workflows:
+  - *No strong cross-boundary sharing:*
+    - Kernel side struct definition 
+    - User space struct definition 
+  Are duplicated manually.
+    - Even using common headers, they are not enforced across compilation targets.
+
+2. *No compiler-level guarantee of ABI consistency:*
+  - Same struct in two places can silently diverge:
+    - padding differences
+    - type changes (u32 vs u64)
+    - ordering changes
+  C will still compile fine.
+3. *Weak enforcement of "single source of truth"*
+  - can centralize headers
+    but nothing forces user-space and BPF-side builds to stay in sync.
+][
+  - Rust’s advantage one shared type definition across both worlds and enforced by the compiler.
+  - ABI mismatches become compile-time errors.
+#callout[
+'C can absolutely run in a no_std-like environment, but the real challenge is the lack of compile-time enforcement that kernel and user-space agree on data layouts and interfaces.'
+]
+]
+
+== Bytecode Generation with Rust: 
 
 #cols[
   *C eBPF toolchain*
 
-  ```
-  program.bpf.c
-       │
-       │  clang -target bpf -O2 -g
-       ▼
-  program.bpf.o     ← ELF with BPF bytecode + BTF
-       │
-       │  bpftool gen skeleton
-       ▼
-  program.skel.h    ← generated C loader
-       │
-       │  gcc / clang (host)
-       ▼
-  program             ← userspace binary
-  ```
+#codeblock(title: "C to bytecode")[
+```c
+program.bpf.c
+     │
+     │  clang -target bpf -O2 -g
+     ▼
+program.bpf.o     ← ELF with BPF bytecode + BTF
+     │
+     │  bpftool gen skeleton
+     ▼
+program.skel.h    ← generated C loader
+     │
+     │  gcc / clang (host)
+     ▼
+program             ← userspace binary
+```
+]
 
-  *What you need*: clang + LLVM (BPF backend) + bpftool + libelf + libbpf. C toolchain mandatory for the BPF program even if userspace is Rust (libbpf-rs).
+  What you need: 
+  - *clang + LLVM (BPF backend) + bpftool + libelf + libbpf*. 
+  - C toolchain mandatory for the BPF program even if userspace is Rust (libbpf-rs).
 ][
   *Rust / Aya toolchain*
 
+#codeblock(title: "Rust to bytecode")[
+```
+program-ebpf/src/main.rs    (eBPF side)
+program-common/src/lib.rs   (shared types)
+program/src/main.rs         (userspace side)
+     │
+     │  rustc --target bpfel-unknown-none
+     │  + bpf-linker (LLVM BPF backend)
+     ▼
+ELF object (embedded via include_bytes_aligned!)
+     │
+     │  cargo build (host)
+     ▼
+program             ← single self-contained binary
   ```
-  program-ebpf/src/main.rs    (eBPF side)
-  program-common/src/lib.rs   (shared types)
-  program/src/main.rs         (userspace side)
-       │
-       │  rustc --target bpfel-unknown-none
-       │  + bpf-linker (LLVM BPF backend)
-       ▼
-  ELF object (embedded via include_bytes_aligned!)
-       │
-       │  cargo build (host)
-       ▼
-  program             ← single self-contained binary
-  ```
+]
 
-  *What you need*: rustc (nightly) + bpf-linker. *No clang, no bpftool, no libelf, no C toolchain.* The BPF ELF is embedded in the userspace binary — one artifact to deploy.
+  What you need: 
+  - *rustc (nightly) + bpf-linker*. ( no `clang`, no `bpftool`, no `libelf`, no `C` toolchain. The BPF ELF is embedded in the userspace binary: single artifact to deploy. )
 
   #callout[
-    Aya does not wrap libbpf — it is a *pure-Rust reimplementation* of the BPF syscall layer, built on `libc` only.
+    Aya does not wrap `libbpf`: it is a *pure-Rust reimplementation* of the BPF syscall layer, built on `libc` only.
     #ref-badge[github.com/aya-rs/aya — "built from the ground up purely in Rust"]
   ]
 ]
@@ -680,7 +718,7 @@ Additional topics that are for those who want to go down the rabbit hole:
 // ─────────────────────────────────────────────────────────────────────────────
 //  3. THE eBPF PIPELINE
 // ─────────────────────────────────────────────────────────────────────────────
-= The eBPF Pipeline — Source to Running Hook
+= The eBPF Pipeline : Source to Running Hook
 
 == Five stages from source to attached program
 
@@ -704,9 +742,13 @@ Additional topics that are for those who want to go down the rabbit hole:
   *Stage 1 — Write*
 
   - Declare maps at crate/file level with attributes
+
   - Annotate functions with hook type (`#[kprobe]`, `#[tracepoint]`, …)
+
   - Call BPF helpers (`bpf_ktime_get_ns`, `bpf_get_current_comm`, …)
+
   - Access kernel struct fields via CO-RE macros
+
   - Share event struct definition with userspace via common crate / header
 ][
   *Stage 5 — Attach (detail)*
@@ -717,8 +759,654 @@ Additional topics that are for those who want to go down the rabbit hole:
   - `tracepoint`: attach to `subsystem/event_name` in tracefs
   - `xdp`: attach to a network interface by name
   - `lsm`: attach to a specific LSM hook name
-  - *Aya*: the attachment is a Rust struct implementing `Drop` — RAII cleanup guaranteed, even on panic paths.
+
+  - *Aya*: the attachment is a Rust struct implementing `Drop` trait. RAII cleanup guaranteed, even on panic paths.
 ]
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  HOW libbpf HANDLES EACH STAGE
+// ─────────────────────────────────────────────────────────────────────────────
+= The libbpf Approach — Stage by Stage
+
+== libbpf: write & compile
+
+#cols[
+  *Stage 1 — Write (C)*
+
+#codeblock(title: "program.bpf.c")[
+  ```c
+  #include "vmlinux.h"          // all kernel types in one header
+  #include <bpf/bpf_helpers.h>
+  #include <bpf/bpf_tracing.h>
+
+  // Map declaration — section name encodes type
+  struct {
+      __uint(type, BPF_MAP_TYPE_RINGBUF);
+      __uint(max_entries, 4 * 1024 * 1024);
+  } events SEC(".maps");
+
+  // Shared event struct — must match userspace manually
+  struct dma_event { u64 start_ns; u32 nents; u32 pid; };
+
+  // Hook attribute — clang section magic
+  SEC("kprobe/dma_map_sg")
+  int BPF_KPROBE(dma_map_sg_enter, …) {
+      struct dma_event e = {};
+      e.start_ns = bpf_ktime_get_ns();
+      // …
+      bpf_ringbuf_reserve(&events, sizeof(e), 0);
+      return 0;
+  }
+  char LICENSE[] SEC("license") = "GPL";
+  ```
+]
+][
+  *Stage 2 — Compile (C toolchain)*
+
+#codeblock(title: "Generate vmlinux.h: kernel types from BTF file")[
+  ```bash
+  # Generate vmlinux.h — all kernel types from BTF
+  bpftool btf dump file /sys/kernel/btf/vmlinux \
+      format c > vmlinux.h
+
+  # Compile BPF source to BPF ELF object
+  # -target bpf:  BPF bytecode output
+  # -g:           embed BTF debug info (CO-RE)
+  # -O2:          required: some BPF features need optimisation
+  clang -target bpf -g -O2 \
+      -D__TARGET_ARCH_x86 \
+      -I. \
+      -c program.bpf.c \
+      -o program.bpf.o
+
+  # Inspect the result
+  llvm-objdump -d program.bpf.o   # disassemble BPF bytecode
+  bpftool btf dump file program.bpf.o  # verify BTF is present
+  ```
+]
+
+  The output `program.bpf.o` is a standard ELF file containing:
+  - `.text` section: BPF bytecode instructions
+  - `.BTF` section: type information for CO-RE
+  - `.maps` section: map definitions
+  - Relocation sections for helper calls
+]
+
+== libbpf: skeleton generation & loading
+
+#cols[
+  *Stage 2b — Generate skeleton (optional but recommended)*
+
+#codeblock(title: "Auto generate type-safe C loader header")[
+  ```bash
+  # Auto-generate a type-safe C loader header
+  bpftool gen skeleton program.bpf.o \
+      > program.skel.h
+  ```
+]
+
+  The generated `program.skel.h` provides:
+
+#codeblock(title: "program.skel.h")[
+  ```c
+  struct program_bpf {
+      struct bpf_object_skeleton *skeleton;
+      struct bpf_object *obj;
+      struct {
+          struct bpf_map *events;  // typed map access
+      } maps;
+      struct {
+          struct bpf_program *dma_map_sg_enter;
+      } progs;
+      struct {
+          struct bpf_link *dma_map_sg_enter;
+      } links;
+  };
+  // Auto-generated lifecycle functions:
+  // program__open()  program__load()
+  // program__attach() program__destroy()
+  ```
+]
+][
+  *Stage 3 — Load & Stage 4 verify (C userspace)*
+
+#codeblock(title: "")[
+  ```c
+  #include "program.skel.h"
+  struct program_bpf *skel;
+
+  // Open: parse ELF, discover maps and programs
+  skel = program__open();
+
+  // (optional) pre-load configuration:
+  skel->rodata->min_latency_ns = 1000;
+
+  // Load: create maps, CO-RE relocations, submit to kernel verifier
+  program__load(skel);
+  // At this point: kernel has verified and JIT'd the program.
+  // Maps are created and their fds are in skel->maps.*
+
+  // Attach: link programs to hook points
+  program__attach(skel);
+  // dma_map_sg_enter now fires on every dma_map_sg() call
+  ```
+]
+  - *CO-RE relocation* happens inside `__load()`: `libbpf` reads `/sys/kernel/btf/vmlinux`, patches field offsets in the BPF bytecode to match the running kernel's struct layout.
+  - The skeleton collapses open + load + attach into three typed function calls. Without skeleton: you call `bpf_object__open()`, iterate programs, call `bpf_program__load()` per program, then `bpf_program__attach()` — verbose and untyped.
+]
+
+== libbpf: maps & teardown
+
+#cols[
+  *Maps from the C userspace side*
+
+#codeblock(title: "Map from user space")[
+  ```c
+  // Access map fd from skeleton
+  int map_fd = bpf_map__fd(skel->maps.events);
+
+  // Ring buffer consumer (callback model)
+  struct ring_buffer *rb = ring_buffer__new(
+      map_fd, handle_event, NULL, NULL);
+
+  // Poll — blocks until events or timeout
+  while (running) {
+      ring_buffer__poll(rb, 100 /* timeout ms */);
+  }
+
+  // Callback invoked per event
+  static int handle_event(void *ctx,
+      void *data, size_t size) {
+      struct dma_event *e = data;
+      printf("pid=%u latency=%.3f µs\n",
+             e->pid,
+             (e->end_ns - e->start_ns) / 1000.0);
+      return 0;
+  }
+  ```
+]
+][
+  *Stage 5 teardown (C)*
+
+  #codeblock(title: "")[
+  ```c
+  // Teardown — must be called explicitly
+  ring_buffer__free(rb);
+  program__detach(skel);    // closes bpf_link fds
+  program__destroy(skel);   // frees maps, programs, object
+
+  // If __destroy() is not called:
+  // - Maps leak until process exits
+  // - Programs may stay attached if link pinned to bpffs
+  // - No compiler warning, no safety net
+  ```
+  ]
+
+  *Deployment dependencies*
+
+  To ship a libbpf-based tool you need:
+  - `libbpf.so` (or static `libbpf.a`) on the target
+  - `libelf.so` (required by libbpf)
+  - `libz.so` (required by libelf)
+  - The `program.bpf.o` object file *or* embed it via skeleton
+
+  #callout(color: warn-amber)[
+    On Android or embedded targets: managing `.so` dependencies across OEM kernel variants is a real distribution problem. This is exactly what Aya solves.
+  ]
+]
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  5. HOW AYA HANDLES EACH STAGE
+// ─────────────────────────────────────────────────────────────────────────────
+= How Rust (Aya) Handles Each Stage
+
+== Stage-by-stage comparison
+
+#v(0.5em)
+
+// Column headers
+#grid(columns: (1fr, 1fr, 1fr), gutter: 8pt,
+  block(fill: luma(220), radius: 4pt, inset: (x:8pt,y:6pt), width: 100%,
+    text(size: 0.72em, weight: "bold", "Stage")),
+  block(fill: blue.lighten(80%), radius: 4pt, inset: (x:8pt,y:6pt), width: 100%,
+    text(size: 0.72em, weight: "bold", fill: blue.lighten(15%), "libbpf (C)")),
+  block(fill: ebpf-teal.lighten(80%), radius: 4pt, inset: (x:8pt,y:6pt), width: 100%,
+    text(size: 0.72em, weight: "bold", fill: ebpf-teal, "Aya (Rust)")),
+)
+#v(4pt)
+
+#vs-row("1 — Write BPF source",
+  "C source (.bpf.c), SEC() macros,\nbpf_helpers.h, vmlinux.h",
+  "Rust source (no_std), #[kprobe] / #[map]\nattributes, aya-ebpf crate")
+#vs-row("2 — Compile → bytecode",
+  "clang -target bpf -g -O2\n→ program.bpf.o",
+  "rustc --target bpfel-unknown-none\n+ bpf-linker → ELF object")
+#vs-row("2b — Skeleton / embedding",
+  "bpftool gen skeleton → program.skel.h\nIncluded in userspace C source",
+  "include_bytes_aligned!() embeds ELF\ninto userspace binary at compile time")
+#vs-row("3 — Open / parse ELF",
+  "bpf_object__open() or skel__open()\nReads ELF, discovers maps & progs",
+  "Ebpf::load(BYTES) — pure Rust ELF\nparser (aya-obj), no libelf dep")
+#vs-row("4 — Load + verify",
+  "bpf_object__load() or skel__load()\nMaps created, CO-RE patches applied,\nbpf() syscall → verifier → JIT",
+  "prog.load() per program type\nAya performs CO-RE, calls bpf() syscall\nSame kernel verifier & JIT path")
+#vs-row("4b — Attach to hook",
+  "skel__attach() or bpf_program__attach()\nbpf_link fd returned",
+  "prog.attach(\"dma_map_sg\", 0)?\nReturns typed handle implementing Drop")
+#vs-row("5 — Maps: read events",
+  "ring_buffer__new() + ring_buffer__poll()\nCallback-based consumer",
+  "RingBuf::try_from(map)? + AsyncFd\nAsync / epoll — Tokio-native")
+#vs-row("6 — Teardown",
+  "skel__detach() + skel__destroy()\nManual, must not forget",
+  "RAII — all handles Drop automatically\nCompiler guarantees cleanup")
+
+== Aya BPF-side: write & declare
+
+#cols[
+  #codeblock(title: "dma-tracer-ebpf/src/main.rs : BPF program Rust")[
+
+    ```rust
+    #![no_std]
+    #![no_main]
+    use aya_ebpf::{
+        helpers::{bpf_ktime_get_ns,
+                  bpf_get_current_pid_tgid},
+        macros::{kprobe, kretprobe, map},
+        maps::{HashMap, RingBuf},
+        programs::{ProbeContext, RetProbeContext},
+    };
+    use dma_tracer_common::DmaEvent; // ← shared type
+
+    // ── Maps — declared at crate level ──────────
+    #[map]
+    static START: HashMap<u64, u64> =
+        HashMap::with_max_entries(4096, 0);
+
+    #[map]
+    static EVENTS: RingBuf =
+        RingBuf::with_byte_size(4 * 1024 * 1024, 0);
+
+    // ── Hook: kprobe on dma_map_sg entry ────────
+    #[kprobe]
+    pub fn dma_map_sg_enter(ctx: ProbeContext) -> u32 {
+        let pid_tgid = bpf_get_current_pid_tgid();
+        let pid = (pid_tgid & 0xFFFF_FFFF) as u32;
+        let key = pid as u64;
+        let ts = unsafe { bpf_ktime_get_ns() };
+        let _ = START.insert(&key, &ts, 0);
+        0
+    }
+    ```
+  ]
+][
+#codeblock(title: "kretprobe — measure & emit")[
+    ```rust
+    #[kretprobe]
+    pub fn dma_map_sg_exit(ctx: RetProbeContext) -> u32 {
+        let end = unsafe { bpf_ktime_get_ns() };
+        let pid = (bpf_get_current_pid_tgid()
+                   & 0xFFFF_FFFF) as u32;
+        let key = pid as u64;
+
+        if let Some(start) = START.get(&key) {
+            let _ = START.remove(&key);
+            // Reserve slot in ring buffer
+            if let Some(mut buf) =
+                EVENTS.reserve::<DmaEvent>(0)
+            {
+                unsafe {
+                    (*buf.as_mut_ptr()).latency_ns =
+                        end.saturating_sub(*start);
+                    (*buf.as_mut_ptr()).pid = pid;
+                }
+                buf.submit(0);
+            }
+        }
+        0
+    }
+
+    #[cfg(not(test))]
+    #[panic_handler]
+    fn panic(_: &core::panic::PanicInfo) -> ! {
+        loop {}   // BPF panic = halt
+    }
+    ```
+  ]
+]
+
+== Aya userspace: load, attach, consume
+
+#cols[
+  #codeblock(title: "dma-tracer/src/main.rs — userspace loader")[
+    ```rust
+    use aya::{include_bytes_aligned, Ebpf,
+              maps::RingBuf,
+              programs::{KProbe, KRetProbe}};
+    use aya_log::EbpfLogger;
+    use tokio::io::unix::AsyncFd;
+
+    // BPF ELF embedded at compile time — no runtime file I/O
+    static BPF_CODE: &[u8] = include_bytes_aligned!(
+        concat!(env!("OUT_DIR"),
+                "/dma-latency-tracer-ebpf")
+    );
+
+    #[tokio::main]
+    async fn main() -> anyhow::Result<()> {
+        // ── Load ──────────────────────────────
+        let mut bpf = Ebpf::load(BPF_CODE)?;
+        EbpfLogger::init(&mut bpf).ok();
+
+        // ── Attach kprobe ─────────────────────
+        let entry: &mut KProbe = bpf
+            .program_mut("dma_map_sg_enter")?
+            .try_into()?;
+        entry.load()?;
+        entry.attach("dma_map_sg", 0)?;
+
+        // ── Attach kretprobe ──────────────────
+        let exit: &mut KRetProbe = bpf
+            .program_mut("dma_map_sg_exit")?
+            .try_into()?;
+        exit.load()?;
+        exit.attach("dma_map_sg", 0)?;
+    ```
+  ]
+][
+  #codeblock(title: "Async ring-buffer consumer")[
+    ```rust
+        // ── Consume ring buffer ───────────────
+        let rb_map = bpf.take_map("EVENTS")?;
+        let ring = RingBuf::try_from(rb_map)?;
+        // Wrap in AsyncFd → Tokio epoll integration
+        let async_fd = AsyncFd::new(ring)?;
+
+        loop {
+            tokio::select! {
+                _ = tokio::signal::ctrl_c() => break,
+                guard = async_fd.readable() => {
+                    let mut g = guard?;
+                    let rb = g.get_inner_mut();
+                    while let Some(item) = rb.next() {
+                        let ev: DmaEvent = unsafe {
+                            *(item.as_ptr()
+                              as *const DmaEvent)
+                        };
+                        println!(
+                          "pid={} lat={:.2}µs",
+                          ev.pid,
+                          ev.latency_ns as f64/1000.0
+                        );
+                    }
+                    g.clear_ready();
+                }
+            }
+        }
+        // ── Teardown: automatic via Drop ──────
+        // bpf, entry, exit, rb all drop here —
+        // links closed, maps freed, no leak possible
+        Ok(())
+    }
+    ```
+  ]
+]
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  6. AYA ARCHITECTURE OVERVIEW
+// ─────────────────────────────────────────────────────────────────────────────
+= Aya Architecture Overview
+
+== Component map
+
+#cols(ratio: (1fr, 1fr))[
+  *Aya crate family*
+
+  ```
+  ┌──────────────────────────────────────────┐
+  │  Your userspace loader (std, async)      │
+  │  uses: aya, aya-log, aya-obj             │
+  ├──────────────────────────────────────────┤
+  │  aya            — core loader library    │
+  │  Ebpf::load()   programs  maps  links    │
+  ├──────────────────────────────────────────┤
+  │  aya-obj        — ELF + BTF + CO-RE      │
+  │  Pure Rust ELF parser, relocation engine │
+  ├──────────────────────────────────────────┤
+  │  aya-log        — userspace log receiver │
+  │  Reads aya-log-ebpf ring messages        │
+  └──────────────────────────────────────────┘
+
+  ┌──────────────────────────────────────────┐
+  │  Your BPF program (no_std, no_main)      │
+  │  uses: aya-ebpf, aya-log-ebpf            │
+  ├──────────────────────────────────────────┤
+  │  aya-ebpf       — BPF-side runtime       │
+  │  #[map]  #[kprobe]  #[xdp]  helpers      │
+  ├──────────────────────────────────────────┤
+  │  aya-log-ebpf   — log from BPF programs  │
+  │  info!() warn!() → aya-log ring buffer   │
+  ├──────────────────────────────────────────┤
+  │  aya-ebpf-bindings — kernel type defs    │
+  │  Generated from kernel uapi headers      │
+  └──────────────────────────────────────────┘
+  ```
+][
+  *What each component handles*
+
+  #table(
+    columns: (auto, 1fr),
+    stroke: (x: none, y: 0.3pt + luma(210)),
+    inset: (y: 5pt),
+    [*`aya`*], [Load BPF ELF, create maps, attach programs, manage links. Pure-Rust bpf() syscall wrapper. CO-RE via aya-obj.],
+    [*`aya-obj`*], [Parse BPF ELF, process BTF sections, apply CO-RE relocations. No libelf dependency.],
+    [*`aya-ebpf`*], [BPF-side runtime: `#[map]`, `#[kprobe]`, `#[xdp]`, `#[lsm]`, … macros; helper function wrappers; map type structs.],
+    [*`aya-log`*], [Userspace receiver: polls a dedicated ring buffer for log records from aya-log-ebpf.],
+    [*`aya-log-ebpf`*], [BPF-side: `info!()`, `warn!()`, `debug!()` macros that format and submit log events to the log ring buffer.],
+    [*`aya-tool`*], [CLI: generates Rust bindings (`vmlinux.rs`) from kernel BTF — equivalent of `bpftool btf dump … format c > vmlinux.h`.],
+  )
+
+  #callout[
+    *No libbpf, no libelf, no C toolchain required at runtime.* The entire stack is pure Rust + one `bpf()` syscall.
+    #ref-badge[github.com/aya-rs/aya, 2024]
+  ]
+]
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  7. CREATING AN AYA PROJECT
+// ─────────────────────────────────────────────────────────────────────────────
+= Creating an Aya Project
+
+== Prerequisites and scaffold
+
+#cols[
+  *Prerequisites*
+
+  ```bash
+  # 1. Rust nightly (build-std required for BPF target)
+  rustup toolchain install nightly \
+      --component rust-src
+
+  # 2. bpf-linker — LLVM BPF backend for rustc
+  cargo install bpf-linker
+
+  # 3. aya-tool — BTF → Rust bindings generator
+  cargo install aya-tool
+
+  # 4. Verify LLVM BPF backend is present
+  rustc +nightly --print target-list | grep bpfel
+  # bpfel-unknown-none  ← must appear
+  ```
+
+  *Scaffold with the Aya template*
+
+  ```bash
+  # cargo-generate scaffolds the three-crate workspace
+  cargo install cargo-generate
+
+  cargo generate --git \
+      https://github.com/aya-rs/aya-template \
+      --name dma-latency-tracer
+  ```
+][
+  *Generated workspace structure*
+
+  ```
+  dma-latency-tracer/
+  ├── Cargo.toml                  ← workspace root
+  ├── rust-toolchain.toml         ← pins nightly
+  │
+  ├── dma-latency-tracer-common/
+  │   └── src/lib.rs              ← #[no_std] shared types
+  │                                 DmaEvent, histogram bounds
+  │
+  ├── dma-latency-tracer-ebpf/
+  │   ├── .cargo/config.toml      ← target=bpfel-unknown-none
+  │   ├── Cargo.toml              ← aya-ebpf dep
+  │   └── src/main.rs             ← #[kprobe], #[kretprobe]
+  │
+  └── dma-latency-tracer/
+      ├── build.rs   ← KEY        ← cross-compiles eBPF crate,
+      │                             copies to $OUT_DIR
+      ├── Cargo.toml              ← aya dep, tokio
+      └── src/main.rs             ← Ebpf::load, attach, ringbuf
+  ```
+
+  #callout[
+    *No xtask needed.* A single `cargo build` cross-compiles the eBPF crate (via `build.rs`) and embeds the result. One command, one binary output.
+  ]
+]
+
+== The three Cargo.toml files — key dependencies
+
+#cols[
+  #codeblock(title: "dma-latency-tracer-ebpf/Cargo.toml")[
+    ```toml
+    [package]
+    name    = "dma-latency-tracer-ebpf"
+    version = "0.1.0"
+    edition = "2021"
+
+    [[bin]]
+    name = "dma-latency-tracer-ebpf"
+    path = "src/main.rs"
+
+    [dependencies]
+    # BPF-side runtime: macros, map types, helpers
+    aya-ebpf     = "0.1"
+    # Logging from BPF programs
+    aya-log-ebpf = "0.1"
+    # Shared struct definitions (no_std)
+    dma-latency-tracer-common = {
+        path = "../dma-latency-tracer-common",
+        default-features = false
+    }
+    ```
+  ]
+][
+  #codeblock(title: "dma-latency-tracer/Cargo.toml (userspace)")[
+    ```toml
+    [package]
+    name    = "dma-latency-tracer"
+    version = "0.1.0"
+    edition = "2021"
+
+    [dependencies]
+    # Core Aya loader library (async_tokio feature)
+    aya      = { version = "0.13", features = ["async_tokio"] }
+    aya-log  = "0.2"
+
+    # Shared event struct (with std features enabled)
+    dma-latency-tracer-common = { path = "../.." }
+
+    # Async runtime — ring buffer consumer
+    tokio    = { version = "1", features = [
+        "macros", "rt-multi-thread", "signal", "time"] }
+    anyhow   = "1"
+    clap     = { version = "4", features = ["derive"] }
+    log      = "0.4"
+    env_logger = "0.11"
+
+    [build-dependencies]
+    anyhow   = "1"     # build.rs error handling
+    ```
+  ]
+]
+
+== build.rs — the key integration file
+
+#codeblock(title: "dma-latency-tracer/build.rs — drives eBPF cross-compilation")[
+  ```rust
+  use std::{env, path::PathBuf, process::Command};
+
+  fn main() -> Result<(), Box<dyn std::error::Error>> {
+      let out_dir      = PathBuf::from(env::var_os("OUT_DIR").unwrap());
+      let manifest_dir = PathBuf::from(env::var_os("CARGO_MANIFEST_DIR").unwrap());
+      let workspace    = manifest_dir.parent().unwrap().to_path_buf();
+      let cargo        = env::var_os("CARGO").map(PathBuf::from)
+                             .unwrap_or_else(|| PathBuf::from("cargo"));
+
+      // Rebuild when BPF source changes
+      println!("cargo::rerun-if-changed=../dma-latency-tracer-ebpf/src/main.rs");
+      println!("cargo::rerun-if-changed=../dma-latency-tracer-common/src/lib.rs");
+
+      let profile = env::var("PROFILE").unwrap_or("debug".into());
+
+      // Cross-compile the eBPF crate to bpfel-unknown-none
+      let status = Command::new(&cargo)
+          .current_dir(&workspace)
+          .arg("+nightly")
+          .arg("build")
+          .arg("--package").arg("dma-latency-tracer-ebpf")
+          .arg("--target").arg("bpfel-unknown-none")
+          .arg("-Z").arg("build-std=core")
+          .args(if profile == "release" { &["--release"][..] } else { &[] })
+          .status()?;
+
+      if !status.success() { return Err("eBPF build failed".into()); }
+
+      // Copy compiled BPF ELF to OUT_DIR for include_bytes_aligned!()
+      let src = workspace.join("target/bpfel-unknown-none")
+                         .join(&profile).join("dma-latency-tracer-ebpf");
+      std::fs::copy(&src, out_dir.join("dma-latency-tracer-ebpf"))?;
+      Ok(())
+  }
+  ```
+]
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  8. AYA PROS AND CONS
+// ─────────────────────────────────────────────────────────────────────────────
+= Aya — Pros and Cons
+
+== The honest assessment
+
+#cols[
+  *Strengths*
+
+  - *Pure Rust end-to-end* — no C toolchain, no libelf, no libbpf.so on the target. Ship a single statically-linked binary.
+  - *Type-safe kernel/userspace boundary* — shared `common` crate; struct layout divergence is a compile error.
+  - *RAII teardown* — attachment handles implement `Drop`; cleanup is compiler-guaranteed, not programmer-remembered.
+  - *Async-native* — `AsyncFd<RingBuf>` integrates with Tokio directly; no callback model needed.
+  - *CO-RE support* — BTF-based relocations via `aya-obj`; one binary across kernel versions.
+  - *Static binary + musl* — deploy on Android, embedded, or any Linux target without library concerns.
+  - *aya-log* — `info!()` from BPF programs to userspace with zero boilerplate.
+  - *Active ecosystem* — Red Hat (bpfman), Deepfence (ebpfguard), Kubernetes SIG-Network (Blixt) all use Aya in production.
+    #ref-badge[aya-rs.dev, 2024]
+][
+  *Limitations and caveats*
+
+  - *Nightly Rust required* for building the BPF crate (`-Z build-std=core`, unstable features). Stable toolchain cannot target `bpfel-unknown-none` today.
+  - *Smaller ecosystem* than libbpf-C. libbpf has a larger set of reference examples, upstream docs, and kernel integration tests.
+  - *Some program types lag* — not all BPF program types have first-class Aya support; may need `unsafe` raw syscalls for cutting-edge hooks.
+  - *bpf-linker* is a separate install — it bundles LLVM; takes time to install and can lag behind upstream LLVM releases.
+  - *No bpftrace-like one-liner* — Aya is a library, not a scripting frontend. For ad-hoc investigation, bpftrace (C) remains the fastest tool.
+  - *Debugging BPF verifier errors* — verifier output is in raw log form; Aya surfaces it but does not beautify it (neither does libbpf).
+
+  #callout(color: warn-amber)[
+    *Guidance*: for production eBPF tools built and maintained by a Rust-capable team — use Aya. For quick one-off probes and kernel-side investigation — `bpftrace` first, then promote to Aya when the pattern is proven.
+  ]
+]
+
 
 == Rust for eBPF programming:
 

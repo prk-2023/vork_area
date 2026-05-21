@@ -887,94 +887,569 @@ And these tools are not mandatory and they are not unified and they dont cover 1
 
 ## slide 20: eBPF
 
-We will not be covering what eBPF is and what existing workflows are in use, these are covered
-excellently in earlier presentations :
-The idea here to explore what changes when we bring Rust into the eBPF ecosystem:
-we can look at what stays same, what actually improves, what are new trade-offs, And this would give a us
-idea if Rust meaningfully improves eBPF development workflow.
 
-As Rust increasingly getting production ready for systems programming, eBPF is a practical way to
-experiment with Rust in Kernel-adjacent environment with out modifying the kernel itself. 
+- So this topic is basically a continuation of the earlier eBPF sessions.
 
-With Rust or C, eBPF programming is interesting:
-- we sill interact with kernel internals 
-- still deal with same verifier constrains 
-- still operate in constrained execution environment 
-Rust allows to do it with safer tooling and modern language. 
+- Earlier we already discussed:
 
-The areas I feel is worth the try for writing eBPF with Rust are:
-- you deal with a single language for both eBPF and user-space loader code which translates to less 
-friction between :
-    - ABI mismatches: No more alignment or padding between different compiler outputs. 
-    - map definitions: Maps are strongly types and verified at compile time.
-    - user-space and kernel-space synchronisation: A single data layout can be shared between both
-      world. 
-    - Tooling complexity, no more multi compiler pipelines.
+  * how eBPF works,
+  * what does the eBPF verifier checks for safety,
+  * the execution model,
+  * and the tooling ecosystem around it. ( BCC, libbpf .. )
 
-The strict compiler check, should reduce the kernel eBPF Verifier to more friendly.
-Rusts aggressive compile time checks helps in catching wide range of logical and memory geometry errors
-before the code ever reaches the kernel. 
+- What we are doing today is slightly different.
+
+- Instead of focusing on eBPF itself, we are looking at:
+    - what happens when we bring Rust into the picture.
+
+- The main question is:
+    - can we leverage Rust’s features to improve the eBPF development workflow?
+
+- We will compare:
+    - what remains exactly the same,
+    - what gets better,
+    - and what trade-offs we introduce.
+
+- One important thing to remember:
+    - The eBPF programs are just bytecode.
+    - So the kernel really does not care whether that bytecode came from C or Rust or Go.
+
+- That means:
+    - interaction with kernel internals is still the same, 
+    - we still deal with the same verifier,
+    - and we still operate under the same constrained execution environment.
+
+- So Rust does not remove eBPF limitations.
+
+- What Rust improves is the developer experience.
+
+- One of the biggest advantages is:
+
+  - we can use a single language and compiler for both 
+    - the eBPF side,
+    - and the user-space loader side.
+    - offers a rich echo-system of modern frameworks ( async code ) 
+
+- This reduces a lot of friction between user-space and kernel-space.
+
+- For example:
+
+  - fewer ABI mismatch issues,
+  - fewer alignment and padding problems,
+  - and easier sharing of common data structures.
+
+- Map definitions also become strongly typed.
+
+- So many mistakes get caught during compile time itself.
+
+- Another advantage is tooling simplicity.
+
+- We no longer need complicated multi-language build pipelines.
+
+- Rust’s compile-time checks are also very useful here.
+
+- Many memory safety and logical issues are caught before the program even reaches the kernel verifier.
+
+- In many cases this also produces cleaner verifier-friendly bytecode.
+
+- And finally,
+
+- * working with Rust in eBPF is also a practical entry point into the broader Rust-for-kernel ecosystem.
+-
+- So the overall takeaway is:
+
+  * Rust does not change what eBPF is,
+  * it changes how safely and ergonomically we build eBPF programs.
 
 --- 
 
-## slide 21: Introduction to eBPF with Rust:
+## slide 21: Quick Overview: 
 
-  eBPF Bytecode generation is mainly about:
-  - Predictable low level compilation 
-  - Restricted Runtime behavior 
-  - Controllable Memory Model 
-  - Ability to Target the BPF Backend in LLVM 
-  - Compared with many languages, Rust eco
-  
-Programming eBPF with Rust: Fast path for kernel developers to become familiar with Rust, shared tooling and abstraction. 
+*eBPF: in one sentence*
 
+`eBPF` is a Linux Kernel model that lets you load user-supplied programs into the kernel *without a kernel patch, without a module, and without rebooting*, the kernel verifier guarantees safety.
 
-Talking points: 
+*The four-step plumbing tasks:*
 
-Before we go ahead in writing eBPF programs with Rust, we look if its fits the stringent requirements of
-eBPF programs. 
+1. *Write* — BPF bytecode (from C or Rust source)
+2. *Verify* — kernel verifier: bounded loops, no OOB, type-checked
+3. *JIT* — native machine code; zero interpreter overhead after load
+4. *Attach* — hook point (kprobe, tracepoint, XDP, LSM, …) fires on event
 
-And its is to note that we can generate bytecode using any langauge C/Rust/Go/Zig.
-the only requirement is to generate bytecode that:
+If the verifier accepts the program, it *cannot* crash the kernel ( checks for infinite-loop, or access out-of-bounds memory... more)
+#image("./ebpf_plumbing.png")
 
-- As eBPF code runs inside kernel space the code cannot emit unpredictable branches or complex runtime
-hooks. It has to map closely to BPF instruction set ( 11 64-bit registers, 1 PC, and 512 bytes stack ), C
-or Rust the compiler must output tight deterministic bytecode that kernel can easily parse. 
-
-- bytecode generation must respect boundaries that the kernel verifier will later enforce such as:
- no loops unless they are proven to terminate (bounded loops ), no unreachable code, strict limits on
- program size ( instruction count ), Compiler must structure bytecode such that its does not get
- rejected by verifier. 
-
-- eBPF has no arbitrary Heap allocation  at runtime, memory access is rigidly constrained to:
-    - A tiny 512 byte stack.
-    - pre-defined maps (key:val pairs for sharing data)
-    - Context pointer ( like network packet or tracepoint data) passed directly by the kernel.
+Talking Points:
     
-  Bytecode generation must strictly adhere to these memory boundaries. 
-  Any attempt to dereference a wild pointer will cause the verifier to fail the program. 
+- So this slide is a quick refresher of what eBPF actually is, in the simplest possible form.
 
-- Ability to Target the BPF Backend in LLVM: eBPF bytecode generation is possible because LLVM includes a dedicated BPF target backend.
-    - Clang (C) uses LLVM to emit BPF bytecode.
-    - rustc (Rust) also uses LLVM as its backend, meaning it can target `bpfel-unknown-none` or `bpfeb-unknown-none`.
+- In a single sentence:
+  - eBPF is a Linux kernel mechanism that allows us to load user-defined progs into the kernel.
+  - without patching the kernel.
+- without loading kernel modules.
+  - and without rebooting the system.
+  - while still keeping safety guarantees through the kernel verifier.
 
-=> kernel doesn't know, nor does it care, if that bytecode originated from C, Rust, or Zig.
-  Rust is chosen simply because its type system and ownership model make it excellent at writing safe
-  code that inherently aligns with the eBPF verifier's strict rules, reducing development frustration.
+* Now, to understand how eBPF actually runs, we can think of it as a simple four-step pipeline.
+---
 
-Table highlights features that make Rust attractive to write eBPF programs.
-- Native compilation: `rustc` uses LLVM, it can seamlessly hook into the LLVM BPF backend to emit target-specific bytecode ( `bpfel-unknown-none` ).
+* Step one is **write**:
 
-- `no_std`, `no_main`:  eBPF has no standard library, no os abstraction layer, and no standard main entry point. Programs must be freestanding, injecting directly into kernel hooks.
+  * we write an eBPF program,
+  * typically in C or Rust,
+  * For C code its gets compiled using clang/LLVM 
+    ( C -> LLVM IR -> ebpf Bytecode)
+    (component is eBPF backend )
+    So Clang + LLVM = standard tool chain for C eBPF programs. 
+  * And with Rust we have `libbpf-rs` and `Aya` ( new approach )
+    ( Rust -> LLVM -> ebpf Bytecode)
+    Rust eBPF target is compiled with "bpfel-unknown-none" 
+   
+  - Some older /hybrid approches:
+    - Some setups compile eBPF parts in C using clang.
+    - Then embed or interface with Rust User-space code. 
 
-- no GC, bytecode must be  deterministic, GC adds pauses. 
 
-- compile-time borrow checker enforces pointer safety before the code even reaches the LLVM backend. Reduces the frustration of writing low-level code only to have the kernel verifier reject it for unsafe memory access.
+Note: 
+    - Both C and Rust rely on LLVM eBPF backend.
+    - C uses clang as front-end.
+    - Rust uses `rustc` as front-end. 
+    - And both converge at:
+        - LLVM -> eBPF bytecode generation. 
 
-- When it comes to deterministic behaviour, Rust gives incredible low-level control, but developers still have to be careful not to introduce panics (like out-of-bounds array indexing). 
-  In a standard binary, a panic prints a backtrace and exits; in an eBPF context, a potential panic path will cause cause the kernel verifier to reject the program entirely. 
-  
-  Aya solve this by forcing you to use verifier-safe alternatives.
+
+---
+
+* Step two is **verify**:
+
+  * the program is passed through the kernel verifier,
+  * which checks things like:
+
+    * bounded loops,
+    * no out-of-bounds memory access,
+    * and overall type and safety constraints.
+
+---
+
+* Step three is **JIT compilation**:
+
+  * once verified, the bytecode is converted into native machine code,
+  * so there is no interpreter overhead during execution.
+
+* Step four is **attach**:
+
+  * the program is attached to a kernel hook,
+  * such as `kprobes`, `tracepoints`, `XDP`, or `LSM` hooks,
+  * and it runs whenever that event is triggered.
+
+* The key idea here is:
+
+  * if the verifier accepts the program,
+  * it is guaranteed not to crash the kernel.
+
+* That guarantee comes from strict checks like:
+
+  * preventing infinite loops,
+  * blocking invalid memory access,
+  * and enforcing safe execution boundaries.
+
+* So in essence:
+
+  * eBPF acts like a safe programmable layer inside the kernel,
+  * where logic can be injected dynamically at runtime.
+
+* And if we connect this to the diagram on the slide:
+
+  * we start by writing the program in Rust or C,
+  * it compiles into BPF bytecode,
+  * the kernel verifier checks safety,
+  * then it gets loaded and attached to kernel hooks,
+  * and finally it runs when an event happens.
+
+* During execution:
+
+  * eBPF programs can interact with maps,
+  * and those maps are used to store and exchange data.
+
+* That data is then sent from kernel space to user space,
+
+  * which is how observability, tracing, and networking tools are built on top of eBPF.
+    
+
+--- 
+## Slide 22 : eBPF Maps : the data bridge
+
+*Maps = the only I/O channel for BPF programs*
+
+- Shared memory between kernel BPF code and userspace reader
+- Created by the loader before the program is attached
+- Accessed from both sides via file descriptors
+
+  [*Type*], [*Typical use*],
+  --------------------------
+  [`HASH`], [key → value lookup],
+  [`RINGBUF`], [high-throughput event stream ✓],
+  [`PERCPU_ARRAY`], [per-CPU stats, lock-free],
+  [`LRU_HASH`], [connection tracking],
+  [`PERF_EVENT_ARRAY`], [legacy event pipe],
+  [`ARRAY`], [fixed-size indexed data],
+
+*Ring buffer : the preferred choice* ([Introduced: Linux 5.8 — BPF_MAP_TYPE_RINGBUF])
+
+- Variable-length records — no fixed-size overhead
+- Single contiguous allocation — cache-friendly
+- `epoll` / `AsyncFd` compatible — Tokio-native in Aya
+- Dropped-event counter exposed to userspace for monitoring
+- *In Aya*: `#[map] static EVENTS: RingBuf = RingBuf::with_byte_size(4 * 1024 * 1024, 0);`
+
+- Prefer `RINGBUF` over `PERF_EVENT_ARRAY` for all new work — lower overhead, simpler consumer, no per-CPU complexity.
+
+Talking Points:
+
+So this slide is about the important concept in eBPF:maps:
+
+- In simple terms:
+
+  - maps are the only real I/O channel for eBPF programs.
+
+- Because eBPF programs run inside the kernel and are heavily restricted,
+
+  - they cannot directly print,
+  - they cannot do file I/O,
+  - and they cannot directly talk to user-space.
 
 
+- So instead:
+
+  - maps act as shared memory between kernel space and user space.
+
+- The idea is:
+
+  - the eBPF program writes data into maps,
+  - and user-space programs read that data through file descriptors.
+
+
+- These maps are typically:
+
+  - created by the user-space loader first,
+  - before the eBPF program is attached,
+  - and then passed into the kernel.
+
+
+- Once created:
+
+  - both kernel eBPF code and user-space programs can access them using file descriptors.
+
+
+- Now, there are multiple types of maps, each optimized for different use cases.
+
+- For example:
+
+  - **HASH map**
+    - used for key-value lookups,
+    - like tracking connections or state.
+
+- **RINGBUF**
+  - used for high-throughput event streaming,
+  - very efficient for pushing events to user space.
+
+- **PERCPU_ARRAY**
+  - used for per-CPU statistics,
+  - avoids locking and reduces contention.
+
+ **LRU_HASH**
+  - used for connection tracking or caching,
+  - automatically evicts least recently used entries.
+
+- **PERF_EVENT_ARRAY**
+  - older mechanism for event streaming,
+  - still used but largely being replaced.
+
+- **ARRAY**
+  - fixed-size indexed storage,
+  - useful for counters or static data.
+
+- Among all of these, one of the most important modern choices is the **ring buffer**.
+
+- The ring buffer was introduced in Linux 5.8 as `BPF_MAP_TYPE_RINGBUF`.
+
+- It has become the preferred option for event delivery because:
+
+  - it supports variable-length records,
+  - so there is no need to predefine fixed-size events,
+  - it uses a single contiguous memory region,
+  - which improves cache efficiency,
+  - and it avoids per-CPU complexity.
+
+- From a performance perspective:
+
+  - it is lower overhead compared to older event mechanisms,
+  - and simpler to consume from user space.
+
+- It also integrates very well with modern `async` runtimes: (MORE AT NOTE)
+  - for example, in Rust with Aya,
+  - it can be used with `epoll` or async abstractions like `AsyncFd` in Tokio.
+
+
+* Another practical advantage is observability:
+  * it exposes dropped-event counters,
+  * so user-space can detect when it is falling behind.
+
+* In code, especially with Aya, it looks like:
+  * you define a static ring buffer map,
+  * allocate a memory size,
+  * and then use it as the primary event channel.
+
+* And the key design recommendation is:
+  * prefer `RINGBUF` for all new eBPF work,
+  * because it is faster,
+  * simpler,
+  * and avoids older per-CPU complexity from `PERF_EVENT_ARRAY`.
+
+* So the takeaway is:
+  * maps are the bridge between kernel and user space,
+  * and ring buffer is now the modern standard for streaming data out of eBPF programs.
+
+NOTE: The reason ring buffer integrates well with modern async runtimes is because of how its consumption model matches event-driven programming.
+1. Ring Buffer is a poll-based, not callback-based 
+    - the eBPF ring-buffer is exposed to user-space as a FD
+    - The FD then can be polled/epolled or integrated into `async` reactors.
+2. So instead of:
+    - "call this callback when data arrives" 
+   You get: 
+    - "wake me up when this FD is readable"
+
+3. This matches `async`  runtime design perfectly. 
+    Rust `async` runtimes like: Tokio, smol 
+    are built around: event loops, readiness-based I/O ( epoll/kqueue/io_ring style)
+
+4. Ring buffer fits naturally because:
+    - It behaves like a stream of readiness events 
+    - not a blocking or callback-heavy API.
+
+5. Aya makes this much easier than C
+    - The ringbuffer FD is directly integrated into `epoll` or `AsyncFd` ( tokio abstraction )
+    - this allows to await events like normal async I/O ( without threads )
+
+6. With C based approach, this requires:
+    - Manually setup `epoll`
+    - manage event loops by ourself.
+    - spawn dedicated pooling threads 
+
+   Common patterns look like 
+    - infinite while loop pooling 
+    - blocking reads 
+    - or custom dispatcher threads. 
+   This => more boilerplate code, harder concurrency control, and manual synchronization between
+   threads. 
+
+7. Key differences: 
+    C: "Must continuously poll/manage threads to read events"
+    Rust: "wait for event like any other async stream"
+
+8. Ringbuffer specifically enables this:
+    - Exposes a single FD.
+    - Supports non-blocking reads 
+    - Works cleanly with readiness notification ( epoll )
+
+=> this makes it fundamentally compatible with :
+    - event loops 
+    - async executors 
+    - Structures concurrency 
+
+9. In short Rust makes this integration natural through `async` abstractions like `AsyncFd`, while C
+   required manual event loop and thread management. 
+
+---
+
+## Slide 23: Does Rust Fit eBPF?
+
+Before we go into details on using Rust. We first address 
+
+    - does Rust actually fit into the eBPF ecosystem?
+
+- To answer that, we first need to look at how the ecosystem looks today.
+
+- In most real-world systems:
+  - eBPF is not written in just one language or toolchain.
+
+- Instead, it is a combination of multiple layers:
+  - eBPF programs are often written in C,
+  - compiled using LLVM and Clang,
+  - user-space components might be written in Go, Python, or C++,
+  - and then glued together with custom build systems.
+
+- So the reality is:
+  - eBPF development today is already a multi-language, multi-toolchain system.
+
+- This naturally introduces complexity:
+  - different memory models,
+  - different ABI assumptions,
+  - and multiple build and deployment pipelines.
+
+- Now, if we look at industry adoption:
+  - one of the strongest examples is networking.
+
+- For example, projects like **Cilium**:
+  - use eBPF heavily for Kubernetes networking,
+  - replacing traditional networking layers like iptables in many cases,
+  - and pushing eBPF into production at scale.
+
+- In systems like Cilium:
+  - the eBPF layer is typically C-based and LLVM-driven,
+  - while user-space control planes are written in Go,
+  - again reinforcing this multi-language reality.
+
+- So the question becomes:
+  - does introducing Rust simplify this or make it more complex?
+
+- Rust’s role here is not to replace everything:
+  - it is not replacing the kernel,
+  - it is not replacing eBPF itself,
+  - and it is not forcing a new execution model.
+
+- Instead, Rust fits in as a unifying layer:
+  - especially for both eBPF programs and user-space components.
+
+- The key improvements Rust brings are:
+  - safer memory handling in user space,
+  - shared data models between kernel and user space,
+  - and reduced ABI mismatches due to stronger type guarantees.
+
+- In practice, this means:
+  - fewer “glue code” problems between components,
+  - fewer serialization bugs,
+  - and more predictable behavior across the stack.
+
+- So rather than replacing existing systems:
+  - Rust gradually reduces friction inside them.
+
+- The important mindset shift is:
+  - eBPF ecosystems are already complex and multi-language,
+  - Rust does not introduce that complexity,
+  - it tries to unify parts of it.
+
+
+- So the takeaway is:
+  - Rust fits eBPF not by changing what eBPF is,
+  - but by simplifying how we build and maintain the systems around it.
+
+---
+
+## Slide 24: Why Rust is a natural fit for eBPF programs:
+
+*Shared constraints*
+
+eBPF programs and Rust both operate under the same fundamental constraint: *no undefined behaviour is acceptable*.
+
+- The BPF verifier rejects programs it cannot prove safe
+- Rust's type system rejects programs it cannot prove safe
+- Both operate at compile time or load time — not at runtime
+
+*`no_std` alignment*
+
+eBPF programs run with no kernel library, no allocator, no OS primitives. Rust's `#![no_std]` mode is the natural target — `aya-ebpf` provides the BPF-side runtime (`bpf_helpers`, map types, program macros) without any standard library dependency.
+
+*Type safety across the kernel boundary*
+
+The most expensive eBPF bug class in C: a map struct definition in the BPF program and the userspace loader that silently diverge.
+
+  ```c
+  // BPF program (C):
+  struct event { u64 ts; u32 pid; };
+  bpf_ringbuf_output(&rb, &e, sizeof(e), 0);
+
+  // Userspace loader (C) — different file:
+  struct event { u64 ts; u64 pid; }; // u64 ≠ u32 !
+  // Reads wrong data — no compile error, no warning
+  ```
+
+*Aya's solution*: one `#[no_std]` *common crate*, compiled for both targets. The struct is defined *once*. Layout disagreement is a *compile error*, not a runtime bug.
+
+- This is the highest-value safety property of Rust for eBPF — not just memory safety in the BPF program, but *type-safe communication across the kernel/userspace boundary*.
+
+Talking Points:
+
+Now we look at why Rust is actually a *natural fit* for eBPF, not just a convenient one.
+
+- The core idea starts with a shared constraint:
+  - both eBPF and Rust fundamentally reject undefined behaviour.
+
+- On the eBPF side:
+  - the kernel verifier only allows programs it can prove to be safe,
+  - otherwise the program is rejected before it ever runs.
+
+- On the Rust side:
+  - the compiler enforces safety through the type system,
+  - and rejects unsafe patterns at compile time.
+
+- So in both cases:
+  - safety is enforced *before execution*,
+  - not during runtime.
+
+- That alignment is important because:
+  - eBPF does not have runtime recovery,
+  - and Rust is designed to avoid runtime failure classes in the first place.
+
+- Another strong alignment is `no_std`.
+
+- eBPF programs run in a very minimal environment:
+  - no standard library,
+  - no OS abstractions,
+  - no dynamic allocation guarantees in many cases.
+
+- Rust supports this directly through:
+  - `#![no_std]` mode.
+
+- This is exactly where frameworks like **Aya eBPF** fit in:
+  - they provide the BPF-side runtime,
+  - helpers for maps,
+  - program macros,
+  - and bindings to kernel helpers,
+  - all without relying on the Rust standard library.
+
+- So Rust is not forced into eBPF.
+- It already has a mode that matches eBPF constraints.
+
+- Now the most important part is type safety across the kernel boundary.
+
+- One of the biggest real-world problems in eBPF is this:
+  - kernel-side and user-space must agree on data structures,
+  - but in C, they are often defined separately.
+
+- That leads to a subtle but dangerous issue:
+  - structs drift over time,
+  - padding or field types change,
+  - but there is no compiler-level enforcement across both sides.
+
+- So you can easily get a situation like:
+  - BPF side defines `u32 pid`,
+  - user space accidentally assumes `u64 pid`,
+  - and everything still compiles.
+
+- The problem is:
+  - there is no immediate error,
+  - but the data interpretation is silently wrong.
+
+- This is one of the hardest classes of bugs in traditional eBPF systems.
+
+- Rust solves this in a more structural way:
+  - using a shared crate compiled for both kernel and user space.
+
+- In frameworks like Aya:
+  - the same struct definition is reused across both worlds,
+  - so there is only one source of truth.
+
+- That means:
+  - if the layout changes,
+  - both sides break at compile time,
+  - instead of silently misbehaving at runtime.
+
+- This is actually one of the highest-value improvements Rust brings to eBPF:
+  - not just memory safety inside the program,
+  - but *type-safe communication between kernel and user space*.
+
+- So the key takeaway is:
+  - Rust fits eBPF because both share the same philosophy of rejecting unsafe behavior early,
+  - and Rust extends that safety across the kernel-user boundary, where most real-world bugs actually happen.
 
