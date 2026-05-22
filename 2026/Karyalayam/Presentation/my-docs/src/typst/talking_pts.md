@@ -6,6 +6,79 @@
 ## Slide 0: Introduction to Rust:
 
 Good Afternoon, 
+Todays topic Introduction to Rust and eBPF programming with Rust.
+
+To set the stage: Rust a relatively a new programming language compared C, C++, Python, or Java. 
+
+Yet, it has become one of the most talked-about languages in the industry. 
+
+For over a decade now, it has consistently topped Stack Overflow’s surveys as the "most admired", and 
+"most loved" language, with around 80% of developers who try it choosing to stick with it.
+
+Alongside the language itself, its package manager and build tool, Cargo, has completely dominated the 
+developer preference charts frequently ranking as a highly desired tool for cloud infrastructure and 
+development. 
+
+Take for example yocto a highly capable and powerful complex build system, can quickly consume time,
+for managing dependencies, handling different build tools, mixing languages, handling toolchains and 
+tussle with recipes.
+One of the quality-of-life improvement Rust introduces is Cargo.
+With Cargo, dependency management, compilation, and tracking are unified into a single tool. 
+More importantly for our hardware-centric workflow, Cargo is highly extensible.
+
+Features like build.rs (custom build scripts) and the xtask pattern give a powerful, native ways to 
+handle complex code generation, hardware stepping logic, or custom image packaging without relying 
+on fragile external scripting layers.
+
+In this presentation we will not be going in depth of cargo, but rather cover the basics as a starting point.
+Rather Today’s talk is about bridging that gap and explore Rust’s core features—particularly around 
+memory safety—and how it explicitly addresses vulnerabilities that plague low-level software.
+
+Slide 1: Disclaimer: 
+
+The focus is not about language war, rather cover some evolving changes in systems programming domain.
+As this is where it overlaps with the core of what we do here, writing firmware, BSP and driver logic .. 
+
+And its also important to state that Rust is here not as a replacement to C, but 
+should be viewed as a new tool in systems programming toolbox.
+Our goal for today is to look under the hood and evaluate whether its time for us to seriously consider Rust. Can it benifit our developement, or does it provde any value addtion to products build on Realteks HW. Does it help in writing safer memory code, and  can this improve long-term code maintainability. 
+
+Most Important part of the disclaimer: I am not a Rust expert, I am exploring this technology alongside your or like many others. And I would do my best to answer questions from engineering perspective going through this together.
+
+Slide 2: Parts 
+
+Todays talk can be grouped into two parts:
+In Part #1: 
+- we will mainly look at if Rust fits to be systems programming languge for kernel, driver or other utility related works.
+- We will cover how Rust presents New programming model, with its features like "Ownership", "Borrowing", "Lifetimes" along with its compiler guarenties to memory safety with zero-cost abstration. 
+- We will cover some other important features like memory layout, fearless concurrency, and its FFI to co-work with other languages. 
+
+In Part #2: 
+- we will put in use of the Rust feauters to write eBPF programs in Native Rust, as an alternative to the existing libbpf to achive CO-RE. This is a good starting point for playing with Rust as eBPF environment is restricted and deals with how to interact with different memory layouts
+- Also How Rust can make unsafe code more reliable and predictable. 
+- Followed by a Demo.
+
+What we will not cover is Rust in Linux Kernel, we will not be building kernel modules and handling any Rust kernel related work, as this is heavy and deserves a seperate session. 
+
+But the topics we will discuss will be fundamental for working with Rust and linux kernel. To get an idea of how strange and monumental we have to look back to 1994's,
+back then there was an experimental branch of the Linux kernel created to support C++ along side C. Tha experiment was quickly abandonded and for long no second language would get into linux kernel, the main reason is languages do not meet all
+the systems programming requirements. ( take Go, it comes with GC => Unpredictable responses )
+Or C++ which also fails: 
+The early c++ compilers were not reliable, they frequenly emitted bloated or unpredictable machine code. Its Constructors triggered implicit memory allocation and complex underlying operations. In kernel space memory management should be explicit, deterministic and entirely controlled by the developer. And C++ lacks runtime core kernel init happens before OS, meaning runtime support and libraries required in C++ is not present. 
+
+And Linus and team maintainers, prefered raw,predictable control of C, as it gives
+absolute transparency into how memory and pointer are manipulated right next to hw registers. 
+
+The reason for Rust to break the mold, is from inception Rust natively supports, lower-level core environment called `no_std`. this strips out all the std library support, the memory allocator, and any other OS dependent runtime. This leaves with highly predictable, zero-overhead binary that compiles directly down to bare-metal. 
+
+We will look at this `no_std` environment in the second half of our discussion when we talk about eBPF programming. ( the eBPF VM enforeces incredible rigid constrains, requiring a strict execution environment where traditional OS wrappers cannot exit)
+
+In the First part we will try cover Rust as systems programming language and its unique approach allows to match raw performance, lack of runtime, and predictability of C while fundamentally eliminating the memory safety bugs that have histrically plagued systems-level engineering.
+
+We will cover mainly what's new model Rust presents for memory safety. 
+
+
+Good Afternoon, 
 
 Today we’ll be looking at the Rust programming language from the point of systems programming and how its
 becoming a new tool for systems programming toolbox.Specifically we'll explore why its has gained popularity for delivering memory safety 

@@ -58,65 +58,147 @@
 #text(size: 0.8em, fill: black.lighten(45%))[· `Modern Concepts`]
 #text(size: 0.8em, fill: black.lighten(45%))[· `performance`]
 
-== Systems programming languages :
-// A double heading (==) creates a standard slide with a title at the top
+== Systems programming language: 
+
 #cols[
-  #text(size: 0.9em, fill: black.lighten(27%))[
-    > Direct Hardware Access and Low-Level Control
+  *Systems software: controls hardware and mediates between it and everything else.*
 
-    > Zero-Cost Abstractions
+  It's characterised by three constraints which are its requirements:
 
-    > Manual or Deterministic Memory Management
+  1. *Direct hardware access*: memory-mapped registers, DMA engines, interrupt controllers
+  2. *No managed runtime*: no garbage collector, no VM, no OS safety net beneath you 
+  3. *Correctness is load-bearing*: A bug does not crash one user session; it crashes the whole system, corrupts flash, or silently misdelivers data to hardware
 
-    > Minimal Runtime Environment
-
-    > Stability and Predictability
-  ]
+  *Your daily work is systems programming:*
+  - Peripheral drivers (PCIe, MIPI, USB, UART, I2C, SPI)
+  - DMA engine bring-up, scatter-gather list management
+  - Power management (DVFS, clock trees, voltage domains)
+  - Boot firmware, secure monitor. 
+  - Android HAL native layer, Binder IPC, ION/DMA heap management
 ][
+  *The languages that have historically owned this domain*
+
   #table(
-    gutter: 1em,
-    columns: (1fr, 1fr, 1fr, 1fr),
-    stroke: (x: none, y: 0.4pt + gray.lighten(45%)),
-    inset: (left: 1pt, top: 3pt, bottom: 7pt, right: 0pt),
-    [*Feature*],[*C*],[*C++*],[*Rust*],
-    [Memory Safety],[No],[Manual (RAII)],[Yes (Compile-time)],
-    [Garbage Collection],[None],[None],[None],
-    [Complexity],[Low],[Very High],[High],
-    [Abstraction Power],[Low],[High],[High],
+    columns: (auto, auto, auto, auto),
+    stroke: (x: none, y: 0.3pt + luma(210)),
+    inset: (y: 6pt),
+    [*Language*], [*Domain*], [*Memory safe?*], [*No GC?*],
+    [Assembly], [firmware, boot], [✗], [✓],
+    [C],         [OS, drivers, embedded], [✗], [✓],
+    [C++],       [firmware, RTOS, Android HAL], [✗ ¹], [✓],
+    [Go],        [tooling, cloud], [✓], [✗],
+    [*Rust*],    [*all of the above*], [*✓*], [*✓*],
   )
+
+  #text(size: 0.6em, fill: luma(100))[
+    ¹ RAII helps; raw pointers escape freely.\
+  ]
+
+  #callout(color: safe-green)[
+    Rust is the first language to occupy the *top-right cell simultaneously*, giving memory safety *and* no GC — with a formally verified type system. #ref-badge[Jung et al., RustBelt, POPL 2018]
+  ]
 ]
 
-== The eternal memory bugs
+// == Systems programming languages :
+// // A double heading (==) creates a standard slide with a title at the top
+// #cols[
+//   #text(size: 0.9em, fill: black.lighten(27%))[
+//     > Direct Hardware Access and Low-Level Control
+//
+//     > Zero-Cost Abstractions
+//
+//     > Manual or Deterministic Memory Management
+//
+//     > Minimal Runtime Environment
+//
+//     > Stability and Predictability
+//   ]
+// ][
+//   #table(
+//     gutter: 1em,
+//     columns: (1fr, 1fr, 1fr, 1fr),
+//     stroke: (x: none, y: 0.4pt + gray.lighten(45%)),
+//     inset: (left: 1pt, top: 3pt, bottom: 7pt, right: 0pt),
+//     [*Feature*],[*C*],[*C++*],[*Rust*],
+//     [Memory Safety],[No],[Manual (RAII)],[Yes (Compile-time)],
+//     [Garbage Collection],[None],[None],[None],
+//     [Complexity],[Low],[Very High],[High],
+//     [Abstraction Power],[Low],[High],[High],
+//   )
+// ]
 
-// Using the 'cols' helper for side-by-side layout
-#cols[
-  #block(fill:luma(220), inset:.5em, radius: .2em, width:100%) 
-  *The numbers haven't moved in 20 years*
+// == The eternal memory bugs
+//
+// // Using the 'cols' helper for side-by-side layout
+// #cols[
+//   #block(fill:luma(220), inset:.5em, radius: .2em, width:100%) 
+//   *The numbers haven't moved in 20 years*
+//
+//   - *~70 %* of Microsoft CVEs are memory safety bugs
+//     #ref-badge[Microsoft Security Response Centre, 2019] // Using our custom ref-badge
+//     
+//   - *~67 %* of Linux kernel CVEs are memory safety violations
+//     #ref-badge[Gaynor & Thomas, 2019]
+//   
+//
+// ][
+//   #block(fill:luma(220), inset:.5em, radius: .2em, width:100%) 
+//   *The root causes*
+//   #table(
+//     columns: (auto, 1fr),
+//     stroke: (x: none, y: 0.4pt + gray.lighten(40%)),
+//     inset: (y: 6pt, x: 4pt),
+//     [*Cause*], [*C has no protection against...*],
+//     [Use-after-free], [accessing freed memory via a dangling pointer],
+//     [Buffer overflow], [writing past the end of an allocation],
+//     [Data race], [two threads accessing shared memory without synchronisation],
+//   )
+//   
+// ]
+== The cost of the status quo — in numbers
 
-  - *~70 %* of Microsoft CVEs are memory safety bugs
-    #ref-badge[Microsoft Security Response Centre, 2019] // Using our custom ref-badge
-    
-  - *~67 %* of Linux kernel CVEs are memory safety violations
-    #ref-badge[Gaynor & Thomas, 2019]
-  
+#cols(
+  [
+  *Industry-wide memory safety statistics*
 
-][
-  #block(fill:luma(220), inset:.5em, radius: .2em, width:100%) 
-  *The root causes*
   #table(
     columns: (auto, 1fr),
-    stroke: (x: none, y: 0.4pt + gray.lighten(40%)),
-    inset: (y: 6pt, x: 4pt),
-    [*Cause*], [*C has no protection against...*],
-    [Use-after-free], [accessing freed memory via a dangling pointer],
-    [Buffer overflow], [writing past the end of an allocation],
-    [Data race], [two threads accessing shared memory without synchronisation],
+    stroke: (x: none, y: 0.3pt + luma(210)),
+    inset: (y: 5pt),
+    [*Source*], [*Finding*],
+    [Microsoft MSRC], [~70 % of all CVEs are memory safety bugs],
+    [Chrome team], [~70 % of high-severity bugs are memory safety],
+    [Linux kernel], [~67 % of CVEs are memory safety violations],
+    [Android team], [Memory unsafety estimated at \$68B in security costs],
+    [NSA guidance], [C and C++ flagged as "memory-unsafe" languages],
+    [CISA], ["The Case for Memory Safe Roadmaps" — mandates shift],
   )
-  
-]
+  #callout[
+    - These safety stats haven't changes in 20 years.
+  ]
+
+  #ref-badge[Microsoft MSRC 2019; Google Project Zero 2020; Linux Security Summit 2019; CISA 2023]
+],[
+  *The bug classes that drive these numbers*
+
+  - *Use-after-free (UAF)*: most common kernel CVE class: IRQ handler retains a pointer to freed `struct device`
+  - *Buffer overflow / OOB write*: DMA descriptor overrun corrupts adjacent kernel data
+  - *Null dereference*: `container_of()` result not checked, dereferenced in probe path
+  - *Data race*: two CPUs write a shared DMA counter without a lock
+  - *Uninitialised read*: `struct` field read before all error paths initialise it
+  - *Integer overflow*:  `nents * sizeof(entry)` wraps; under-allocated scatter-gather list
+
+  #callout[
+    - These are not exotic bugs requiring complex/adversarial inputs, they are everyday bugs we also encounter while de-bugging during SoC bring-up.
+    - KASAN, KCSAN, and lockdep catch them at runtime 
+    - *Rust prevents them at compile time.*
+  ]
+],
+ratio: (0.8fr, 1.2fr),
+)
 
 // Three dashes (---) create a new slide while keeping the same title
-#pause
+== Fix for the status quo:
 
   // Using our custom callout box with the accent bar
   #callout[
@@ -125,47 +207,200 @@
   // Overriding the default color of the callout
   #callout(color: safe-green)[
     - Rust *eliminates every row in this table* at compile time, with zero runtime overhead.
-    - type-system, compiler.
+    - Rust meets all the systems programming requirements.
+      - 3rd Programming model. ( mem mgmt via Ownership & borrowing )
+      - type-system, compiler.
   ]
 
-== Why Rust and Landscape before Rust ( 3rd programming model )
+// == Landscape before Rust 
+//
+// #cols[
+//   *Status :*
+//   - Current systems are powerful but they come with limitations 
+//     - absolute performance (C/C++) (manual memory mgmt)
+//     - absolute safety (Java/python/go) (automatic mem mgmt) 
+//
+//   - GC languages: pauses ( due to clean up ) High cost of overhead, unpredictable. 
+//
+//   - Large C code base quickly becomes developer centric.
+//
+//   ][
+//     *Rust Features*
+//
+//     - Ownership Model: Safe, no GC Max performance.
+//
+//     - Zero-Cost Abstraction. ( no additional CPU cycles to achieve memory safety )
+//     
+//     - Rust moves development model from developer centered to *Langauge features + Compiler*
+//   ]
+
+// == Rust Programming model and feaures: ( summarized )
+//
+//   To solve memory related issues:
+//   - C/C++ : manual memory management 
+//   - GC ( python,java ): pauses ( due to clean up ) High cost of overhead, unpredictable. 
+//   - Ownership Model: Safe, no GC Max performance 
+//
+//   #table(
+//     columns: (1fr, 1fr, 1fr, 1fr),
+//     stroke: (x: none, y: 0.4pt + rust-red.lighten(25%)),
+//     inset: (left: 1pt, top: 3pt, bottom: 7pt, right: 0pt),
+//     [Feature],[Manual (C)],[Garbage Collected (Java)],[Ownership (Rust)],
+//     [Performance],[Maximum],[Lower (GC overhead)],[Maximum],
+//     [Safety],[Low (Dangling pointers)],[High],[High],
+//     [Responsibility],[Programmer],[Runtime System],[Compiler],
+//     [Complexity],[High (Error prone)],[Low (Easy)],[Medium (Learning curve)],
+//   )
+//   - Rust moves development model from developer centered to *Langauge features + Compiler*
+
+= How Rust Fits Systems Programming
+
+== The three properties that make Rust a systems language
 
 #cols[
-  *Status :*
+  *Property 1 — No garbage collector, no runtime*
 
-  - Current systems are powerful but they also come with limitations 
-    - absolute performance (C/C++) (manual memory mgmt)
-    - absolute safety (Java/python/go) (automatic mem mgmt) 
-  - Developer centric
-  - Rust meets all the systems programming requirements.
-    - 3rd Programming model. ( mem mgmt via Ownership & borrowing )
+  Rust has no GC, no reference-counting runtime, no background threads, no stop-the-world pause. The memory model is:
 
-  ][
-  *Before Rust:*
+  - Stack allocation: zero overhead — exactly like C `int x;`
+  - Heap allocation: explicit, backed by the allocator you choose
+  - Destructor: called at a *statically known point* by the compiler, not by a runtime at an unpredictable time
 
-  - GC and fail to meet the needs. 
-  - How Rust provides a third programming model to fix this
-  - Change from developer centric to languge+compiler mandates
+  This means Rust code can run:
+  - In interrupt handlers (ISR context)
+  - In firmware before the MMU is enabled
+  - In a `#![no_std]` kernel module with no OS beneath it
+  - On a bare-metal microcontroller with 16 KB of RAM
+
+  *The binary output is a standard ELF — same format as a C object file.* A Rust kernel module is a `.ko` that `insmod`, `lsmod`, and `rmmod` treat identically.
+][
+  *Property 2 — Direct hardware access*
+
+  Rust can do everything C can at the hardware interface:
+
+  ```rust
+  // Memory-mapped I/O register write
+  // (identical to: *(volatile u32*)CTRL_REG = 0x1;)
+  unsafe {
+      core::ptr::write_volatile(
+          CTRL_REG as *mut u32, 0x1
+      );
+  }
+
+  // Inline assembly — same as GNU C __asm__ __volatile__
+  use core::arch::asm;
+  unsafe {
+      asm!("dsb sy", options(nostack));
+  }
+
+  // Raw pointer arithmetic — same as C, explicitly unsafe
+  let ptr = base_addr as *mut u32;
+  unsafe { *ptr.add(offset) = value; }
+  ```
+
+  `unsafe { }` is not "turn off Rust" — it is an *explicit declaration* that you are taking responsibility for the invariants the type system cannot verify. It is grep-able, auditable, and contained.
+]
+
+== Property 3 — Zero-cost abstractions
+
+#cols[
+  *The Stroustrup principle, applied*
+
+  > "What you don't use, you don't pay for. What you do use, you couldn't hand-code any better."
+
+  Rust's abstractions compile to the same machine code as the equivalent hand-written C. This is not a promise — it is verifiable on Compiler Explorer.
+
+  *Iterators and closures — no overhead*
+
+  ```rust
+  // High-level, expressive:
+  let total: u64 = latencies
+      .iter()
+      .filter(|&&ns| ns > threshold)
+      .sum();
+
+  // Compiles to exactly this loop — same as C:
+  let mut total: u64 = 0;
+  for &ns in &latencies {
+      if ns > threshold { total += ns; }
+  }
+  // Godbolt: identical ADDQ loop in both cases
+  ```
+  #ref-badge[Compiler Explorer — godbolt.org; rustc -O2]
+][
+  *Generics — monomorphisation, not boxing*
+
+  ```rust
+  // One generic function:
+  fn min_of<T: Ord>(a: T, b: T) -> T {
+      if a <= b { a } else { b }
+  }
+
+  // Compiler generates TWO specialised versions:
+  // min_of::<u32>(a: u32, b: u32) -> u32
+  // min_of::<u64>(a: u64, b: u64) -> u64
+  // No vtable. No boxing. No indirection.
+  ```
+
+  *Lifetime annotations are erased before codegen*
+
+  ```rust
+  // 'a is compile-time analysis only — zero runtime cost:
+  fn longest<'a>(x: &'a [u8], y: &'a [u8]) -> &'a [u8] {
+      if x.len() >= y.len() { x } else { y }
+  }
+  // Generates: same two-compare, one-return instruction
+  //            sequence as the C pointer version
+  ```
+
+  #callout(color: safe-green)[
+    Borrow checking, lifetime analysis, type inference — all stripped before LLVM sees the code. *The runtime binary is as lean as hand-written C.*
   ]
+]
 
-== Rust Programming model and feaures: ( summarized )
+== The aliasing advantage — Rust beats C's optimiser
 
-  To solve memory related issues:
-  - C/C++ : manual memory management 
-  - GC ( python,java ): pauses ( due to clean up ) High cost of overhead, unpredictable. 
-  - Ownership Model: Safe, no GC Max performance 
+This is the often-overlooked performance *advantage* Rust has *over* C.
 
-  #table(
-    columns: (1fr, 1fr, 1fr, 1fr),
-    stroke: (x: none, y: 0.4pt + rust-red.lighten(25%)),
-    inset: (left: 1pt, top: 3pt, bottom: 7pt, right: 0pt),
-    [Feature],[Manual (C)],[Garbage Collected (Java)],[Ownership (Rust)],
-    [Performance],[Maximum],[Lower (GC overhead)],[Maximum],
-    [Safety],[Low (Dangling pointers)],[High],[High],
-    [Responsibility],[Programmer],[Runtime System],[Compiler],
-    [Complexity],[High (Error prone)],[Low (Easy)],[Medium (Learning curve)],
-  )
-  - Rust moves development model from developer centered to *Langauge features + Compiler*
+#cols[
+  *The C aliasing problem*
+
+  C's pointer aliasing rules (C99 §6.5) say two pointers of different types *may not* alias — but two `u8*` pointers *might* always alias. The compiler must assume they overlap.
+
+  ```c
+  // C: compiler cannot vectorise safely
+  // because it cannot prove src ≠ dst
+  void process(uint8_t *dst,
+               const uint8_t *src, size_t n) {
+      for (size_t i = 0; i < n; i++)
+          dst[i] = src[i] | 0x80;
+  }
+  // Must add `restrict` keyword AND trust the caller
+  void process(uint8_t *restrict dst,
+               const uint8_t *restrict src, size_t n);
+  // restrict is a promise, not a proof
+  ```
+][
+  *Rust's aliasing proof*
+
+  Rust's exclusivity rule (`&mut T` is exclusive — no other reference exists) *proves* at compile time that `out` and `in_buf` do not overlap. LLVM gets this information and auto-vectorises without any annotation.
+
+  ```rust
+  // Rust: exclusive borrow PROVES no overlap
+  // Compiler auto-vectorises — no annotation needed
+  fn process(out: &mut [u8], in_buf: &[u8]) {
+      for (o, &b) in out.iter_mut().zip(in_buf) {
+          *o = b | 0x80;
+      }
+  }
+  // Generated: VPOR ymm loop (AVX2)
+  // No restrict. No trust. The type system proved it.
+  ```
+
+  #callout(color: safe-green)[
+    The *same property* that prevents data races also enables better codegen. Safety and performance arise from the same source: the aliasing proof in the type system.
+  ]
+]
 
 =  Important Language features:
 
