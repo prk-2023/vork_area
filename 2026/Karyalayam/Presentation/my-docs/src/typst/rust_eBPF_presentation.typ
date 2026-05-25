@@ -1238,10 +1238,8 @@ program             ← single self-contained binary
 
 == Stage-by-stage comparison
 
-#v(0.5em)
-
 // Column headers
-#grid(columns: (1fr, 1fr, 1fr), gutter: 8pt,
+#grid(columns: (1fr, 1fr, 1fr), gutter: 1pt,
   block(fill: luma(220), radius: 4pt, inset: (x:8pt,y:6pt), width: 100%,
     text(size: 0.72em, weight: "bold", "Stage")),
   block(fill: blue.lighten(80%), radius: 4pt, inset: (x:8pt,y:6pt), width: 100%,
@@ -1249,30 +1247,28 @@ program             ← single self-contained binary
   block(fill: ebpf-teal.lighten(80%), radius: 4pt, inset: (x:8pt,y:6pt), width: 100%,
     text(size: 0.72em, weight: "bold", fill: ebpf-teal, "Aya (Rust)")),
 )
-#v(4pt)
-
-#vs-row("1 — Write BPF source",
+#vs-row("1. Write BPF source",
   "C source (.bpf.c), SEC() macros,\nbpf_helpers.h, vmlinux.h",
   "Rust source (no_std), #[kprobe] / #[map]\nattributes, aya-ebpf crate")
-#vs-row("2 — Compile → bytecode",
-  "clang -target bpf -g -O2\n→ program.bpf.o",
+#vs-row("2. Compile → bytecode",
+  "clang -titlearget bpf -g -O2\n→ program.bpf.o",
   "rustc --target bpfel-unknown-none\n+ bpf-linker → ELF object")
-#vs-row("2b — Skeleton / embedding",
+#vs-row("2b. Skeleton / embedding",
   "bpftool gen skeleton → program.skel.h\nIncluded in userspace C source",
   "include_bytes_aligned!() embeds ELF\ninto userspace binary at compile time")
-#vs-row("3 — Open / parse ELF",
+#vs-row("3. Open / parse ELF",
   "bpf_object__open() or skel__open()\nReads ELF, discovers maps & progs",
   "Ebpf::load(BYTES) — pure Rust ELF\nparser (aya-obj), no libelf dep")
-#vs-row("4 — Load + verify",
+#vs-row("4. Load + verify",
   "bpf_object__load() or skel__load()\nMaps created, CO-RE patches applied,\nbpf() syscall → verifier → JIT",
   "prog.load() per program type\nAya performs CO-RE, calls bpf() syscall\nSame kernel verifier & JIT path")
-#vs-row("4b — Attach to hook",
+#vs-row("4b. Attach to hook",
   "skel__attach() or bpf_program__attach()\nbpf_link fd returned",
   "prog.attach(\"dma_map_sg\", 0)?\nReturns typed handle implementing Drop")
-#vs-row("5 — Maps: read events",
+#vs-row("5. Maps: read events",
   "ring_buffer__new() + ring_buffer__poll()\nCallback-based consumer",
   "RingBuf::try_from(map)? + AsyncFd\nAsync / epoll — Tokio-native")
-#vs-row("6 — Teardown",
+#vs-row("6. Teardown",
   "skel__detach() + skel__destroy()\nManual, must not forget",
   "RAII — all handles Drop automatically\nCompiler guarantees cleanup")
 
@@ -1472,7 +1468,7 @@ program             ← single self-contained binary
   #table(
     columns: (auto, 1fr),
     stroke: (x: none, y: 0.3pt + luma(210)),
-    inset: (y: 5pt),
+    inset: (y: 2pt),
     [*`aya`*], [Load BPF ELF, create maps, attach programs, manage links. Pure-Rust bpf() syscall wrapper. CO-RE via aya-obj.],
     [*`aya-obj`*], [Parse BPF ELF, process BTF sections, apply CO-RE relocations. No libelf dependency.],
     [*`aya-ebpf`*], [BPF-side runtime: `#[map]`, `#[kprobe]`, `#[xdp]`, `#[lsm]`, … macros; helper function wrappers; map type structs.],

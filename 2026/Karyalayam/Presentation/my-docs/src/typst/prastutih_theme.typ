@@ -42,15 +42,15 @@
 #let vs-row(stage, c-col, rust-col) = {
   grid(
     columns: (1fr, 1fr, 1fr),
-    gutter: 8pt,
+    gutter: 5pt,
     block(fill: luma(240), radius: 4pt, inset: (x:8pt, y:5pt), width: 100%,
       text(size: 0.68em, weight: "bold", stage)),
-    block(fill: libbpf-blue.lighten(92%), radius: 4pt, inset: (x:8pt, y:5pt), width: 100%,
-      text(size: 0.67em, fill: libbpf-blue.darken(20%), c-col)),
+    block(fill: libbpf-blue.lighten(90%), radius: 4pt, inset: (x:8pt, y:5pt), width: 100%,
+      text(size: 0.68em, fill: libbpf-blue.darken(20%), c-col)),
     block(fill: ebpf-teal.lighten(90%), radius: 4pt, inset: (x:8pt, y:5pt), width: 100%,
-      text(size: 0.67em, fill: ebpf-teal.darken(10%), rust-col)),
+      text(size: 0.68em, fill: ebpf-teal.darken(10%), rust-col)),
   )
-  v(3pt)
+  v(1pt)
 }
 // Callout: A box with a thick left border for highlighting important notes
 #let callout(body, color: rust-red) = block(
