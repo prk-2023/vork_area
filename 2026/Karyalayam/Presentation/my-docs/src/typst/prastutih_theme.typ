@@ -28,6 +28,16 @@
 
 // ── UI COMPONENTS & HELPERS ──────────────────────────────────────────────────
 
+// Define your custom code box
+#let codebox(content) = rect(
+  width: 100%,
+  fill: rgb("#fff9f9"),
+  stroke: 0.5pt + gray,
+  radius: 3pt,
+  inset: 10pt,
+  content
+)
+
 // Stage comparison row
 #let vs-row(stage, c-col, rust-col) = {
   grid(
@@ -82,12 +92,15 @@
   }
   // The main code body with specific monospaced font stack
   block(
-    fill: code-bg,
+    //fill: code-bg,
+    fill: rgb("#fffbf9"),
     radius: if title != none { (bottom: 5pt) } else { 5pt },
     inset: 12pt,
     width: 100%,
+    stroke: 0.5pt + gray,
     //text(font: ("Noto Sans","JetBrains Mono","Liberation Mono"), fill: code-fg, size: 0.72em, body)
-    text(fill: code-fg, size: 0.72em, body)
+    text(fill: code-bg, size: 0.72em, body)
+    // body
   )
 }
 

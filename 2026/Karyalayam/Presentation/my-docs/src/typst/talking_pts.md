@@ -1,12 +1,11 @@
 # Talking Points:
 
-
 # Talking points for "slides.md"
 
 ## Slide 0: Introduction to Rust:
 
 Good Afternoon, 
-Todays topic Introduction to Rust and eBPF programming with Rust.
+Today's topic Introduction to Rust and `eBPF` programming with Rust.
 
 To set the stage: Rust a relatively a new programming language compared C, C++, Python, or Java. 
 
@@ -20,13 +19,13 @@ developer preference charts frequently ranking as a highly desired tool for clou
 development. 
 
 Take for example yocto a highly capable and powerful complex build system, can quickly consume time,
-for managing dependencies, handling different build tools, mixing languages, handling toolchains and 
+for managing dependencies, handling different build tools, mixing languages, handling tool-chains and 
 tussle with recipes.
 One of the quality-of-life improvement Rust introduces is Cargo.
 With Cargo, dependency management, compilation, and tracking are unified into a single tool. 
 More importantly for our hardware-centric workflow, Cargo is highly extensible.
 
-Features like build.rs (custom build scripts) and the xtask pattern give a powerful, native ways to 
+Features like build.rs (custom build scripts) and the `xtask` pattern give a powerful, native ways to 
 handle complex code generation, hardware stepping logic, or custom image packaging without relying 
 on fragile external scripting layers.
 

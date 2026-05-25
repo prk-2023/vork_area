@@ -78,6 +78,9 @@
 ][
   *The languages that have historically owned this domain*
 
+  #codebox(
+    [
+
   #table(
     columns: (auto, auto, auto, auto),
     stroke: (x: none, y: 0.3pt + luma(210)),
@@ -93,6 +96,8 @@
   #text(size: 0.6em, fill: luma(100))[
     ¹ RAII helps; raw pointers escape freely.\
   ]
+    ]
+  )
 
   #callout(color: safe-green)[
     Rust is the first language to occupy the *top-right cell simultaneously*, giving memory safety *and* no GC — with a formally verified type system. #ref-badge[Jung et al., RustBelt, POPL 2018]
@@ -277,7 +282,8 @@ ratio: (0.8fr, 1.2fr),
   *Property 2 — Direct hardware access*
 
   Rust can do everything C can at the hardware interface:
-
+  #codebox(
+    [
   ```rust
   // Memory-mapped I/O register write
   // (identical to: *(volatile u32*)CTRL_REG = 0x1;)
@@ -297,6 +303,8 @@ ratio: (0.8fr, 1.2fr),
   let ptr = base_addr as *mut u32;
   unsafe { *ptr.add(offset) = value; }
   ```
+    ]
+  )
 
   `unsafe { }` is not "turn off Rust" — it is an *explicit declaration* that you are taking responsibility for the invariants the type system cannot verify. It is grep-able, auditable, and contained.
 ]
@@ -312,24 +320,30 @@ ratio: (0.8fr, 1.2fr),
 
   *Iterators and closures — no overhead*
 
-  ```rust
-  // High-level, expressive:
-  let total: u64 = latencies
-      .iter()
-      .filter(|&&ns| ns > threshold)
-      .sum();
-
-  // Compiles to exactly this loop — same as C:
-  let mut total: u64 = 0;
-  for &ns in &latencies {
-      if ns > threshold { total += ns; }
-  }
-  // Godbolt: identical ADDQ loop in both cases
-  ```
+  #codebox(
+    [
+      ```rust
+      // High-level, expressive:
+      let total: u64 = latencies 
+        .iter()
+        .filter(|&&ns| ns > threshold)
+        .sum();
+      
+      // Compiles to exactly this loop — same as C:
+      let mut total: u64 = 0;
+      for &ns in &latencies {
+          if ns > threshold { total += ns; }
+      }
+      // Godbolt: identical ADDQ loop in both cases
+      ```
+    ]
+  )
   #ref-badge[Compiler Explorer — godbolt.org; rustc -O2]
 ][
   *Generics — monomorphisation, not boxing*
 
+  #codebox(
+    [
   ```rust
   // One generic function:
   fn min_of<T: Ord>(a: T, b: T) -> T {
@@ -341,17 +355,23 @@ ratio: (0.8fr, 1.2fr),
   // min_of::<u64>(a: u64, b: u64) -> u64
   // No vtable. No boxing. No indirection.
   ```
+    ]
+  )
 
   *Lifetime annotations are erased before codegen*
 
-  ```rust
-  // 'a is compile-time analysis only — zero runtime cost:
-  fn longest<'a>(x: &'a [u8], y: &'a [u8]) -> &'a [u8] {
-      if x.len() >= y.len() { x } else { y }
-  }
-  // Generates: same two-compare, one-return instruction
-  //            sequence as the C pointer version
-  ```
+  #codebox(
+    [
+      ```rust
+      // 'a is compile-time analysis only — zero runtime cost:
+      fn longest<'a>(x: &'a [u8], y: &'a [u8]) -> &'a [u8] { 
+        if x.len() >= y.len() { x } else { y }
+      }
+      // Generates: same two-compare, one-return instruction
+      //            sequence as the C pointer version
+      ```
+    ]
+  )
 
   #callout(color: safe-green)[
     Borrow checking, lifetime analysis, type inference — all stripped before LLVM sees the code. *The runtime binary is as lean as hand-written C.*
@@ -367,24 +387,30 @@ This is the often-overlooked performance *advantage* Rust has *over* C.
 
   C's pointer aliasing rules (C99 §6.5) say two pointers of different types *may not* alias — but two `u8*` pointers *might* always alias. The compiler must assume they overlap.
 
-  ```c
-  // C: compiler cannot vectorise safely
-  // because it cannot prove src ≠ dst
-  void process(uint8_t *dst,
-               const uint8_t *src, size_t n) {
-      for (size_t i = 0; i < n; i++)
-          dst[i] = src[i] | 0x80;
-  }
-  // Must add `restrict` keyword AND trust the caller
-  void process(uint8_t *restrict dst,
+  #codebox(
+    [  
+      ```c 
+      // C: compiler cannot vectorise safely 
+      // because it cannot prove src ≠ dst 
+      void process(uint8_t *dst,
+          const uint8_t *src, size_t n) {
+            for (size_t i = 0; i < n; i++) 
+              dst[i] = src[i] | 0x80;
+            }
+      // Must add `restrict` keyword AND trust the caller 
+      void process(uint8_t *restrict dst,
                const uint8_t *restrict src, size_t n);
-  // restrict is a promise, not a proof
-  ```
+      // restrict is a promise, not a proof
+      ```
+    ]
+  )
 ][
   *Rust's aliasing proof*
 
   Rust's exclusivity rule (`&mut T` is exclusive — no other reference exists) *proves* at compile time that `out` and `in_buf` do not overlap. LLVM gets this information and auto-vectorises without any annotation.
 
+  #codebox(
+    [
   ```rust
   // Rust: exclusive borrow PROVES no overlap
   // Compiler auto-vectorises — no annotation needed
@@ -396,6 +422,8 @@ This is the often-overlooked performance *advantage* Rust has *over* C.
   // Generated: VPOR ymm loop (AVX2)
   // No restrict. No trust. The type system proved it.
   ```
+    ]
+  )
 
   #callout(color: safe-green)[
     The *same property* that prevents data races also enables better codegen. Safety and performance arise from the same source: the aliasing proof in the type system.
@@ -553,7 +581,6 @@ Rust makes this structurally impossible to get wrong.
 ]
 
 
-
 // ──────────────────────
 //  BORROWING & LIFETIMES
 // ──────────────────────
@@ -575,14 +602,17 @@ Rust makes this structurally impossible to get wrong.
   - None can write while readers exist
   - Maps to: read-lock held, RCU read section
 
-  ```rust
-  fn print_all(items: &[DmaEntry]) { /* read-only */ }
-
-  let ring = RingBuffer::new(256);
-  print_all(&ring.entries);  // borrow
-  print_all(&ring.entries);  // another borrow — fine
-  // ring is still valid and owned here
-  ```
+  #codebox(
+    [ 
+      ```rust
+      fn print_all(items: &[DmaEntry]) { /* read-only */ }
+      let ring = RingBuffer::new(256);
+      print_all(&ring.entries);  // borrow
+      print_all(&ring.entries);  // another borrow — fine
+      // ring is still valid and owned here
+      ```
+    ]
+  )
   #callout(color: rust-red)[
     *Data Race* = aliasing + mutation + no synchronisation
   ]
@@ -592,16 +622,19 @@ Rust makes this structurally impossible to get wrong.
   - *One* writer, *no* concurrent readers
   - Maps to: write-lock held, spinlock held
 
-  ```rust
-  fn add_entry(ring: &mut RingBuffer, e: DmaEntry) {
-      ring.entries.push(e); // exclusive access
-  }
-
-  let mut ring = RingBuffer::new(256);
-  add_entry(&mut ring, entry);
-  // `ring` is fully accessible again after add_entry returns
-  ```
-
+  #codebox(
+    [
+      ```rust 
+      fn add_entry(ring: &mut RingBuffer, e: DmaEntry) { 
+        ring.entries.push(e); // exclusive access 
+      }
+      
+      let mut ring = RingBuffer::new(256); 
+      add_entry(&mut ring, entry);
+      // `ring` is fully accessible again after add_entry returns
+      ```
+    ]
+  )
   #callout(color: safe-green)[
     The compiler *proves* that at any point in the program, either *one writer* or *N readers* holds access to any memory location, but never both. This is the data race freedom guarantee.
   ]
@@ -683,16 +716,22 @@ Additional topics that are for those who want to go down the rabbit hole:
   *Type system*
   - Integer overflow in debug builds → panic (not UB)
   - Exhaustive `match` — all enum variants handled
-    ```rust
-    match direction {
-        DmaDir::ToDevice   => { … },
-        DmaDir::FromDevice => { … },
-        // error if DmaDir::Bidirectional not handled
-    }
-    ```
+    #codebox(
+      [ 
+        ```rust 
+        match direction { 
+          DmaDir::ToDevice   => { … },
+          DmaDir::FromDevice => { … }, 
+          // error if DmaDir::Bidirectional not handled 
+        }
+        ```
+      ]
+    )
 ][
   *Error handling*
-  - `Result<T, E>` — ignoring an error is a *compiler warning*
+  - *`Result<T, E>`* — ignoring an error is a *compiler warning*
+  #codebox(
+    [
     ```rust
     #[must_use = "this Result must be handled"]
     fn map_dma(...) -> Result<SgTable, DmaError> { … }
@@ -700,6 +739,8 @@ Additional topics that are for those who want to go down the rabbit hole:
     map_dma(dev, sg, nents); // warning: unused Result
     // The kernel C equivalent: silently dropping -ENOMEM
     ```
+    ]
+  )
   - `Option<T>` — no null, no null-deref
 
   *Unsafe quarantine*
@@ -1485,26 +1526,30 @@ program             ← single self-contained binary
 ][
   *Generated workspace structure*
 
+  #codebox(
+    [
+    ```
+    dma-latency-tracer/
+    ├── Cargo.toml                  ← workspace root
+    ├── rust-toolchain.toml         ← pins nightly
+    │
+    ├── dma-latency-tracer-common/
+    │   └── src/lib.rs              ← #[no_std] shared types
+    │                                 DmaEvent, histogram bounds
+    │
+    ├── dma-latency-tracer-ebpf/
+    │   ├── .cargo/config.toml      ← target=bpfel-unknown-none
+    │   ├── Cargo.toml              ← aya-ebpf dep
+    │   └── src/main.rs             ← #[kprobe], #[kretprobe]
+    │
+    └── dma-latency-tracer/
+        ├── build.rs   ← KEY        ← cross-compiles eBPF crate,
+        │                             copies to $OUT_DIR
+        ├── Cargo.toml        ← aya dep, tokio
+        └── src/main.rs       ← Ebpf::load, attach, ringbuf
   ```
-  dma-latency-tracer/
-  ├── Cargo.toml                  ← workspace root
-  ├── rust-toolchain.toml         ← pins nightly
-  │
-  ├── dma-latency-tracer-common/
-  │   └── src/lib.rs              ← #[no_std] shared types
-  │                                 DmaEvent, histogram bounds
-  │
-  ├── dma-latency-tracer-ebpf/
-  │   ├── .cargo/config.toml      ← target=bpfel-unknown-none
-  │   ├── Cargo.toml              ← aya-ebpf dep
-  │   └── src/main.rs             ← #[kprobe], #[kretprobe]
-  │
-  └── dma-latency-tracer/
-      ├── build.rs   ← KEY        ← cross-compiles eBPF crate,
-      │                             copies to $OUT_DIR
-      ├── Cargo.toml              ← aya dep, tokio
-      └── src/main.rs             ← Ebpf::load, attach, ringbuf
-  ```
+    ]
+  )
 
   #callout[
     *No xtask needed.* A single `cargo build` cross-compiles the eBPF crate (via `build.rs`) and embeds the result. One command, one binary output.
