@@ -13,7 +13,7 @@
 
 // Focus Slide ( using specialized Metropolis layout for Big, centered text .. )
 #hero-slide(
-  img: "./imgs/realtek_icons.png",
+  img: "./imgs/realtek.jpg",
   topic-title: " Introduction to Rust & eBPF with Rust ",
   topic-subtitle: "[ Pulumati Ram ]"
 )
