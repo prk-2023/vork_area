@@ -1,0 +1,1562 @@
+<!DOCTYPE HTML>
+<html lang="en" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Rust Language - Introduction to Rust and eBPF with Rust</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="favicon-8114d1fc.png">
+        <link rel="stylesheet" href="css/variables-8adf115d.css">
+        <link rel="stylesheet" href="css/general-2459343d.css">
+        <link rel="stylesheet" href="css/chrome-ae938929.css">
+        <link rel="stylesheet" href="css/print-9e4910d8.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="fonts/fonts-9644e21d.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="mdbook-highlight-css" href="highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
+
+        <!-- Custom theme stylesheets -->
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "";
+            const default_light_theme = "light";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "searchindex-0ec0d858.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="toc-4515afc9.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="toc.html"></iframe>
+            </noscript>
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="mdbook-page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
+                        </label>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
+                        </button>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
+                        </ul>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">Introduction to Rust and eBPF with Rust</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="mdbook-content" class="content">
+                    <main>
+                        <h1 id="introduction-to-rust"><a class="header" href="#introduction-to-rust">Introduction to Rust:</a></h1>
+<h2 id="toc"><a class="header" href="#toc">ToC:</a></h2>
+<ul>
+<li>History</li>
+<li>Rust as Systems programming language.</li>
+<li>Key features and terminology.</li>
+<li>Rust Ecosystem.</li>
+<li>Rust in Linux kernel.
+<ul>
+<li>quick look at how to build Kernel drivers ( hello world module )</li>
+<li>Android.</li>
+</ul>
+</li>
+<li>Best practices.</li>
+<li>eBPF: Overview
+<ul>
+<li>earlier tools</li>
+<li>libbpf ( CO-RE )</li>
+<li>Process of generating bytecode and user-space loaders</li>
+</ul>
+</li>
+<li>why eBPF with Rust:
+<ul>
+<li>Verifier, boiler plate code generation</li>
+<li>cross development &amp; embedded systems</li>
+<li>why use rust for profiling and building high performance applications (xdp)</li>
+<li>Telemetry and more.</li>
+</ul>
+</li>
+</ul>
+<hr>
+<h2 id="slide----1-history"><a class="header" href="#slide----1-history">Slide    1: History</a></h2>
+<ul>
+<li>
+<p>Rust is a general-purpose programming language. Popular for its emphasis on performance, type safety,
+concurrency, and memory safety.</p>
+</li>
+<li>
+<p>Software developer Graydon Hoare created Rust in 2006 while working at Mozilla, which officially
+sponsored the project in 2009. The first stable release, Rust 1.0, was published in May 2015.</p>
+</li>
+<li>
+<p>Rust’s syntax is similar to that of C / C++, although many of its features were influenced by functional
+programming languages such as <code>OCaml</code>.</p>
+</li>
+<li>
+<p>Rust supports multiple programming paradigms, It was influenced by ideas from functional programming,
+including immutability, higher-order functions, algebraic data types, and pattern matching.
+It also supports object-oriented programming via <code>structs</code>, <code>enums</code>,<code>traits</code>, and <code>methods</code>.
+(i.e Rust fits into be called a Functional, object-oriented, systems, application development, ..
+programming language)</p>
+<ul>
+<li>It’s noted for enforcing memory safety (i.e., that all references point to valid memory) without a
+conventional garbage collector; instead, memory safety errors and data races are prevented by the
+“borrow checker”, which tracks the object lifetime of references at compile time.</li>
+</ul>
+</li>
+<li>
+<p>References:</p>
+</li>
+<li>
+<p>The Book : “Rust programming Language Book” is a good starting point ( Its free online ).</p>
+</li>
+<li>
+<p><a href="https://docs.rs">Docs.rs Open source website that automatically generates and host docs for ever rust package</a>
+The documents are built using <code>rustdoc</code> to build API documentation from source directly ensuring the docs
+are in sync with updates and readily accessible.</p>
+</li>
+</ul>
+<hr>
+<h2 id="slide----2-rust-as-a-systems-programming-language"><a class="header" href="#slide----2-rust-as-a-systems-programming-language">Slide    2: Rust as a systems programming language</a></h2>
+<ul>
+<li>
+<p>Systems Programming Language: ( from wiki ) The definition:</p>
+<ul>
+<li>designed to build SW that manages computer HW and provides essential services to other software such
+as OS, kernels, device drivers.</li>
+<li>The language should have direct HW control and maximum efficiency</li>
+<li>The key requirements:
+<ul>
+<li>Direct HW access</li>
+<li>Low-level memory management.</li>
+<li>minimal runtime overhead</li>
+<li>predictable performance</li>
+<li>ability to interact with Assembly</li>
+<li>static compilation.
+Languages that can do the above C, Rust, C++ and Go.
+Note: Go included as its used with Docker/Kubernetes, but comes with a GC and significant runtime, in a
+hard-systems/kernel context (where you need deterministic memory management and no-std), Go is usually
+excluded.</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>
+<p>Rust programs are similar to C/C++ with additional goodies:</p>
+<ul>
+<li>
+<p>Its designed with memory safety, reliability, and maintainability with out sacrificing performance.</p>
+</li>
+<li>
+<p>Its considered safer than C, and compiles to native making it deployable virtually anywhere.</p>
+</li>
+<li>
+<p>Programs memory remains safe even without a garbage collector. ( =&gt; faster and smaller code footprint)</p>
+</li>
+<li>
+<p>It has no nulls, and no exceptions, no inheritance, and its ‘variables’ are immutable by default.</p>
+</li>
+<li>
+<p>Memory safety with out garbage collector, is enforced at compile time via ownership, borrowing and
+lifetimes.</p>
+</li>
+<li>
+<p>Borrow checker is Rust’s most major contribution to programming technology ( Its also the cause of
+most confusion, frustration, and misunderstanding among its users. It moves the debugging phase from
+runtime to compile time. )</p>
+</li>
+<li>
+<p>Unlike C, where compiler acts as a translator and it trusts you. In Rust, the compiler is a <strong>Static
+Verifier</strong>. It refuses to translate the code until you prove that your memory access is mathematically
+sound.</p>
+<p>As complexity of modern systems grow beyond our ability to manually reason about state, Rust’s “type
+system” and ownership model enforces correctness at compile time, which reduces many bugs, thus
+improving maintainability, in short it shifts correctness guarantees from humans to compiler.</p>
+</li>
+<li>
+<p>Compiler’s compile-time checks ( Owership and Borrowing rules ) prevent common bugs include:</p>
+<ul>
+<li>Null pointer dereference, data races and buffer overflow.
+This translated to fewer bug crashes, predictable behaviour and safer systems.</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>
+<p>Like C, Rust can interact with with hardware and low-level systems components.</p>
+<p>At the same time it provides modern language features, such as a strong type system and macros that
+enable safer abstractions, reduce boilerplate, and improve maintainability without sacrificing control.</p>
+</li>
+<li>
+<p>Modern techniques: Example “zero-cost” Async: Rust can take high-level modern concepts like asynchronous
+programming and apply them to most resource constrained environment
+Most modern languages require a heavy “runtime” ( like VM or a background mgr ) to handle asynchronous
+taks. Rust is different in this aspect:</p>
+<ul>
+<li>Poll Based Model : Rusts <code>async/wait</code> uses state-machine approach that does not require a heap or a
+bachground thread manager by default.</li>
+<li>Concurrency without threads: On tiny microcontrollers with no OS (bare metal) you can <code>async</code> to handle
+multiple HW events ( like sensor reading and button press)  simultaneously without the overhead of a
+traditional real-time OS (RTOS)</li>
+</ul>
+</li>
+<li>
+<p>Embedded Rust (Bare Metal): Rust is moving to be a popular for embedded systems as it provides
+“guardrails“where C usually provides landmines:</p>
+<ul>
+<li>Peripheral Access Crate (PACs): Rust’s typesystem can represent HW registers. =&gt; the compiler can
+prevent accidental writing to a “read-only” pin on a chip.</li>
+<li>No Std: (<code>#[no_std]</code>): Rust can compile without its standard library, allowing it to run with only few
+kilobytes of RAM. And it comes with modern features of error handling via <code>Result</code>, <code>Option</code>,<code>match</code>,
+even on tiny chips.</li>
+</ul>
+</li>
+<li>
+<p>Safety Control: Combination of <strong>Macros</strong> and <strong>Strong Typing</strong> allows developers build HALs:</p>
+<ul>
+<li><em>Boilerplate Reduction</em>: Instead of writing hundreds of lines of code to initialize a clock, a macro
+can generate that safely based on your chip’s datasheet.</li>
+<li><em>Type-Safe Hardware</em>: You can use “Stateful Types” to ensure that a pin cannot be used as an Output
+until it has been properly initialized—if you try, the code simply won’t compile.</li>
+</ul>
+</li>
+</ul>
+<blockquote>
+<p>“Rust is a multi-paradigm systems language that bridges the gap between low-level control and high-level
+safety. It supports functional and object-oriented patterns for maintainability, while its ‘zero-cost’
+philosophy enables modern techniques—like <code>async</code>/<code>await</code> to run directly on bare-metal hardware. Through
+its unique ownership model and powerful macro system, it eliminates entire classes of memory bugs without
+the need for a garbage collector.”</p>
+</blockquote>
+<hr>
+<h2 id="slide-3--rust-for-operating-system-development-"><a class="header" href="#slide-3--rust-for-operating-system-development-">slide 3 # Rust for operating system development :</a></h2>
+<ul>
+<li>
+<p>Rust is capable of occupying the same systems-level niches as C ( bare metal, firmware, kernels, embedded
+etc..) but its adoption varies by domain and its evolving.</p>
+</li>
+<li>
+<p>For Networking stacks, databases, compilers, the adoption is mature and widely accepted .</p>
+</li>
+<li>
+<p>Rust in Linux kernel: Its not replacing C but its growing adoption ( mainly for drivers )</p>
+</li>
+<li>
+<p>Linux kernel: Rust for Linux started in 2020 with a goal to add Rust as programming language that could be
+used within Linux project. In 2022 Kernel version 6.1 Rust was incorporated and as of Dec 2025 its moved
+from experimental to core part of the kernel. ( expanding the language scope in kernel to C, Assembly,
+Rust)</p>
+</li>
+<li>
+<p>Rust based components in kernel:</p>
+<ul>
+<li><code>rnull</code> a drop in replacement for the <code>null device</code></li>
+<li>ASIX AX88772 and Realtek Generic FE-GE Physical layer network drivers</li>
+<li>DRM kernel panic handler, which displays a QR code.</li>
+</ul>
+</li>
+<li>
+<p>Other Notable projects:</p>
+<ul>
+<li><code>tarfs</code> : a tar file system</li>
+<li>NVE Express (NVMe) device driver</li>
+<li>Android Binder IPC driver</li>
+<li>Ashai Linux Apple silicon AGX GPU DRM driver</li>
+<li>PuzzleFS, a container fs</li>
+<li>read-only ext2</li>
+<li>Nova: intended to create Rust <code>nouveau</code> GPU Driver ( for nvidia hw ).</li>
+</ul>
+</li>
+</ul>
+<blockquote>
+<p>Android use of Rust from the Bluetooth stack to the Keystore.
+Since 2022, there have been zero memory safety vulnerabilities found in Android’s Rust code.</p>
+</blockquote>
+<ul>
+<li>Embedded / bare metal:
+<ul>
+<li>Rust supports <code>no_std</code></li>
+<li>Direct register access</li>
+<li>zero-cost abstractions
+=&gt; Embedded-HAL : set of traits forming a HW abstraction layer for embedded systems in Rust, defines
+platform agnostic interface for peripheral access, enabling driver code to run on multiple
+microcontrollers and architectures without modifications. ( maintained by Rust embedded working group)
+= RTIC: real time interrupt driven concurrency, a lightweight framework for rust prog-lang designed for
+embedded systems. ( Provides dead-lock free execution by design )</li>
+</ul>
+</li>
+</ul>
+<h2 id="slide----4-rust-controversy-and-current-state"><a class="header" href="#slide----4-rust-controversy-and-current-state">Slide    4: Rust controversy and current state:</a></h2>
+<ul>
+<li>
+<p>Rust in Linux has not been without controversy, discussions in the kernel community around:</p>
+<ul>
+<li>It adds additional complexity in the build system.</li>
+<li>long term maintenance of Rust abstractions.</li>
+<li>interoperability with existing C code.
+This discussions are part of normal evolution of the kernel.</li>
+</ul>
+</li>
+<li>
+<p>As IC design house, our focus is not language debates or community politics, but rather focus on building
+reliable, maintainable and safe systems.</p>
+</li>
+<li>
+<p>Despite all, Rust is being adopted into kernel and the reasons could:</p>
+<ul>
+<li>Reduce common memory related bugs</li>
+<li>improve safety in low-level code</li>
+<li>help build more robust drivers and systems components</li>
+</ul>
+</li>
+<li>
+<p>The recent kernel release 6.19 has about 390 rust source files amounting to 25+k lines of rust code,
+target driver, memory allocators.</p>
+</li>
+</ul>
+<h2 id="slide----5-key-features"><a class="header" href="#slide----5-key-features">Slide    5: Key Features:</a></h2>
+<p>Some of the most common key features of Rust programming language:</p>
+<ol>
+<li>
+<p>Memory Safety: ( with out garbage collector ):</p>
+<ul>
+<li>Ensures memory safety through its ownership system, eliminating issues like:
+<ul>
+<li>Null pointer dereferencing</li>
+<li>Buffer overflows</li>
+<li>Use-after-free bugs
+This happens at compile time, without needing a garbage collector.</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>
+<p>High Performance: Rust is comparable to languages like C/C++:</p>
+<ul>
+<li>Zero-cost abstractions</li>
+<li>No runtime overhead from GC</li>
+<li>Fine control over system resources</li>
+</ul>
+<p>Making it ideal for systems programming, game engines, and performance-critical apps.
+High-level features (like iterators, closures) compile down to efficient low-level code without
+performance penalties.</p>
+</li>
+<li>
+<p>Ownership, Borrowing and Lifetimes:</p>
+<ul>
+<li>Rust’s unique model includes:
+<ol>
+<li>Ownership: Each value has one owner</li>
+<li>Borrowing: References without taking ownership</li>
+<li>Lifetimes: Ensures references are valid</li>
+</ol>
+</li>
+</ul>
+<p>This prevents data races and dangling references.</p>
+<ul>
+<li>
+<p>Ownership model:</p>
+<ul>
+<li>Every piece of memory has one “owner”, when the owner goes out of scope the memory is freed in
+milli-seconds like <code>free()</code> in C, but with the risk of forgetting.</li>
+</ul>
+<ol>
+<li>Each type has a single owner, every piece of data has exactly one variable that owns it at a
+time.</li>
+<li>Ownership can be transferred (moved) [exception: types with <code>copy</code> trait are copied instead of
+move]</li>
+<li>Value gets dropped when owner goes out of scope: when owner leaves the scope, rust automatically
+frees the memory.</li>
+</ol>
+</li>
+</ul>
+<pre><code class="language-C">    #include &lt;stdio.h&gt;
+    #include &lt;stdlib.h&gt;
+    #include &lt;string.h&gt;
+    int main() {
+        char *s = malloc(6);
+        strcpy(s, "hello");
+        char *t = s; // both point to same memory
+
+        printf("%s\n", s);
+        printf("%s\n", t);
+        free(s);
+        // t is now a dangling pointer ⚠️
+        ...
+    }
+    // Allows multiple pointers freely, but can lead to dangling pts and use-after-free bugs. 
+</code></pre>
+<pre class="playground"><code class="language-rust">    fn main() {
+        let s = String::from("hello");
+        let t = s; // ownership moves here 
+        // println!("{}", s); // ❌ compile error: s is no longer valid 
+        println!("{}", t);
+    }
+    // when `s` is assigned to `t` ownership moves and `s` becomes invalid. </code></pre>
+<p>Note some rust code might misslead to violate ownership, example</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>let mut x = 100;
+let mut y = x;
+println!("the value of x = {} and y = {}", x, y);
+<span class="boring">}</span></code></pre>
+<p>This works as some types like i32, i64, bool, char .. implement <code>copy</code> trait , as these types are stored
+on the stack and are cheap to duplicate and require no resource management. But for types like <code>String</code>,
+<code>Vec&lt;T&gt;</code>, <code>box&lt;T&gt;</code> do not implement <code>copy</code> trait, they require a single owner to avoid double free and
+memory corruption these are also heap memory.</p>
+<ul>
+<li>
+<p>Borrowing:</p>
+</li>
+<li>
+<p>lifetimes:</p>
+</li>
+</ul>
+</li>
+<li>
+<p>Borrow-checker: ( Core Feature )</p>
+<ul>
+<li>
+<p>Its the compiler component that enforces Rust’s rules around:</p>
+<ul>
+<li>Ownership</li>
+<li>Borrowing</li>
+<li>Lifetimes
+Its main job is to ensure memory safety at compile time. ( a key difference from other language )</li>
+</ul>
+</li>
+<li>
+<p>enforces:</p>
+<ol>
+<li>Only one mutable reference OR multiple immutable references</li>
+<li>No dangling pointers</li>
+<li>Reference must always be valid</li>
+</ol>
+</li>
+<li>
+<p>Eliminates entire classes of bugs (data races, invalid memory access)</p>
+</li>
+<li>
+<p>Makes “fearless concurrency” actually possible</p>
+</li>
+<li>
+<p>Shifts errors from runtime → compile time</p>
+</li>
+</ul>
+</li>
+<li>
+<p>Fearless concurrency:</p>
+<ul>
+<li>Rust makes concurrent programming safer:
+<ul>
+<li>Prevents data races at compile time</li>
+<li>Thread safety enforced via the type system</li>
+<li>Encourages safe parallelism</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>
+<p>Rich Type System and Pattern Matching:</p>
+<ul>
+<li>Algebraic data types (enum, struct).</li>
+<li>Powerful match expressions.</li>
+<li>Type inference with strict checks.</li>
+</ul>
+</li>
+<li>
+<p>Interoperability:</p>
+<ul>
+<li>Can call C libraries easily (FFI)</li>
+<li>Works well with existing systems</li>
+<li>Useful for embedding or extending other languages</li>
+</ul>
+</li>
+<li>
+<p>Built-in Testing &amp; Documentation</p>
+<ul>
+<li>Unit and integration tests built-in</li>
+<li>Documentation generation via rustdoc</li>
+<li>Examples and tests can live alongside code</li>
+</ul>
+</li>
+<li>
+<p>Cargo (Built-in Package Manager)</p>
+<ul>
+<li>Rust includes Cargo, which provides:
+<ul>
+<li>Dependency management</li>
+<li>Build automation</li>
+<li>Testing and benchmarking tools
+.. more ..</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>
+<p>Strong Community &amp; Ecosystem</p>
+<ul>
+<li>Growing ecosystem via crates.io</li>
+<li>Backed by organizations like Mozilla Foundation (historically)</li>
+<li>Widely adopted by companies like Microsoft, Google, and Amazon</li>
+<li>Now a part of Linux kernel.</li>
+</ul>
+</li>
+</ol>
+<h2 id="slide----6-rust-ecosystem"><a class="header" href="#slide----6-rust-ecosystem">Slide    6: Rust ecosystem:</a></h2>
+<p>Rust ecosystem: Full set of tools, infrastructure, and community resources that work together.</p>
+<ol>
+<li>
+<p>Core Toolchain: (Essentials that are installed with Rust)</p>
+<ul>
+<li><code>rustc</code> : Compiler
+<ul>
+<li>Rust compiler that turns source code into binaries.</li>
+<li>Enforce rules like ownership and borrow checker</li>
+</ul>
+</li>
+<li>Cargo: ( Central hub of the ecosystem )
+<ul>
+<li>Build system + Dependency Manager</li>
+<li>Handles:
+<ul>
+<li>Project creation ( <code>cargo new</code> )</li>
+<li>Dependency resolution</li>
+<li>Compilation, testing, benchmarking</li>
+</ul>
+</li>
+<li>Extensions: ( custom subcommands ) can be extended like a platform
+<ul>
+<li>cargo-<something> automatically becomes <code>cargo &lt;something&gt;</code></something></li>
+<li>cargo generate → create projects from templates</li>
+<li>cargo audit  → checks for security vulnerabilities</li>
+<li>cargo-outdated → shows outdated dependencies
+.. more ..</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>
+<p>Package Registry and Libraries:</p>
+<ul>
+<li><code>crates.io</code>:
+<ul>
+<li>Official package registry for Rust libraries (“crates”)</li>
+<li>Similar to npm</li>
+</ul>
+</li>
+<li>Crates:
+<ul>
+<li>Reusable Rust libraries or binaries</li>
+<li>Types:
+<ul>
+<li>Library crates</li>
+<li>Binary crates</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>
+<p>Testing, Linting, and Formatting:</p>
+<ul>
+<li>Built-in Testing (via Cargo)
+<ul>
+<li>Unit tests (inside files)</li>
+<li>Integration tests (separate directory)</li>
+</ul>
+</li>
+<li>Clippy:
+<ul>
+<li>Linter for catching common mistakes and improving code quality</li>
+<li>Suggests idiomatic Rust patterns</li>
+</ul>
+</li>
+<li>rustfmt:
+<ul>
+<li>Automatically formats code</li>
+<li>Ensures consistent style across teams</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>
+<p>Documentation System</p>
+<ul>
+<li>rustdoc:
+<ul>
+<li>Generates documentation from code comments</li>
+<li>Produces clean HTML docs</li>
+</ul>
+</li>
+<li>docs.rs
+<ul>
+<li>Hosts documentation for crates published on <code>crates.io</code></li>
+</ul>
+<ul>
+<li>Auto-builds docs for every crate</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>
+<p>Toolchain Management</p>
+<ul>
+<li><code>rustup</code>
+<ul>
+<li>Installs and manages Rust versions</li>
+<li>Lets you:
+<ul>
+<li>Switch between stable, beta, nightly</li>
+<li>Add targets (e.g., WebAssembly)</li>
+<li>Install components like Clippy, rustfmt</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>
+<p>IDE &amp; Editor Support:</p>
+<ul>
+<li><code>rust-analyzer</code>:
+<ul>
+<li>Provides: Autocomplete / Type hints /  Go-to-definition / Inline error checking</li>
+<li>Supported editors: VS Code / Neovim / IntelliJ</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>
+<p>Rust supports compiling for multiple platforms:</p>
+<ul>
+<li>Windows, Linux, macOS</li>
+<li>Embedded systems</li>
+<li>WebAssembly (Wasm)</li>
+</ul>
+<p>You can add targets via rustup.
+<code>rustup add target bpfel-unknown-none --toolchain nightly</code>
+<code>rustup add target aarch64-unknown-linux-gnu</code></p>
+</li>
+<li>
+<p>Async &amp; Concurrency Ecosystem</p>
+<ul>
+<li>Rust has a rich async ecosystem built on:
+<ul>
+<li>async/await syntax</li>
+</ul>
+</li>
+<li>Popular runtimes:
+<ul>
+<li><code>Tokio</code></li>
+<li><code>async-std</code> migrate to <code>smol</code></li>
+</ul>
+</li>
+<li>Used for:
+<ul>
+<li>Web servers / Networking / High-performance services</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>
+<p>Web &amp; Application frameworks</p>
+<ul>
+<li>Web frameworks:
+<ul>
+<li>Actix Web / Rocket / Axum</li>
+</ul>
+</li>
+<li>Other domains:
+<ul>
+<li>CLI tools → clap</li>
+<li>Game dev → bevy</li>
+<li>Embedded → embedded-hal</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>
+<p>Interoperability &amp; FFI:</p>
+<ul>
+<li>Call C/C++ libraries easily</li>
+<li>Use <code>bindgen</code> to generate rust bindings from C code</li>
+<li>Integrate with other languages</li>
+</ul>
+</li>
+<li>
+<p>Standard Library</p>
+<ul>
+<li><code>std</code>
+<ul>
+<li>Core functionality:  Collections (Vec, HashMap)/ File I/O / Threads</li>
+</ul>
+</li>
+<li><code>core</code> / <code>alloc</code>:
+<ul>
+<li>Minimal libraries for embedded/no-std environments</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>
+<p>Release Channels:</p>
+<ul>
+<li>Managed via <code>rustup</code>:
+<ul>
+<li>Stable → production-ready</li>
+<li>Beta → upcoming release testing</li>
+<li>Nightly → experimental features</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>
+<p><code>Cargo.toml</code> (Project Configuration)</p>
+<ul>
+<li>Every Rust project managed by Cargo is centered around a file called <code>Cargo.toml</code>.</li>
+<li>A manifest file written in toml format</li>
+<li>Defines how a project is built, configured, and what it depends on.</li>
+<li>Controls:
+<ul>
+<li>Package metadata [package]</li>
+<li>Dependencies: [dependencies]</li>
+<li>Features: [features] for condition compilation,</li>
+<li>Build configuration [profile.release] controls optimization levels. config for dev vs release.</li>
+<li>Dev dependencies [dev-dependencies] used for testing/benchmarking</li>
+<li>Workspace support : manage multiple crates in a “monorepo”</li>
+</ul>
+</li>
+</ul>
+</li>
+</ol>
+<h2 id="slide----7-rust-in-linux-kernel"><a class="header" href="#slide----7-rust-in-linux-kernel">Slide    7: Rust in Linux Kernel:</a></h2>
+<p>Chronological map of Rust in the Linux kernel:</p>
+<ul>
+<li>
+<ol>
+<li>Pre-2020 — Early Ideas (Foreshadowing)</li>
+</ol>
+<ul>
+<li>Before any real patches:
+<ul>
+<li>Linux kernel was almost entirely C</li>
+<li>Long-standing discussion about memory safety issues</li>
+<li>Rust was already gaining traction in systems programming</li>
+<li>Experimental external projects explored Rust for kernel modules
+Key idea emerging:
+“Can we reduce kernel memory safety bugs without rewriting everything in C?”</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>
+<ol start="2">
+<li>2020–2021 — First Formal Proposal</li>
+</ol>
+<ul>
+<li>RFC: introduce Rust as a second language in the kernel</li>
+<li>Key design principles:
+<ul>
+<li>Rust is optional</li>
+<li>No impact on existing C code</li>
+<li>Gradual adoption</li>
+<li>Focus on safety-critical components first (drivers)</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>
+<ol start="3">
+<li>2021 — Initial Infrastructure lands ( Highly existing stage )</li>
+</ol>
+<ul>
+<li>Kernel gains minimal Rust support</li>
+<li>Early toolchain work begins:
+<ul>
+<li>custom bindings to C kernel APIs</li>
+<li>core-like environment for no_std Rust</li>
+</ul>
+</li>
+<li>First experimental Rust modules compiled against kernel</li>
+</ul>
+</li>
+<li>
+<ol start="4">
+<li>2022 — RFC Acceptance + Mainline Progress</li>
+</ol>
+<ul>
+<li>Rust support becomes officially accepted as an experimental feature</li>
+<li>Kernel maintainers allow Rust code in tree under strict conditions</li>
+<li>Work begins on:
+<ul>
+<li>safer abstractions over kernel APIs</li>
+<li>memory-safe driver framework</li>
+</ul>
+</li>
+<li>Key milestone:
+Rust infrastructure merged into kernel source tree</li>
+</ul>
+</li>
+<li>
+<ol start="5">
+<li>2023 — First Functional Rust Driver Framework:</li>
+</ol>
+<ul>
+<li>
+<p>Rust support becomes real and usable for drivers</p>
+</li>
+<li>
+<p>Core abstractions introduced:</p>
+<ul>
+<li>device model bindings</li>
+<li>memory management wrappers</li>
+<li>safe concurrency primitives</li>
+</ul>
+</li>
+<li>
+<p>Important shift:</p>
+<ul>
+<li>Rust is no longer “just experimental glue”</li>
+<li>→ it becomes a driver-writing language inside Linux</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>
+<ol start="6">
+<li>2024 — Growing Subsystem Adoption</li>
+</ol>
+<ul>
+<li>More subsystems begin allowing Rust components:
+<ul>
+<li>sample drivers</li>
+<li>experimental GPU / device drivers (limited scope)</li>
+<li>kernel modules in Rust for testing</li>
+</ul>
+</li>
+<li>Tooling improves:
+<ul>
+<li>better C interop layer</li>
+<li>improved Rust-for-Linux CI integration</li>
+</ul>
+</li>
+<li>Reality check:
+<ul>
+<li>Still a small fraction of kernel codebase (&lt;1%)</li>
+<li>But growing steadily</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>
+<ol start="7">
+<li>2025 — Stabilization Phase Begins</li>
+</ol>
+<ul>
+<li>Rust support becomes more maintainable and structured</li>
+<li>Focus shifts from “can it work?” → “how do we scale it safely?”
+Key improvements:
+<ul>
+<li>cleaner abstraction layers over kernel APIs</li>
+<li>stricter review policies for Rust code</li>
+<li>better alignment with kernel coding standards
+Ecosystem maturity:</li>
+<li>Rust toolchain integration smoother</li>
+<li>more kernel maintainers familiar with Rust</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>
+<ol start="8">
+<li>2026 — Current State (Now) As of today:</li>
+</ol>
+<ul>
+<li>
+<p>Status:</p>
+<ul>
+<li>Rust is officially supported in the Linux kernel tree</li>
+<li>Still marked experimental in many subsystems</li>
+<li>Primarily used for:
+<ul>
+<li>new drivers</li>
+<li>memory-safe components</li>
+<li>proof-of-concept subsystems</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>
+<p>Philosophy today:</p>
+<ul>
+<li>No rewrite of Linux in Rust</li>
+<li>Coexistence of C + Rust</li>
+<li>Gradual migration only where it makes sense</li>
+</ul>
+</li>
+<li>
+<p>Current Architecture Reality</p>
+<ul>
+<li>Linux kernel today is:
+<ul>
+<li>C → core kernel (still dominant)</li>
+<li>Rust → safe drivers + new subsystems</li>
+<li>FFI layer → glue between them</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<p>Rust is being introduced as a safe island inside a massive C ocean.</p>
+<h2 id="slide-9"><a class="header" href="#slide-9">Slide 9:</a></h2>
+<ul>
+<li>
+<p>How is Rust introduced in a subsystem:</p>
+<ul>
+<li>Like other things in kernel, its up to each subsystem how they want to deal with Rust.</li>
+<li>This means get maintainers involved progressively, to scale the efforts.
+<ul>
+<li>This lead to different approaches:
+<ul>
+<li>sub-systems which accept rust patches and fix issues.</li>
+<li>sub-systems that prefer to get new co-maintainer and review ..</li>
+<li>some sub-systems may decide they do not want to have rust code for the time being, mainly for
+bandwidth reasons.</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>
+<p>Who is responsible if a C change breaks a build with Rust enabled?</p>
+<ul>
+<li>The usual kernel policy applies. So, by default, changes should not be introduced if they are known to
+break the build, including Rust.</li>
+</ul>
+</li>
+<li>
+<p>extra work for maintainers?</p>
+<ul>
+<li>Community acknowledged the costs and risks a second language introduces. However, they believe its
+believed, introducing Rust in the kernel outweighs those costs.</li>
+<li>Refer to the <a href="https://lore.kernel.org/lkml/20210414184604.23473-1-ojeda@kernel.org/">RFC</a></li>
+</ul>
+</li>
+<li>
+<p>Current status as original RFC:</p>
+<ul>
+<li>
+<p>Complex Rust Kernel drivers have been written and improvements to the C side were implemented.</p>
+</li>
+<li>
+<p>Industry pressure: Outside the kernel, pressure to move to memory safe languages than when we started
+years ago.</p>
+</li>
+<li>
+<p>Lot of the required setup work within the kernel is in place, most Rust language features used were
+stabilized, Rust compiler features were implemented, other projects improved their support for Rust
+as well (e.g. <code>bindgen</code>, <code>Coccinelle</code> for Rust, <code>pahole</code>, <code>GCC</code>, <code>rustc_codegen_gcc</code>…), and so on.</p>
+</li>
+</ul>
+</li>
+<li>
+<p>duplicated C/Rust drivers allowed?</p>
+<ul>
+<li>Usual kernel policy applies. So, by default, “no”.</li>
+<li>subsystems may decide to allow it, temporarily, to get Rust bootstrapped</li>
+</ul>
+</li>
+<li>
+<h2 id="rust-reference-drivers"><a class="header" href="#rust-reference-drivers">Rust reference drivers:</a></h2>
+</li>
+</ul>
+<h2 id="slide----10-android"><a class="header" href="#slide----10-android">Slide    10: Android:</a></h2>
+<ol>
+<li>
+<p>Android has similar motivation ( memory safety ) but different in adoption strategy and depth.</p>
+<ul>
+<li>More aggressive safety migration strategy</li>
+<li>Goal: reduce memory safety bugs in platform layers</li>
+<li>Willing to replace more application/framework-level C/C++
+=&gt;</li>
+</ul>
+<blockquote>
+<p>Android = selective replacement in userspace/platform layers</p>
+</blockquote>
+</li>
+<li>
+<p>System services (real production usage)</p>
+<ul>
+<li>
+<p>Rust is actively used in components like:</p>
+<ul>
+<li>Binder-related services (selected parts)</li>
+<li>System security services</li>
+<li>Media / infrastructure services (increasingly)</li>
+</ul>
+</li>
+<li>
+<p>Google prefers Rust for:</p>
+<ul>
+<li>new low-level services</li>
+<li>security-sensitive daemons</li>
+<li>privileged system components</li>
+</ul>
+</li>
+<li>
+<p>HAL / native layer experiments:</p>
+<ul>
+<li>Hardware Abstraction Layer components increasingly allow Rust</li>
+<li>Still mixed with C++</li>
+</ul>
+</li>
+<li>
+<p>FFI-heavy interop zones:</p>
+<ul>
+<li>Android is heavily hybrid:
+<ul>
+<li>Java/Kotlin (framework)</li>
+<li>C++ (native)</li>
+<li>Rust (new safe components)</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>
+<p>Rust must interoperate with both:</p>
+<ul>
+<li>JNI / AIDL / Binder interfaces</li>
+<li>legacy native libraries</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>
+<p>Why Android can adopt faster:
+Android has a structural advantage:</p>
+<ul>
+<li>
+<ol>
+<li>Layered architecture</li>
+</ol>
+<ul>
+<li>Framework (Java/Kotlin)</li>
+<li>Native services (C++/Rust)</li>
+<li>Kernel (Linux)
+Rust fits cleanly in the middle layer.</li>
+</ul>
+</li>
+<li>
+<ol start="2">
+<li>New code bias:</li>
+</ol>
+<ul>
+<li>Google strongly prefers:
+“If you write new system code → use Rust”
+So adoption grows organically.</li>
+</ul>
+</li>
+<li>
+<ol start="3">
+<li>Security pressure
+Android is:
+<ul>
+<li>internet-facing</li>
+<li>attack surface heavy</li>
+<li>sandboxed but still sensitive</li>
+</ul>
+</li>
+</ol>
+<p>So memory safety matters more at service level.</p>
+</li>
+</ul>
+</li>
+<li>
+<p>Rust in Android (real production adoption areas)</p>
+<ul>
+<li>Keystore / KeyMint (Cryptographic security layer)</li>
+<li>Bluetooth stack (new Rust components)</li>
+<li>NFC / Secure communication components (adjacent usage)</li>
+<li>Secure system services (platform layer)</li>
+<li>Media / codec and parsing-heavy components (selective)</li>
+</ul>
+</li>
+</ol>
+<hr>
+<hr>
+<p>Rust is a <strong>Systems programming Language</strong> which focused on <strong>Safety, Speed, and Concurrency</strong> at the same
+time. It’s a language designed to to enforce memory safety without a Garbage Collector (GC).</p>
+<ol>
+<li><strong>Zero-Cost Abstraction</strong>“ : Rust code compiles to native code (LLVM) with performance parity to C/C++.
+<ul>
+<li>Rust code compiles to native and its deployable virtually anywhere.</li>
+<li>Static Guarantees: Shifts the cost of safety from Runtime (latency spikes, GC pauses) to Compile-time
+(the “Borrow Checker”).</li>
+<li>Immutability by Default: Encourages functional patterns to reduce side effects in complex state
+machines.</li>
+</ul>
+</li>
+</ol>
+<hr>
+<p>NOTE: i.e  no added tax on performance:</p>
+<p>Things that happen under the hood:</p>
+<ul>
+<li>
+<p>LLVM Pipeline: <code>cargo build --release</code>: <code>rustc</code> compiler does not actually generate machine code (the $1$s
+and $0$s ) directly. Instead</p>
+<ol>
+<li>It translates your code into <strong>LLVM Intermediate Representation (IR)</strong>.</li>
+<li>It hands that IR over to <strong>LLVM</strong>, the same world-class optimization back-end used by <strong>Clang (C/C++)</strong>
+and <strong>Swift</strong>.</li>
+<li>LLVM performs aggressive optimizations (dead code elimination, loop unrolling, vectorization)
+specifically tuned for the target CPU architecture (x86, ARM, RISC-V).</li>
+</ol>
+<p>Because Rust and C++ use the same “optimizer engine,” the final binary is often indistinguishable in terms
+of execution strategy.</p>
+</li>
+<li>
+<p>“Native Code” vs. Interpreted/JIT: Unlike Java or C#, Rust does not compile to bytecode that runs on a
+Virtual Machine (JVM/CLR).</p>
+<ul>
+<li><strong>No Runtime/VM:</strong> No “middleman” managing the execution.</li>
+<li><strong>Direct Execution:</strong> The processor executes Rust instructions directly, eliminates the “warm-up” time
+seen in JIT (Just-In-Time) compilers and significantly reduces the memory footprint.</li>
+</ul>
+</li>
+<li>
+<p>Performance Parity: The “Zero-Cost” Reality “Performance parity” =&gt; that a well-written Rust program will
+run at the same speed as a well-written C++ program.</p>
+<ul>
+<li><strong>Static Dispatch:</strong> Like C++ templates, Rust’s “Generics” use <code>monomorphization</code>. The compiler generates
+a specific version of a function for every type you use, so there is no runtime overhead for polymorphism.</li>
+<li><strong>No Garbage Collection:</strong> In Go or Java, performance is non-deterministic because the GC can
+“stop the world” to clean memory at any time.</li>
+<li>In Rust, memory is reclaimed the exact millisecond it goes out of scope, just like manual <code>free()</code> in C,
+but without the risk of forgetting it.</li>
+</ul>
+</li>
+<li>
+<p>The “Strictness” Advantage: Rust can occasionally <strong>outperform</strong> C/C++ due to its strict aliasing rules.</p>
+<ul>
+<li>In C, the compiler often has to be conservative because it can’t be sure if two pointers point to the
+same memory location (pointer aliasing).</li>
+<li>Because the <strong>Borrow Checker</strong> guarantees that a mutable reference is unique, the Rust compiler can
+perform optimizations that a C compiler would be too “afraid” to attempt, such as more aggressive
+register allocation.</li>
+</ul>
+</li>
+</ul>
+<blockquote>
+<p><strong>In short:</strong> You get the safety of a high-level language with the “bare metal” speed of the most powerful
+systems languages ever created.</p>
+</blockquote>
+<hr>
+<ol start="2">
+<li>Philosophical Shift:</li>
+</ol>
+<ul>
+<li>Rust explicitly removes several foot-guns common in C++ and Java:
+<ul>
+<li><strong>No Nulls</strong>: Replaced by the <code>Option&lt;T&gt;</code> <em>enum</em>. Force-handles the <code>None</code> case at compile time.</li>
+<li>No Exceptions: Uses <code>Result&lt;T, E&gt;</code> for recoverable errors. Error handling becomes a visible part of the
+API contract, not a hidden side effect.</li>
+<li>Composition over Inheritance:  No class hierarchies. Behavior is shared via Traits (interfaces on
+steroids), avoiding the “fragile base class” problem.</li>
+</ul>
+</li>
+</ul>
+<hr>
+<p>Note: Replace implicit runtime dangers to explicit compile time contracts:</p>
+<ul>
+<li>
+<p><em>No Nulls</em> =&gt; replaced with =&gt; <code>Option&lt;T&gt;</code> Enums: In C++, Java, any object reference can be <code>null</code> leading
+to infamous <code>NullPointerExecption</code>, In Rust a value is either there or its is not, and compiler will
+<strong>force</strong> developer to check.
+Ex: MMIO , requires dealing with optional HW components or nullable pointers to memory-mapped registers.
+Rust uses <code>Option&lt;T&gt;</code> to represent a HW interface that might not be initialized.</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>struct EthernetDriver {
+  // A raw pointer to a transmit buffer that might not be allocated yet
+  tx_buffer: Option&lt;*mut u8&gt;, 
+}
+impl EthernetDriver {
+  fn transmit(&amp;self) {
+      // The compiler prevents accessing tx_buffer directly.
+      // You must handle the "None" (uninitialized) case.
+      match self.tx_buffer {
+          Some(ptr) =&gt; unsafe { /* Perform DMA transfer using the pointer */ },
+          None =&gt; eprintln!("Hardware Error: TX Buffer not allocated"),
+      }
+  }
+}
+<span class="boring">}</span></code></pre>
+</li>
+<li>
+<p>No Exceptions: System Calls &amp; I/O : Systems code must be deterministic.
+You cannot afford the stack-unwinding overhead of exceptions during a high-frequency interrupt or a
+packet-processing loop. Result treats system failures as return values.</p>
+<pre class="playground"><code class="language-rust">use std::os::unix::io::RawFd;
+
+// Error handling is explicit in the return type
+fn open_socket(port: u16) -&gt; Result&lt;RawFd, String&gt; {
+  if port &lt; 1024 {
+      let errstr = "Permission Denied: Privileged Port".to_string();
+      println!("{errstr}");
+      return Err("Permission Denied: Privileged Port".to_string());
+  }
+  // Simulate system call returning a file descriptor
+  Ok(3) 
+}
+
+fn main() {
+  println!("opening socket");
+  // The '?' operator provides a low-overhead way to propagate 
+  // errors back up the stack without the cost of an exception.
+  let fd = open_socket(80).map_err(|e| format!("Network stack init failed: {}", e));
+}</code></pre>
+</li>
+<li>
+<p>Composition over Inheritance(Traits): Device Drivers
+( Rust uses Traits to define shared behavior (interfaces) and Structs to hold data, keeping them strictly
+decoupled.)</p>
+<p>Instead of a deep class hierarchy (e.g., Hardware -&gt; Bus -&gt; PCIe -&gt; NIC), Rust uses Traits to define
+capabilities. A <code>struct</code> implements the <code>Read</code> or <code>Write trait</code>, allowing it to be used by any generic
+system utility.</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>trait ByteStream {
+  fn write_byte(&amp;mut self, byte: u8);
+}
+
+struct UART { base_address: usize }
+struct SPI  { bus_id: u8 }
+
+impl ByteStream for UART {
+  fn write_byte(&amp;mut self, byte: u8) {
+      // Low-level register write for Serial Communication
+  }
+}
+
+impl ByteStream for SPI {
+  fn write_byte(&amp;mut self, byte: u8) {
+      // Low-level bit-banging for SPI Bus
+  }
+}
+// Generic function that doesn't care about the underlying hardware
+fn send_heartbeat(device: &amp;mut impl ByteStream) {
+  device.write_byte(0xAA);
+}
+<span class="boring">}</span></code></pre>
+</li>
+</ul>
+<p>Why the above matters:</p>
+<ul>
+<li>ABI Stability: Traits avoid the “vtable bloat” often found in complex C++ inheritance trees.</li>
+<li>Predictable Latency: Avoiding exceptions, you ensure that your “Happy Path” and “Error Path” have similar,
+predictable execution costs—critical for real-time systems.</li>
+<li>Safety at the Edge: Using Option for pointers ensures that a null-pointer dereference is caught at
+compile time, preventing the kernel panics that plague C-based drivers.</li>
+</ul>
+<hr>
+<ol start="3">
+<li><strong>The Borrow Checker: Ownership Invariants</strong></li>
+</ol>
+<ul>
+<li>
+<p>It enforces three strict rules to prevent Use-After-Free and Data Races:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th style="text-align: left">Concept</th><th style="text-align: left">Rule</th><th style="text-align: left">Technical Outcome</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align: left"><strong>Ownership</strong></td><td style="text-align: left">Each value has a single “Owner” variable.</td><td style="text-align: left">Deterministic cleanup (RAII) without a GC.</td></tr>
+<tr><td style="text-align: left"><strong>Moves</strong></td><td style="text-align: left">Assigning <code>a = b</code> moves ownership (bitwise copy of stack metadata).</td><td style="text-align: left">Prevents “Double Free” errors.</td></tr>
+<tr><td style="text-align: left"><strong>Borrowing</strong></td><td style="text-align: left">You can have $\infty$ immutable borrows OR <strong>one</strong> mutable borrow.</td><td style="text-align: left">Eliminates <strong>Data Races</strong> at the compiler level.</td></tr>
+</tbody>
+</table>
+</div>
+</li>
+<li>
+<p>In Rust, <strong>aliasing + mutation = disaster</strong>. The compiler ensures you never have both at the same time.</p>
+</li>
+<li>
+<p><strong>Concurrency without the Anxiety</strong>: In most languages, thread safety is a “best effort” by the
+developers. In Rust, it is a requirement for compilation.</p>
+<ul>
+<li>If a data structure isn’t thread-safe, the compiler will refuse to “Send” it across a thread boundary.</li>
+</ul>
+</li>
+</ul>
+<ul>
+<li><strong>Shared State:</strong> Handled via <code>Arc&lt;Mutex&lt;T&gt;&gt;</code>, where the Mutex <em>owns</em> the data. You cannot access the
+inner $T$ without locking the Mutex first.</li>
+</ul>
+<ul>
+<li>Summarizing :
+<ul>
+<li><strong>Reliability:</strong> Drastically reduces the “Mean Time Between Failures.”</li>
+<li><strong>Efficiency:</strong> Minimal runtime footprint; ideal for Cloud Native, Edge, and WASM.</li>
+<li><strong>Maintainability:</strong> Strong typing and explicit error handling make refactoring large-scale systems
+significantly safer.</li>
+</ul>
+</li>
+</ul>
+<hr>
+<ul>
+<li>
+<p>Programs build with Rust have there memory remain safe even without GC.</p>
+</li>
+<li>
+<p>Has no Nulls, and no exceptions, no Inheritance, and it’s variables are immutable by default.</p>
+</li>
+<li>
+<p>Community breaks down developers into 3 groups:</p>
+<ul>
+<li>People who understand the potential of Rust and use it.</li>
+<li>People who have not tried it.</li>
+<li>People who are trying to wrap their heads around the borrow checker.</li>
+</ul>
+</li>
+<li>
+<p>Rust Borrow checker is one of the most major contribution to programming technology, and its the main idea
+that causes most misunderstanding among other users.</p>
+</li>
+<li>
+<p>Borrow checker Working principle:</p>
+<ul>
+<li>You refer to a variable ( by reading / setting its state for ex) only in the context in which you
+declare it. What you cant do it assign to another variable, pass it as a function argument, or other
+regular things we do with variables in C. The only possible things you are allowed to do with
+variables in Rust are:
+<ul>
+<li>You are allowed to move the variable to another variable. In which case the assignee loses whatever
+state it had before, and the original variable becomes unusable.
+The value inside the variable can exist only in one place at a time.</li>
+<li>You can take a reference to it. References are more like the variables you know and love, in that
+they can be assigned, passed around, and compared.
+There are two kinds of reference:
+<ul>
+<li>An immutable reference. You can take as many immutable references to a variable as you wish, but
+you can’t assign through them or call any function that changes the variable’s state.
+As long as any immutable references exist, the original variable is treated as immutable as well.</li>
+<li>If the variable is mutable, you can also take a mutable reference to it. That can’t be assigned or
+passed around (other than by moving it), and there can be only one at a time. As long as a mutable
+reference exists, the variable itself goes off-limits: it effectively becomes invisible.</li>
+<li>You can have either immutable references, one mutable reference, or no references at all. You
+can’t mix references. But if you have a mutable reference, you can take any number of immutable
+references to it.</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<p>Rust is a low-level language like C, and it doesn’t use Garbage Collection (GC) by default.</p>
+<ul>
+<li>Rust’s most unique of memory safety is achieved by its feature of <strong>Ownership</strong>.</li>
+</ul>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+
+                            <a rel="next prefetch" href="rust_linux_intro.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+
+                    <a rel="next prefetch" href="rust_linux_intro.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                    </a>
+            </nav>
+
+        </div>
+
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
+
+        <!-- Livereload script (if served using the cli tool) -->
+        <script>
+            const wsProtocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsAddress = wsProtocol + "//" + location.host + "/" + "__livereload";
+            const socket = new WebSocket(wsAddress);
+            socket.onmessage = function (event) {
+                if (event.data === "reload") {
+                    socket.close();
+                    location.reload();
+                }
+            };
+
+            window.onbeforeunload = function() {
+                socket.close();
+            }
+        </script>
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="elasticlunr-ef4e11c1.min.js"></script>
+        <script src="mark-09e88c2c.min.js"></script>
+        <script src="searcher-c2a407aa.js"></script>
+
+        <script src="clipboard-1626706a.min.js"></script>
+        <script src="highlight-abc7f01d.js"></script>
+        <script src="book-a0b12cfe.js"></script>
+
+        <!-- Custom JS scripts -->
+
+
+
+    </div>
+    </body>
+</html>
