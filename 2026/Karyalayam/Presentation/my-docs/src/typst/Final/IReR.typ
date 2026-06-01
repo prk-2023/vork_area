@@ -69,13 +69,13 @@
   2. *No managed runtime*: no garbage collector, no VM, no OS safety net beneath you 
   3. *Correctness is load-bearing*: A bug does not crash one user session; it crashes the whole system, corrupts flash, or silently misdelivers data to hardware
 
-  *Your daily work is systems programming:*
-  - Peripheral drivers (PCIe, MIPI, USB, UART, I2C, SPI)
-  - DMA engine bring-up, scatter-gather list management
-  - Power management (DVFS, clock trees, voltage domains)
-  - Boot firmware, secure monitor. 
-  - Android HAL native layer, Binder IPC, ION/DMA heap management
+  *Rust as systems software:*
+  Compiles directly to Machine code via LLVM, with zero overhead for bare-metal work.
+  - `no_std`: attribute instructs compiler to isolate std lib and OS layers.
+  - `unsafe`: Its the auditable escape hatch ( allows low-level operations, to be placed in blocks for audit)
+  - `asm!` : Supports architecture-specific instructions. 
 ][
+  - `#[repr(C)]`: Binary Compatibility, Rust data-structs match exact memory layout of C, ensures seamless FFI execution when working with C.
   *The languages that have historically owned this domain*
 
   #codebox(
@@ -175,7 +175,7 @@ ratio: (0.8fr, 1.2fr),
 
   Rust has no GC, no reference-counting runtime, no background threads, no stop-the-world pause. The memory model is:
 
-  - Stack allocation: zero overhead — exactly like C `int x;`
+  - Stack allocation: zero overhead, exactly like C `int x;`
   - Heap allocation: explicit, backed by the allocator you choose
   - Destructor: called at a *statically known point* by the compiler, not by a runtime at an unpredictable time
 
@@ -185,7 +185,7 @@ ratio: (0.8fr, 1.2fr),
   - In a `#![no_std]` kernel module with no OS beneath it
   - On a bare-metal microcontroller with 16 KB of RAM
 
-  *The binary output is a standard ELF — same format as a C object file.* A Rust kernel module is a `.ko` that `insmod`, `lsmod`, and `rmmod` treat identically.
+  *The binary output is a standard ELF: same format as a C object file.* A Rust kernel module is a `.ko` that `insmod`, `lsmod`, and `rmmod` treat identically.
 ][
   *Property 2:  Direct hardware access*
 
@@ -214,7 +214,7 @@ ratio: (0.8fr, 1.2fr),
     ]
   )
 
-  `unsafe { }` is not "turn off Rust" — it is an *explicit declaration* that you are taking responsibility for the invariants the type system cannot verify. It is grep-able, auditable, and contained.
+  `unsafe { }` is not "turn off Rust": it is an *explicit declaration* that you are taking responsibility for the invariants the type system cannot verify. It is grep-able, auditable, and contained.
 ]
 // New slide with same title
 --- 
@@ -225,9 +225,9 @@ ratio: (0.8fr, 1.2fr),
 
   > "What you don't use, you don't pay for. What you do use, you couldn't hand-code any better."
 
-  Rust's abstractions compile to the same machine code as the equivalent hand-written C. This is not a promise — it is verifiable on Compiler Explorer.
+  Rust's abstractions compile to the same machine code as the equivalent hand-written C. This is not a promise, it is verifiable on  #ref-badge[Compiler Exploreri: https://godbolt.org; rustc -O2 )]
 
-  *Iterators and closures — no overhead*
+  *Iterators and closures: no overhead*
 
   #codebox(
     [
@@ -315,13 +315,13 @@ This is the often-overlooked performance *advantage* Rust has *over* C.
 ][
   *Rust's aliasing proof*
 
-  Rust's exclusivity rule (`&mut T` is exclusive — no other reference exists) *proves* at compile time that `out` and `in_buf` do not overlap. LLVM gets this information and auto-vectorises without any annotation.
+  Rust's exclusivity rule (`&mut T` is exclusive : no other reference exists) *proves* at compile time that `out` and `in_buf` do not overlap. LLVM gets this information and auto-vectorises without any annotation.
 
   #codebox(
     [
   ```rust
   // Rust: exclusive borrow PROVES no overlap
-  // Compiler auto-vectorises — no annotation needed
+  // Compiler auto-vectorises : no annotation needed
   fn process(out: &mut [u8], in_buf: &[u8]) {
       for (o, &b) in out.iter_mut().zip(in_buf) {
           *o = b | 0x80;
@@ -360,7 +360,7 @@ This is the often-overlooked performance *advantage* Rust has *over* C.
 
 == Ownership : Memory Safety at Compile Time
 
-*The three ownership rules*
+#text(size: 1.2em, fill: black.lighten(25%))[The three ownership rules]
 
 #cols[
   - *Rule 1 : Each value has exactly one owner* 
@@ -503,9 +503,9 @@ Rust makes this structurally impossible to get wrong.
 //  ------------------------
 //  4. BORROWING & LIFETIMES
 //  ------------------------
-= Borrowing & Lifetimes — Preventing Data Races
+= Borrowing & Lifetimes ( Preventing Data Races )
 
-== Borrowing : the aliasing rules formalised
+== Borrowing : the aliasing rules , eliminating Data Races
 
 #callout[
   *Borrowing* is Rust's system for temporary access without transferring ownership. \ This is implemented via References, which are distinct in Rust compiler view. 
@@ -519,7 +519,7 @@ Rust makes this structurally impossible to get wrong.
 
   - Multiple readers can coexist
   - None can write while readers exist
-  - Maps to: read-lock held, RCU read section
+  //- Maps to: read-lock held, RCU read section
 
   #codebox(
     [ 
@@ -561,87 +561,113 @@ Rust makes this structurally impossible to get wrong.
 
 == Lifetimes — dangling pointers eliminated
 
-Lifetimes are the compiler's proof that a reference never outlives the data it points to. Named by the programmer, verified by the borrow checker.
+Lifetimes are the compiler's mechanism for proving that *every reference is valid for its entire use*.
 
-#codeblock(title: "Dangling pointer caught at compile time")[
+#cols[
+  *What lifetimes prevent*
+
   ```rust
-  fn get_ptr() -> &str {           // ← error: missing lifetime
-      let local = String::from("DMA buffer");
-      &local   // ← would return pointer to stack data
-  }  // `local` dropped here — pointer would dangle
-
-  // Rust requires an explicit lifetime annotation that proves
-  // the returned reference lives as long as the input:
-  fn longest<'a>(x: &'a str, y: &'a str) -> &'a str {
-      if x.len() > y.len() { x } else { y }
+  // Dangling pointer — compile error:
+  fn get_name() -> &str {
+      let local = String::from("ConnectX-5");
+      &local  // error[E0106]: missing lifetime
+              // local is dropped at end of function
+              // returning a reference to it would dangle
   }
-  // 'a = "the output lives at least as long as both inputs"
-  // If this invariant cannot be satisfied, the code does not compile.
+
+  // Correct — lifetime 'a ties input to output:
+  // "the returned reference lives as long as s"
+  fn first_word<'a>(s: &'a str) -> &'a str {
+      s.split_whitespace().next().unwrap_or("")
+  }
+  // If s is valid, the return is valid.
+  // Compiler verifies this at every call site.
   ```
+][
+  *Lifetimes in kernel context*
+
+  Every "dangling pointer to freed device" CVE is a lifetime violation.
+
+  ```rust
+  struct IrqHandler<'dev> {
+      dev:  &'dev Device,   // 'dev = device's lifetime
+      data: &'dev [u8],     // must not outlive device
+  }
+
+  // The compiler proves:
+  // IrqHandler cannot outlive the Device it references.
+  // device_unregister() → Device drops →
+  // any IrqHandler<'dev> holding &'dev Device
+  // becomes statically invalid before the drop.
+  // There is no runtime check — the proof is structural.
+  ```
+
+  #callout[
+    Lifetimes have *zero runtime representation*. They are erased before code generation. The safety is purely a compile-time proof.
+    #ref-badge[Jung et al., POPL 2018 §2.3 — lifetime logic in λRust]
+  ]
 ]
 
-#callout[
-  In kernel drivers: a reference to a `struct device` inside an interrupt handler *must not outlive the device*. Lifetimes encode and verify this invariant statically. No more `dev_hold()` / `dev_put()` mismatches.
-]
-
+// -------------------------------
+// Todo: move the below macro to ./vivarta.typ 
 // Side-by-side C / Rust comparison pair  (equal width, same height)
-
 #let vs(c-body, r-body) = grid(
   columns: (1fr, 1fr),
   gutter: 8pt,
   codeblock(c-body, title: "C"),
   codeblock(r-body, title: "Rust")
 )
+// -------------------------------
 
-== Data races — eliminated by the type system
-
-#cols[
-  *The formal argument*
-
-  A data race requires two conditions simultaneously:
-  1. *Aliasing* — two pointers to the same memory location
-  2. *Unsynchronised mutation* — at least one is writing
-
-  Ownership rules make both conditions simultaneously impossible in safe code:
-  - `&mut T` is exclusive → no aliasing while mutating
-  - `&T` is immutable → no mutation while aliased
-
-  *Therefore: if the program compiles, it has no data races.*
-
-  This was *formally machine-checked* in Coq by RustBelt (POPL 2018), and extended to C11 relaxed-memory atomics by RustBelt Meets Relaxed Memory (POPL 2020).
-  #ref-badge[Jung et al., POPL 2018; Dang et al., POPL 2020]
-][
-  #vs(
-  ```c
-  /* Data race — compiles, UB at runtime */
-  uint64_t shared_counter;
-
-  void *thread_a(void *_) {
-      shared_counter++;   /* write */
-      return NULL;
-  }
-  void *thread_b(void *_) {
-      shared_counter++;   /* concurrent write */
-      return NULL;        /* undefined behaviour */
-  }
-  /* gcc: no warning. ThreadSanitizer: catches it
-     only if both threads execute concurrently. */
-  ```,
-  ```rust
-  // Data race — compile error:
-  let mut counter: u64 = 0;
-
-  let t1 = thread::spawn(|| {
-      counter += 1; // error[E0373]: closure may
-  });               // outlive current function,
-  let t2 = thread::spawn(|| { // but it borrows
-      counter += 1; // `counter`, which is owned
-  });               // by the current function
-  // Caught BEFORE the binary exists.
-  // Fix: Arc<AtomicU64> or Arc<Mutex<u64>>
-  ```
-  )
-]
+// == Data races — eliminated by the type system
+//
+// #cols[
+//   *The formal argument*
+//
+//   A data race requires two conditions simultaneously:
+//   1. *Aliasing* — two pointers to the same memory location
+//   2. *Unsynchronised mutation* — at least one is writing
+//
+//   Ownership rules make both conditions simultaneously impossible in safe code:
+//   - `&mut T` is exclusive → no aliasing while mutating
+//   - `&T` is immutable → no mutation while aliased
+//
+//   *Therefore: if the program compiles, it has no data races.*
+//
+//   This was *formally machine-checked* in Coq by RustBelt (POPL 2018), and extended to C11 relaxed-memory atomics by RustBelt Meets Relaxed Memory (POPL 2020).
+//   #ref-badge[Jung et al., POPL 2018; Dang et al., POPL 2020]
+// ][
+//   #vs(
+//   ```c
+//   /* Data race — compiles, UB at runtime */
+//   uint64_t shared_counter;
+//
+//   void *thread_a(void *_) {
+//       shared_counter++;   /* write */
+//       return NULL;
+//   }
+//   void *thread_b(void *_) {
+//       shared_counter++;   /* concurrent write */
+//       return NULL;        /* undefined behaviour */
+//   }
+//   /* gcc: no warning. ThreadSanitizer: catches it
+//      only if both threads execute concurrently. */
+//   ```,
+//   ```rust
+//   // Data race — compile error:
+//   let mut counter: u64 = 0;
+//
+//   let t1 = thread::spawn(|| {
+//       counter += 1; // error[E0373]: closure may
+//   });               // outlive current function,
+//   let t2 = thread::spawn(|| { // but it borrows
+//       counter += 1; // `counter`, which is owned
+//   });               // by the current function
+//   // Caught BEFORE the binary exists.
+//   // Fix: Arc<AtomicU64> or Arc<Mutex<u64>>
+//   ```
+//   )
+// ]
 
 //  ----------------------------------
 //  5. THE TYPE SYSTEM AS A SECURITY TOOL
@@ -668,7 +694,7 @@ Lifetimes are the compiler's proof that a reference never outlives the data it p
     Any type you write is automatically *not* `Send` + `Sync` unless all its fields are. This means the *safe default is conservative* — you opt in to thread sharing, you don't opt out of races.
   ]
 ][
-  *Why this matters for BSP / driver teams*
+  *Why this matters *
 
   ```rust
   // Per-CPU data structure — must not cross CPU boundary
@@ -724,7 +750,9 @@ let base = match res {
 )
 
 #callout[
-  `Option<&T>` has *identical machine representation* to a nullable pointer — one word, null = `None`, non-null = `Some`. Zero overhead. The safety is entirely in the type, not the runtime. #ref-badge[Rust Reference §3.1 — Niche optimisation]
+  - `Option<&T>` has *identical machine representation* to a nullable pointer — one word, null = `None`, non-null = `Some`. 
+  - Zero overhead. 
+  - The safety is entirely in the type, not the runtime. #ref-badge[Rust Reference §3.1 — Niche optimisation]
 ]
 
 == `Result<T, E>` — no silent error drops
