@@ -4,6 +4,73 @@
 
 Good afternoon,  Today’s topic is **Introduction to Rust and eBPF Programming with Rust**.
 
+---- cgt
+Before we talk about Rust, it's worth recognizing that modern computing infrastructure was largely built on the foundation of C.
+
+For more than 50 years, C has been the language of operating systems, kernels, BSPs, device drivers, firmware, networking stacks, and embedded platforms. Its combination of performance, portability, and direct hardware access has made it one of the most successful programming languages ever created.
+
+Many of the systems we work with every day exist because C gives developers precise control over hardware and system resources.
+
+So this presentation is not about why C is bad, nor is it about replacing decades of successful engineering practices.
+
+Instead, it is about understanding why the systems programming landscape is evolving and why Rust has emerged as one of the technologies receiving significant attention from operating system vendors, silicon companies, cloud providers, and the open-source community.
+
+[Why the Industry is Looking for Something New]
+
+As software systems have grown larger and more connected, expectations have changed.
+
+Today's systems are expected to provide not only performance and reliability, but also strong security guarantees. At the same time, codebases are becoming larger, teams more distributed, and software lifecycles much longer.
+
+Across the industry, a significant percentage of security vulnerabilities continue to originate from memory-safety issues such as:
+
+Buffer overflows
+Use-after-free bugs
+Null pointer dereferences
+Data races
+Lifetime and ownership errors
+
+These are not necessarily the result of poor engineering. They are often the consequence of building highly complex systems using languages that place much of the responsibility for correctness on the developer.
+
+The question many organizations are now asking is:
+
+Can we maintain the performance and control of low-level programming while reducing entire classes of bugs before the code ever runs?
+
+[The Rise of Rust]
+
+Rust is one attempt to answer that question.
+
+Although Rust is relatively young compared to C, it has gained substantial industry momentum and has consistently ranked among the most admired programming languages in developer surveys.
+
+What makes Rust particularly interesting is that it targets the same problem domain as C and C++—systems programming—while taking a different approach to memory management and concurrency safety.
+
+Rather than relying primarily on runtime garbage collection or developer discipline alone, Rust attempts to move many correctness checks into the compiler.
+
+The result is a language that aims to provide:
+
+Low-level control
+
+Predictable performance
+
+Memory safety
+
+Concurrency safety
+
+without requiring a garbage collector.
+
+
+[Setting Expectations]
+
+Today's session is not intended to be a debate between C and Rust.
+
+Most systems software for the foreseeable future will continue to involve C, and many successful projects will remain C-based for years to come.
+
+Instead, the goal is to understand the design principles behind Rust, why major projects such as the Linux kernel have begun adopting it, and where it may fit alongside existing systems programming practices.
+
+From there, we'll explore Rust from a systems programming perspective and look at how it is increasingly being used in kernel and eBPF development.
+
+----
+
+
 For decades, C has been the de-facto language for systems programming. 
 C language has evolved alongside operating systems, compilers, embedded platforms, and hardware itself. 
 From kernels and BSPs to drivers and firmware, much of today’s low-level software stack is still built in C.
