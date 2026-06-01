@@ -1039,5 +1039,82 @@ The modern approach to Rust in the kernel exploits this isolation through a clea
 
 This means your day-to-day driver logic is completely covered by compile-time proofs against use-after-free, data races, and null pointer exceptions. If a crash or memory bug happens, you don't waste time debugging your driver logic; you check the centralized abstraction layer.
 
+--- 
+### Slide 24: 6.0: Compiler Checks — Beyond Memory Safety (Speaker Notes)
+
+We just talked about how Rust protects memory. Now, let us look at the bigger picture.
+
+
+The Rust compiler does not just check memory. It also checks types, math errors, and code logic. It does all of this at the same time, during every single build.
+
 ---
 
+### Slide 25: 6.1: What the Rust Compiler Verifies at Every Build (Speaker Notes)
+
+In Rust, the compiler gives you automatic safety. 
+It checks your code completely every time you compile.
+
+Let us review what the compiler guarantees:
+
+* **Memory Safety:** No use-after-free bugs. No data races between threads. No null pointers.
+* **Initialization:** You cannot read a variable by mistake before setting its value. The compiler stops you.
+* **Math Errors:** In debug mode, if an integer overflows, the program stops safely. It does not create hidden data errors.
+* **Complete Logic:** As we saw with the PCIe speed example, `match` blocks must cover every choice. If you add a new option, the compiler tells you exactly where to fix your code.
+* **Error Checking:** If a function returns a `Result` error code, you must handle it. If you ignore it, the compiler gives you a warning or an error. You cannot drop errors silently.
+
+**[Comparison with C Tools]**
+In C, you can find these bugs too. But you need many separate tools to do it.
+
+Here is the problem in C:
+
+* These tools are **optional**.
+* They are separate from each other.
+* They do not check 100% of your code paths.
+
+Rust replaces many of these separate tools with **one single compiler**. 
+The safety rules are part of the language. 
+Every engineer must follow them, and every build is automatically verified.
+
+---
+
+### Slide 26: 7.0: The Rust Ecosystem (Speaker Notes)
+
+Now, let us look at the tools and the community.
+
+A good language needs good tools. 
+Rust does not just give you a compiler. 
+It gives you a complete development environment.
+
+---
+
+### Slide 27: 7.1: Tooling and the Modern Ecosystem (Speaker Notes)
+
+**[All Tools in One Package]**
+In C, every team must choose their own tools. One team uses Make, another uses CMake. One team uses Doxygen, another uses something else.
+
+Rust changes this. When you install Rust, you get all standard tools automatically. 
+They are official, and they work together perfectly.
+
+Let us look at the main tools in the table:
+
+| Tool | Role | C Equivalent |
+| --- | --- | --- |
+| **`cargo`** | Builds code, runs tests, manages external libraries | Make / CMake / `pkg-config` |
+| **`rustfmt`** | Formats your code automatically | `clang-format` |
+| **`clippy`** | Finds bugs and code quality issues | Coverity / `sparse` |
+| **`rustdoc`** | Generates documentation from comments | Doxygen |
+| **`cargo-expand`** | Shows code after macro expansion | `gcc -E` |
+| **`rust-analyzer`** | Provides autocomplete and inline errors inside your IDE | VS Code / Vim extension |
+
+Because every Rust developer uses these exact same tools, it is very easy to share code and onboard new engineers.
+
+**[Rust is Reshaping Modern Software]**
+Rust is no longer just a niche language for small projects. It is changing the entire software industry.
+
+Here are real-world examples:
+
+* **The Tools We Use:** This presentation was made using **Typst**, a fast document generator written completely in Rust. Popular command-line tools like `ripgrep` (a faster `grep`) and `fd` (a faster `find`) are also written in Rust.
+* **Cloud Infrastructure:** **AWS Firecracker** powers millions of cloud containers, and **Cloudflare Pingora** handles 1 trillion internet requests every day. Both are built on Rust for speed and safety.
+* **Mobile Devices:** **Android 16** uses Linux Kernel 6.12 and runs the core memory allocator (`ashmem`) using Rust. It is already running on millions of production devices worldwide.
+
+The main takeaway here is clear: Rust has moved past the experimental phase. It is now the standard choice for building fast, safe, and modern infrastructure.

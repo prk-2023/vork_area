@@ -903,131 +903,131 @@ let base = match res {
 // ---------------------------------------
 //  6. OTHER KEY SECURITY-FOCUSED FEATURES
 // ---------------------------------------
-= Other Key Security-Focused Features
-
-== Integer safety and panic discipline
-
-#cols[
-  *Integer overflow — UB in C, defined in Rust*
-
-  In C, signed integer overflow is undefined behaviour. The compiler can *legally delete* the overflow check on the assumption it never happens.
-
-  ```c
-  // C: signed overflow → UB → compiler may "optimise"
-  // away the bounds check entirely (documented in GCC docs)
-  size_t alloc_size = nents * sizeof(struct entry);
-  if (alloc_size < nents) return -EINVAL; // may be removed!
-  void *buf = kmalloc(alloc_size, GFP_KERNEL);
-  ```
-
-  ```rust
-  // Rust debug build: overflow → controlled panic (BUG())
-  // Rust release build: wrapping, checked, or saturating
-  // — explicitly chosen, never undefined:
-  let alloc_size = nents
-      .checked_mul(size_of::<Entry>())
-      .ok_or(ErrKind::Overflow)?;
-  // Returns Err if it overflows — never silent.
-  ```
-][
-  *Panic = explicit abort, not UB*
-
-  In kernel Rust (`#![no_std]`, custom `#[panic_handler]`), a panic does not unwind — it calls `BUG()` or halts the CPU, exactly like a kernel `BUG_ON()`. There is no hidden exception mechanism.
-
-  ```rust
-  #[cfg(not(test))]
-  #[panic_handler]
-  fn panic(_info: &PanicInfo) -> ! {
-      // In kernel context: trigger BUG() / halt
-      loop {}   // or: call kernel's panic() function
-  }
-  ```
-
-  #callout[
-    Rust panics are *predictable*, *locatable* (they include source location in debug builds), and *never undefined behaviour*. A Rust panic is always intentional; a C signed overflow is always a potential silent time bomb.
-  ]
-]
-
-== Immutability by default
-
-#cols[
-  *C's dangerous default: everything is mutable*
-
-  ```c
-  void configure_hw(struct hw_config *cfg) {
-      /* cfg->base_addr can be modified here
-         even if that was not the intent.
-         Only `const struct hw_config *` prevents it,
-         and const is frequently omitted. */
-      cfg->base_addr = 0; // oops — accidental mutation
-  }
-  ```
-
-  *Rust's safe default: everything is immutable*
-
-  ```rust
-  fn configure_hw(cfg: &HwConfig) {
-      // cfg.base_addr = 0; // ← error[E0596]:
-      //   cannot assign to `cfg.base_addr`,
-      //   which is behind a `&` reference
-  }
-  // Mutation requires explicit declaration:
-  fn reconfigure(cfg: &mut HwConfig) {
-      cfg.base_addr = NEW_BASE; // only allowed here
-  }
-  ```
-][
-  *Why this matters for BSP code*
-
-  - Read-only device tree data, register maps, and firmware blobs are *structurally immutable* — the type prevents accidental writes
-  - A configuration struct passed to an ISR as `&HwConfig` *cannot* be modified by the ISR — the compiler proves it
-  - Global immutable data (calibration tables, fuse values) declared as `static` — Rust distinguishes `static T` (immutable, `Sync`-required) from `static mut T` (requires `unsafe` — surfaces immediately in audit)
-
-  #callout(color: safe-green)[
-    *The secure-by-default principle*: mutability must be explicitly requested. The conservative default prevents a class of accidental writes that are otherwise silent in C.
-  ]
-]
-
-== The type system as documentation — encoded, not commented
-
-#cols[
-  *C: intent in comments, verifiable nowhere*
-
-  ```c
-  /*
-   * MUST be called with dma_lock held.
-   * dev pointer MUST remain valid for the
-   * duration of the DMA operation.
-   * Returns negative errno on failure.
-   */
-  int map_dma(struct device *dev,
-              struct sg_table *sgt,
-              int nents,
-              enum dma_data_direction dir);
-  ```
-
-  None of these constraints are checked by the compiler. The comment is the only enforcement mechanism.
-][
-  *Rust: intent in the type, checked at every call site*
-
-  ```rust
-  // "MUST be called with dma_lock held"
-  // → take a MutexGuard parameter — unobtainable otherwise
-  fn map_dma<'lock>(
-      _guard:  &'lock MutexGuard<DmaState>, // proof of lock
-      dev:     &'lock Device,               // must outlive guard
-      sgt:     &mut SgTable,
-      dir:     DmaDirection,                // typed enum, not int
-  ) -> Result<SgMapping<'lock>, DmaError>  // typed error
-  // The comment is now the type signature.
-  // Violations are compile errors, not runtime bugs.
-  ```
-
-  #callout(color: safe-green)[
-    Every invariant encoded in a Rust type signature is *checked at every call site in every crate that uses it* — including crates that were written years later by engineers who never read the comment.
-  ]
-]
-
+// = Other Key Security-Focused Features
+//
+// == Integer safety and panic discipline
+//
+// #cols[
+//   *Integer overflow — UB in C, defined in Rust*
+//
+//   In C, signed integer overflow is undefined behaviour. The compiler can *legally delete* the overflow check on the assumption it never happens.
+//
+//   ```c
+//   // C: signed overflow → UB → compiler may "optimise"
+//   // away the bounds check entirely (documented in GCC docs)
+//   size_t alloc_size = nents * sizeof(struct entry);
+//   if (alloc_size < nents) return -EINVAL; // may be removed!
+//   void *buf = kmalloc(alloc_size, GFP_KERNEL);
+//   ```
+//
+//   ```rust
+//   // Rust debug build: overflow → controlled panic (BUG())
+//   // Rust release build: wrapping, checked, or saturating
+//   // — explicitly chosen, never undefined:
+//   let alloc_size = nents
+//       .checked_mul(size_of::<Entry>())
+//       .ok_or(ErrKind::Overflow)?;
+//   // Returns Err if it overflows — never silent.
+//   ```
+// ][
+//   *Panic = explicit abort, not UB*
+//
+//   In kernel Rust (`#![no_std]`, custom `#[panic_handler]`), a panic does not unwind — it calls `BUG()` or halts the CPU, exactly like a kernel `BUG_ON()`. There is no hidden exception mechanism.
+//
+//   ```rust
+//   #[cfg(not(test))]
+//   #[panic_handler]
+//   fn panic(_info: &PanicInfo) -> ! {
+//       // In kernel context: trigger BUG() / halt
+//       loop {}   // or: call kernel's panic() function
+//   }
+//   ```
+//
+//   #callout[
+//     Rust panics are *predictable*, *locatable* (they include source location in debug builds), and *never undefined behaviour*. A Rust panic is always intentional; a C signed overflow is always a potential silent time bomb.
+//   ]
+// ]
+//
+// == Immutability by default
+//
+// #cols[
+//   *C's dangerous default: everything is mutable*
+//
+//   ```c
+//   void configure_hw(struct hw_config *cfg) {
+//       /* cfg->base_addr can be modified here
+//          even if that was not the intent.
+//          Only `const struct hw_config *` prevents it,
+//          and const is frequently omitted. */
+//       cfg->base_addr = 0; // oops — accidental mutation
+//   }
+//   ```
+//
+//   *Rust's safe default: everything is immutable*
+//
+//   ```rust
+//   fn configure_hw(cfg: &HwConfig) {
+//       // cfg.base_addr = 0; // ← error[E0596]:
+//       //   cannot assign to `cfg.base_addr`,
+//       //   which is behind a `&` reference
+//   }
+//   // Mutation requires explicit declaration:
+//   fn reconfigure(cfg: &mut HwConfig) {
+//       cfg.base_addr = NEW_BASE; // only allowed here
+//   }
+//   ```
+// ][
+//   *Why this matters for BSP code*
+//
+//   - Read-only device tree data, register maps, and firmware blobs are *structurally immutable* — the type prevents accidental writes
+//   - A configuration struct passed to an ISR as `&HwConfig` *cannot* be modified by the ISR — the compiler proves it
+//   - Global immutable data (calibration tables, fuse values) declared as `static` — Rust distinguishes `static T` (immutable, `Sync`-required) from `static mut T` (requires `unsafe` — surfaces immediately in audit)
+//
+//   #callout(color: safe-green)[
+//     *The secure-by-default principle*: mutability must be explicitly requested. The conservative default prevents a class of accidental writes that are otherwise silent in C.
+//   ]
+// ]
+//
+// == The type system as documentation — encoded, not commented
+//
+// #cols[
+//   *C: intent in comments, verifiable nowhere*
+//
+//   ```c
+//   /*
+//    * MUST be called with dma_lock held.
+//    * dev pointer MUST remain valid for the
+//    * duration of the DMA operation.
+//    * Returns negative errno on failure.
+//    */
+//   int map_dma(struct device *dev,
+//               struct sg_table *sgt,
+//               int nents,
+//               enum dma_data_direction dir);
+//   ```
+//
+//   None of these constraints are checked by the compiler. The comment is the only enforcement mechanism.
+// ][
+//   *Rust: intent in the type, checked at every call site*
+//
+//   ```rust
+//   // "MUST be called with dma_lock held"
+//   // → take a MutexGuard parameter — unobtainable otherwise
+//   fn map_dma<'lock>(
+//       _guard:  &'lock MutexGuard<DmaState>, // proof of lock
+//       dev:     &'lock Device,               // must outlive guard
+//       sgt:     &mut SgTable,
+//       dir:     DmaDirection,                // typed enum, not int
+//   ) -> Result<SgMapping<'lock>, DmaError>  // typed error
+//   // The comment is now the type signature.
+//   // Violations are compile errors, not runtime bugs.
+//   ```
+//
+//   #callout(color: safe-green)[
+//     Every invariant encoded in a Rust type signature is *checked at every call site in every crate that uses it* — including crates that were written years later by engineers who never read the comment.
+//   ]
+// ]
+//
 //  -------------------
 //  7. Compiler Checks:
 //  -------------------
@@ -1079,14 +1079,15 @@ let base = match res {
   - Safe code cannot call `unsafe` functions accidentally
 
   #callout[
-    In C, all of the above require separate tools: ASAN, UBSAN, sparse, Coccinelle, clang-tidy, GCC sanitizers — none of them are mandatory, and none are exhaustive.
+    - In C, all of the above require separate tools.
+    - The tools are not mandatory and they do not perform 100% check. 
   ]
 ]
 
 // ---------------------
 // 9. Ecosystem 
 // ---------------------
-= The Broader Rust Ecosystem
+= The Rust Ecosystem
 
 == Tooling that ships with the language
 
@@ -1123,30 +1124,30 @@ let base = match res {
     The meta-point for this audience: *the tool generating these slides is written in Rust*. The language has escaped "systems niche" and is reshaping the entire software toolchain stack.
   ]
 ]
-== Important additional concepts:
-
-Additional topics that are for those who want to go down the rabbit hole: 
-
-- *Traits*: Rust's explicit code interfaces, defining shared behavior across different data types.
-
-- *Generics*: Compile-time templates that allow you to write algorithms that work with multiple data types
-  without code duplication, evaluated entirely at build time.
-
-- *Trait-bounds*: Compile-time constraints on generics, allowing you to tell the compiler: 
-  'This generic function only works on types that implement a specific hardware interface or trait.'
-
-- *Smart pointers*: Custom data structures that act like pointers but wrap raw memory with automatic 
-  lifecycle tracking, like managing a reference-counted memory region.
-
-- *iterators*: Highly optimized, composable pointer-traversal abstractions that let you loop through arrays 
-  or ring buffers safely without raw index pointer arithmetic.
-
-- *macros*: Code-generation tools that compile down at build time, allowing you to write highly expressive 
-  code without incurring any runtime or performance overhead.
-
-- *attributes*:  Declarative metadata attached to your code, used for things like conditional compilation for 
-  different processor targets or forcing explicit struct packing layout alignment.
-
+// == Important additional concepts:
+//
+// Additional topics that are for those who want to go down the rabbit hole: 
+//
+// - *Traits*: Rust's explicit code interfaces, defining shared behavior across different data types.
+//
+// - *Generics*: Compile-time templates that allow you to write algorithms that work with multiple data types
+//   without code duplication, evaluated entirely at build time.
+//
+// - *Trait-bounds*: Compile-time constraints on generics, allowing you to tell the compiler: 
+//   'This generic function only works on types that implement a specific hardware interface or trait.'
+//
+// - *Smart pointers*: Custom data structures that act like pointers but wrap raw memory with automatic 
+//   lifecycle tracking, like managing a reference-counted memory region.
+//
+// - *iterators*: Highly optimized, composable pointer-traversal abstractions that let you loop through arrays 
+//   or ring buffers safely without raw index pointer arithmetic.
+//
+// - *macros*: Code-generation tools that compile down at build time, allowing you to write highly expressive 
+//   code without incurring any runtime or performance overhead.
+//
+// - *attributes*:  Declarative metadata attached to your code, used for things like conditional compilation for 
+//   different processor targets or forcing explicit struct packing layout alignment.
+//
 
 // ----------
 //  APPENDIX:
@@ -1183,32 +1184,32 @@ cargo test        # unit tests
 # Comprehensive Rust (Google, Android focus): https://google.github.io/comprehensive-rust/
 ```
 
-== Key references
-
-#set text(size: 0.72em)
-
-*Formal verification*
-- Jung, R., Jourdan, J-H., Krebbers, R., Dreyer, D. *"RustBelt: Securing the Foundations of the Rust Programming Language."* POPL 2018. #link("https://plv.mpi-sws.org/rustbelt/popl18/")
-- Dang, H-H., Jourdan, J-H., Kaiser, J-O., Dreyer, D. *"RustBelt Meets Relaxed Memory."* POPL 2020.
-
-*Industry data*
-- Microsoft MSRC. "A Proactive Approach to More Secure Code." Gavin Thomas, 2019.
-- Google Project Zero. "Memory Safety Issues in Chrome." 2020.
-- Android Security Blog. "Memory Safety in Android." 2021. #link("https://security.googleblog.com")
-- CISA. "The Case for Memory Safe Roadmaps." 2023. #link("https://www.cisa.gov/resources-tools/resources/case-memory-safe-roadmaps")
-
-*Language specification and learning*
-- The Rust Reference. #link("https://doc.rust-lang.org/reference/")
-- The Rust Programming Language (Klabnik & Nichols). #link("https://doc.rust-lang.org/book/")
-- Comprehensive Rust (Google). #link("https://google.github.io/comprehensive-rust/")
-
-*Performance*
-- Paczos, K. "The Speed of Rust vs C." #link("https://kornel.ski/rust-c-speed/") 2023.
-- Compiler Explorer. #link("https://godbolt.org")
-
-*Production deployments*
-- Cloudflare. "How We Built Pingora." 2022. #link("https://blog.cloudflare.com/how-we-built-pingora")
-- Agache et al. "Firecracker." NSDI 2020.
+// == Key references
+//
+// #set text(size: 0.72em)
+//
+// *Formal verification*
+// - Jung, R., Jourdan, J-H., Krebbers, R., Dreyer, D. *"RustBelt: Securing the Foundations of the Rust Programming Language."* POPL 2018. #link("https://plv.mpi-sws.org/rustbelt/popl18/")
+// - Dang, H-H., Jourdan, J-H., Kaiser, J-O., Dreyer, D. *"RustBelt Meets Relaxed Memory."* POPL 2020.
+//
+// *Industry data*
+// - Microsoft MSRC. "A Proactive Approach to More Secure Code." Gavin Thomas, 2019.
+// - Google Project Zero. "Memory Safety Issues in Chrome." 2020.
+// - Android Security Blog. "Memory Safety in Android." 2021. #link("https://security.googleblog.com")
+// - CISA. "The Case for Memory Safe Roadmaps." 2023. #link("https://www.cisa.gov/resources-tools/resources/case-memory-safe-roadmaps")
+//
+// *Language specification and learning*
+// - The Rust Reference. #link("https://doc.rust-lang.org/reference/")
+// - The Rust Programming Language (Klabnik & Nichols). #link("https://doc.rust-lang.org/book/")
+// - Comprehensive Rust (Google). #link("https://google.github.io/comprehensive-rust/")
+//
+// *Performance*
+// - Paczos, K. "The Speed of Rust vs C." #link("https://kornel.ski/rust-c-speed/") 2023.
+// - Compiler Explorer. #link("https://godbolt.org")
+//
+// *Production deployments*
+// - Cloudflare. "How We Built Pingora." 2022. #link("https://blog.cloudflare.com/how-we-built-pingora")
+// - Agache et al. "Firecracker." NSDI 2020.
 
 
 = eBPF: Quick Refresher: (Part #2)
