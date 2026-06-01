@@ -5,68 +5,88 @@
 Good afternoon,  Today’s topic is **Introduction to Rust and eBPF Programming with Rust**.
 
 ---- cgt
-Before we talk about Rust, it's worth recognizing that modern computing infrastructure was largely built on the foundation of C.
 
-For more than 50 years, C has been the language of operating systems, kernels, BSPs, device drivers, firmware, networking stacks, and embedded platforms. Its combination of performance, portability, and direct hardware access has made it one of the most successful programming languages ever created.
+- Before we talk about Rust, it's worth recognizing that modern computing infrastructure was largely built
+  on the foundation of C.
 
-Many of the systems we work with every day exist because C gives developers precise control over hardware and system resources.
+- For more than 50 years, C has been the language of operating systems, device drivers, firmware, 
+  networking stacks, and embedded platforms.
+  The combination of 
+    performance, 
+    portability, and 
+    direct hardware access 
+  has made C, the most successful and widely used programming language.
 
-So this presentation is not about why C is bad, nor is it about replacing decades of successful engineering practices.
+- So this presentation is not about why C is bad, nor is it about replacing decades of successful 
+  engineering practices.
 
-Instead, it is about understanding why the systems programming landscape is evolving and why Rust has emerged as one of the technologies receiving significant attention from operating system vendors, silicon companies, cloud providers, and the open-source community.
+- Instead, it is about understanding the evolving systems programming landscape and why Rust has emerged as
+one of the technologies receiving significant attention from operating system vendors, silicon companies,
+cloud providers, and the open-source community.
 
 [Why the Industry is Looking for Something New]
 
-As software systems have grown larger and more connected, expectations have changed.
+- As software systems have grown larger and more connected, expectations have changed.
 
-Today's systems are expected to provide not only performance and reliability, but also strong security guarantees. At the same time, codebases are becoming larger, teams more distributed, and software lifecycles much longer.
+- Today systems are expected to provide not only performance and reliability, but also strong security 
+  guarantees. With growing codebases, distributed teams, software lifecycles much longer present different
+  set of challenges. 
 
-Across the industry, a significant percentage of security vulnerabilities continue to originate from memory-safety issues such as:
+- Across the industry, a significant percentage of security vulnerabilities continue to originate from 
+  memory-safety issues such as:
 
-Buffer overflows
-Use-after-free bugs
-Null pointer dereferences
-Data races
-Lifetime and ownership errors
+    - Buffer overflows
+    - Use-after-free bugs
+    - Null pointer dereferences
+    - Data races
+    - Lifetime and ownership errors
 
-These are not necessarily the result of poor engineering. They are often the consequence of building highly complex systems using languages that place much of the responsibility for correctness on the developer.
+- These issues are not necessarily the for poor engineering. 
+  They are often the consequence of building highly complex systems using languages that place much of the 
+  responsibility for correctness of the developer.
 
-The question many organizations are now asking is:
-
-Can we maintain the performance and control of low-level programming while reducing entire classes of bugs before the code ever runs?
+- From Industry we see the question many organizations are now asking is:
+    - Can we maintain the performance and control of low-level programming while reducing entire classes 
+      of bugs before the code ever runs?
 
 [The Rise of Rust]
 
-Rust is one attempt to answer that question.
+- Rust is one such attempt to answer that question. 
 
-Although Rust is relatively young compared to C, it has gained substantial industry momentum and has consistently ranked among the most admired programming languages in developer surveys.
+- Although Rust is relatively young compared to C, it has gained substantial industry momentum and has 
+  consistently ranked among the most admired programming languages in developer surveys.
 
-What makes Rust particularly interesting is that it targets the same problem domain as C and C++—systems programming—while taking a different approach to memory management and concurrency safety.
+- What makes Rust particularly interesting is that it targets the same problem domain as C and C++ systems
+  programming while taking a different approach to memory management and concurrency safety.
 
-Rather than relying primarily on runtime garbage collection or developer discipline alone, Rust attempts to move many correctness checks into the compiler.
+- Rather than relying primarily on runtime garbage collection or developer discipline alone, Rust attempts 
+  to move many correctness checks into the compiler.
 
-The result is a language that aims to provide:
-
-Low-level control
-
-Predictable performance
-
-Memory safety
-
-Concurrency safety
-
-without requiring a garbage collector.
+- The result is a language that aims to provide:
+    - Low-level control
+    - Predictable performance
+    - Memory safety
+    - Concurrency safety
+  without requiring a garbage collector.
 
 
 [Setting Expectations]
 
-Today's session is not intended to be a debate between C and Rust.
+- Today's session is not intended to be a debate between C and Rust.
 
-Most systems software for the foreseeable future will continue to involve C, and many successful projects will remain C-based for years to come.
+- Most systems software for the foreseeable future will continue to involve C, and many successful projects
+  will remain C-based for years to come.
 
-Instead, the goal is to understand the design principles behind Rust, why major projects such as the Linux kernel have begun adopting it, and where it may fit alongside existing systems programming practices.
+- Instead, the goal is to understand the design principles behind Rust,
+  And why major projects such as the Linux kernel have begun adopting it, and where it may fit alongside 
+  existing systems programming practices.
 
-From there, we'll explore Rust from a systems programming perspective and look at how it is increasingly being used in kernel and eBPF development.
+- From there, we'll explore Rust from a systems programming perspective and look at how it is increasingly
+  being used in kernel and eBPF development.
+
+- Its also important to note that Introduction of a new language into use with existing systems has its own 
+  pros and cons. An early study would help us better adapt to the fast changing landscape of programming 
+  and the impact of AI. 
 
 ----
 
