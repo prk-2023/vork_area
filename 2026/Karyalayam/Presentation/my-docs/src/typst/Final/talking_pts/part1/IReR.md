@@ -4,13 +4,11 @@
 
 Good afternoon,  Today’s topic is **Introduction to Rust and eBPF Programming with Rust**.
 
----- cgt
-
-- Before we talk about Rust, it's worth recognizing that modern computing infrastructure was largely built
+- Before we talk about Rust, it's worth recognizing that modern computing infrastructure is largely built
   on the foundation of C.
 
 - For more than 50 years, C has been the language of operating systems, device drivers, firmware, 
-  networking stacks, and embedded platforms.
+  networking stacks, and embedded space.
   The combination of 
     performance, 
     portability, and 
@@ -21,19 +19,19 @@ Good afternoon,  Today’s topic is **Introduction to Rust and eBPF Programming 
   engineering practices.
 
 - Instead, it is about understanding the evolving systems programming landscape and why Rust has emerged as
-one of the technologies receiving significant attention from operating system vendors, silicon companies,
+one of the technologies of interest from operating system vendors, silicon companies,
 cloud providers, and the open-source community.
 
 [Why the Industry is Looking for Something New]
 
-- As software systems have grown larger and more connected, expectations have changed.
-
+- Over the time we see software systems grow larger and are more connected, this brings changes in
+  expectations.  
 - Today systems are expected to provide not only performance and reliability, but also strong security 
-  guarantees. With growing codebases, distributed teams, software lifecycles much longer present different
-  set of challenges. 
+  guarantees. 
+- With growing codebases, distributed teams, and complex software lifecycles offer different sets of challenges.
 
-- Across the industry, a significant percentage of security vulnerabilities continue to originate from 
-  memory-safety issues such as:
+- When we look across the industry, a significant percentage of security vulnerabilities continue to
+  originate from memory-safety issues such as:
 
     - Buffer overflows
     - Use-after-free bugs
@@ -41,17 +39,17 @@ cloud providers, and the open-source community.
     - Data races
     - Lifetime and ownership errors
 
-- These issues are not necessarily the for poor engineering. 
-  They are often the consequence of building highly complex systems using languages that place much of the 
+- While these issues are not fully due to poor engineering. 
+  They are often the consequence of building highly complex systems using languages that place
   responsibility for correctness of the developer.
 
-- From Industry we see the question many organizations are now asking is:
+- Also from Industry we see a common question that many organizations are now asking:
     - Can we maintain the performance and control of low-level programming while reducing entire classes 
       of bugs before the code ever runs?
 
 [The Rise of Rust]
 
-- Rust is one such attempt to answer that question. 
+- This is where Rust comes, It offers one such attempt to answer that question. 
 
 - Although Rust is relatively young compared to C, it has gained substantial industry momentum and has 
   consistently ranked among the most admired programming languages in developer surveys.
@@ -59,25 +57,25 @@ cloud providers, and the open-source community.
 - What makes Rust particularly interesting is that it targets the same problem domain as C and C++ systems
   programming while taking a different approach to memory management and concurrency safety.
 
-- Rather than relying primarily on runtime garbage collection or developer discipline alone, Rust attempts 
-  to move many correctness checks into the compiler.
+- Unlike language that relying primarily on runtime garbage collection or developer discipline alone,
+  Rust attempts to move many correctness checks into the compiler.
 
 - The result is a language that aims to provide:
     - Low-level control
     - Predictable performance
     - Memory safety
     - Concurrency safety
-  without requiring a garbage collector.
+  All of these and more with out the use of a garbage collector.
 
 
 [Setting Expectations]
 
-- Today's session is not intended to be a debate between C and Rust.
+- So Today's session is not intended to be a debate between C and Rust.
 
-- Most systems software for the foreseeable future will continue to involve C, and many successful projects
-  will remain C-based for years to come.
+- And the good news is most systems software for the foreseeable future will continue to involve in C and
+  many successful projects will remain C-based for years to come.
 
-- Instead, the goal is to understand the design principles behind Rust,
+- Instead, we move our goal in understand the design principles behind Rust,
   And why major projects such as the Linux kernel have begun adopting it, and where it may fit alongside 
   existing systems programming practices.
 
@@ -85,116 +83,31 @@ cloud providers, and the open-source community.
   being used in kernel and eBPF development.
 
 - Its also important to note that Introduction of a new language into use with existing systems has its own 
-  pros and cons. An early study would help us better adapt to the fast changing landscape of programming 
-  and the impact of AI. 
-
-----
-
-
-For decades, C has been the de-facto language for systems programming. 
-C language has evolved alongside operating systems, compilers, embedded platforms, and hardware itself. 
-From kernels and BSPs to drivers and firmware, much of today’s low-level software stack is still built in C.
-
-
-**[The Rise of Rust]** 
-
-Rust, in comparison, is a relatively a new language. Yet despite its age, Rust has become one of the most 
-discussed and rapidly adopted systems programming languages in the industry.
-
-For more than 10 years in straight, Rust has ranked among the most admired and loved languages at
-stackoverflows developer surveys. 
-One major reason  for this is, Rust attempts to solve a long-standing problem in systems software:
-
-> *"How do we achieve low-level control and performance without sacrificing memory safety?"*
-
-**[The Problem Space]** 
-
-This is especially relevant in systems programming, where issues such as:
-
-* Buffer overflows
-* Use-after-free
-* Null pointer dereferences
-* Iterator invalidation
-* Data races
-... 
-
-...continue to account for a large class of bugs, vulnerabilities in kernels, drivers, embedded systems..
-
-
-**[Rust's Approach]** 
-
-Rust approaches this differently. Rather than relying primarily on runtime garbage collection or extensive 
-defensive coding practices, Rust enforces memory safety at **compile time** through its ownership and 
-borrowing model.
-
-**[Maintainability at Scale]** 
-
-Another reason Rust is gaining traction in systems programming is maintainability at scale. 
-Large kernel, BSP, and platform codebases often live for decades, spanning multiple hardware generations 
-and many different developers and teams.
-
-Traditionally, maintaining correctness in such environments depends heavily on developer discipline, code
-reviews, documentation, and subsystem expertise.
-
-Development with Rust shifts part of that responsibility into the language and compiler itself. 
-By enforcing ownership, lifetimes, and thread-safety rules at compile time, Rust reduces reliance on 
-implicit assumptions and developer-specific knowledge. 
-This creates a development model where correctness constraints are encoded directly into the codebase and 
-continuously verified by the compiler.
-
-For long-term systems software maintenance, this is a significant shift: 
-
-**From a primarily developer enforced model, to a language-and-compiler-enforced model.**
-
-**[The Developer Ecosystem]** 
-
-Apart from the language, another important aspect is the developer ecosystem around Rust. Many of us are 
-familiar with the complexity involved in managing large build systems( yocto ) especially in environments 
-involving cross-compilation, mixed languages, generated code, and multiple toolchains.
-
-For similarly large Rust based projects, the language's build system (and also a package manager), **Cargo**,
-significantly simplifies much of this workflow by unifying 
-    dependency management, 
-    compilation, 
-    testing, 
-    packaging, and tooling under a single interface.
-
-Features such as `build.rs` and the `xtask` pattern also provide flexible ways to integrate custom build
-logic, code generation, hardware-specific workflows, and image packaging directly into the build process.
-
-**[Roadmap / Setting Expectations]** 
-
-Today’s session is not intended to be a deep dive into Cargo or advanced Rust internals.
-
-Instead, the goal is to introduce Rust from a systems programming perspective, bridge the gap between
-traditional low-level development and Rust’s safety model, and explore how Rust addresses many of the
-reliability and security problems that have historically affected systems software.
-
-From there, we will also look at how Rust is increasingly being used in modern kernel and eBPF development.
+  pros and cons. And early study would help us better adapt to the fast changing landscape of programming.
 
 ---
 
 ### Slide 2:  ( Disclaimer:)
 
 
-Before we begin, I would like to make a small disclaimer about the intent of this presentation.
+Disclaimer about the intent of this presentation.
 
-The goal today is not to start a language war or argue that one language should completely replace another.
+Would like to state again the goal for today is not to start a language war or argue that one language should completely replace another.
+
 Rather, focus is to discuss some of the evolving changes happening in the systems programming space:
-especially in areas closely related to what many of us work on daily: firmware, BSPs, drivers, kernel
-development, and low-level platform software.
+especially in areas closely related to what many of us work on daily.
 
 C remains one of the most important and successful programming languages ever created, and it continues to
-be foundational to operating systems and embedded development today and Rust should not be viewed as a 
-replacement for C, but rather as another tool in the systems programming toolbox.
+be foundational to operating systems and embedded development today 
+
+And Rust should not be viewed as a replacement for C, but rather as another tool in the systems programming toolbox.
 
 The purpose is to view this through the lens of engineering perspective and evaluation to points like:
 
     * why the industry is paying attention to it,
     * what problems it attempts to solve,
     * whether it provides practical value for low-level development,
-    * => whether Rust can improve: such as memory safety, reliability, and long-term maintainability for
-      products built on our hardware.
+    * => whether Rust can improve: such as memory safety, reliability, and long-term maintainability.
 
 Discussions around programming languages especially in Linux kernel and systems communities, can become 
 very opinionated because developers naturally build strong trust in the tools they have relied on for decades.
@@ -215,7 +128,7 @@ More importantly I would like to state clearly:
 ### Slide 3: ( Overview ):
 
 
-Today’s talk is divided into two main sections.
+We divide today’s talk into two sections.
 
 - In the first section, we will introduce Rust from a systems programming perspective and look at some of the
 core concepts that make it increasingly relevant for low-level software development.
@@ -228,13 +141,14 @@ This includes topics such as:
 * memory layout control,
 * and concurrency safety.
 
-The goal is not to cover the entire language, but to understand the design philosophy behind Rust and how
-it attempts to provide both performance and safety without sacrificing low-level control.
+With limited time the goal is not to cover the entire language, but to understand the design philosophy
+behind Rust and how it attempts to provide both performance and safety without sacrificing low-level
+control.
 
 - In the second section, we will move into eBPF programming with Rust.
 
-We will explore Aya, a modern pure-Rust eBPF framework that provides an alternative development approach
-alongside traditional eBPF toolchains such as libbpf and clang/LLVM-based workflows.
+We will explore Aya, a modern pure-Rust based eBPF framework which provides an alternative development approach
+alongside traditional eBPF toolchains such as `libbpf` and `clang`/`LLVM` based workflows.
 
 Finally, we will walk through a small demo project to demonstrate how a user-space Rust application can
 interact with kernel-space eBPF programs, exchange data efficiently, and build observability or tracing
@@ -247,9 +161,8 @@ pipelines with minimal overhead and latency.
 
 **[Transition & Introduction]**
 
-In this section, we break down Rust specifically as a systems programming language. 
-And examine the important properties behind its growing adoption, moving past the syntax to look at what it 
-actually guarantees: 
+In this section, we will see how Rust fits to be in the club of systems programming languages. 
+And also examine, important properties behind its growing adoption and what it actually guarantees: 
 compile-time correctness, predictable performance, and maintainable low-level abstractions.
 
 
@@ -259,12 +172,12 @@ compile-time correctness, predictable performance, and maintainable low-level ab
 
 **[The Baseline Criteria]**
 
-First we check the requirements of systems software and what essential checklist are its required:
+First baseline criteria is to check the requirements of systems software and what essential checklist are its required to be a systems programming language.
 
-systems software : is one that controls HW and mediates between it and every thing else and this is
-characterized in to below constrains:
+Systems software is one that controls HW and mediates between the HW and every thing else around it, and
+this compliance are characterized with some constrains: Such as 
 
-1. Language should provide a **Direct hardware access:** example it should allow to map MMIO registers, 
+1. Systems Language should provide a **Direct HW access:** example it should allow to map MMIO registers, 
    handle CPU-specific instructions, control precise memory layouts, and interface directly with silicon.
 
    **Zero-cost abstractions:** If we use a higher-level abstraction, it cannot introduce hidden runtime
@@ -274,9 +187,8 @@ characterized in to below constrains:
    We must know exactly when memory is allocated and precisely when it is freed to ensure predictable
    execution latency.
 
-3. In a normal application and effect of a bug is restricted to one user or it can be limited, With systems
-   program correctness is critical because even a small bug can have very large consequences.
-
+3. In when bugs occur the effect should be contained ( to one user or limited scope), This demands the
+   systems programming language for program correctness, as small bug can have large consequence.
 
 **Rust as systems software:**
 
@@ -1205,3 +1117,224 @@ Here are real-world examples:
 * **Mobile Devices:** **Android 16** uses Linux Kernel 6.12 and runs the core memory allocator (`ashmem`) using Rust. It is already running on millions of production devices worldwide.
 
 The main takeaway here is clear: Rust has moved past the experimental phase. It is now the standard choice for building fast, safe, and modern infrastructure.
+
+
+---
+
+### Slide 28: eBPF Quick Refresher (Speaker Notes)
+
+In the second part of the presentation we will talk about eBPF programming using Rust.
+
+Before that we will quickly review of how eBPF works before we look at the Rust tools.
+This will not be covering what eBPF is and what types of tooling is used to generate bytecode and load
+the programs for tracing and observability as they have been covered in earlier presentations.
+
+---
+
+### Slide 29: What is eBPF? (Speaker Notes)
+
+**(Visual: The four-step diagram showing Write, Verify, JIT, and Attach, alongside the table of hook types)**
+
+**[The Core Model]**
+
+- In simple terms, eBPF lets us run safe code inside the Linux kernel. We do not need to modify the
+  kernel source code. We do not need to load a traditional kernel module. And we do not need to reboot
+  the system.
+
+- The code connects to specific event hooks inside the kernel and runs instantly when those events
+  happen.
+
+**[The Four-Step Lifecycle]**
+Every eBPF program follows a strict four-step process:
+
+1. **Write:** We write our program in a high-level language like C or Rust. Then we compile it into
+   standard eBPF bytecode.
+2. **Verify:** We load the bytecode into the kernel. The kernel verifier checks the code completely. It
+   checks for safe loops, valid memory limits, and correct types.
+3. **JIT (Just-In-Time):** If the code is safe, the kernel translates the bytecode into native machine
+   code. There is no interpreter slowdown. The code runs at native hardware speed.
+4. **Attach:** We connect the code to a hook point. When that hardware or software event occurs, our code
+   runs.
+
+**[The Verifier Guarantee]**
+- The verifier does not guess safety. It uses mathematical proof. If the verifier accepts the bytecode,
+  the program **cannot** crash the operating system, it **cannot** lock up in an infinite loop, and it
+  **cannot** read secret memory out of bounds.
+
+**[Common Hook Types]** The table shows the exact hooks our team uses for development:
+
+* We use **`kprobe`** to look at any internal kernel function.
+* We use **`tp_btf`** for typed tracepoints because they work well with modern compile-once
+  run-everywhere (CO-RE) systems.
+* We use **`xdp`** for network packet filtering. This runs directly on the network interface card driver
+  before the main network stack even sees the packet. This is what we use to block network attacks
+  quickly.
+
+---
+### Slide 30: eBPF Maps — The Data Bridge (Speaker Notes)
+
+**[How Maps Work]**
+- An eBPF program inside the kernel cannot perform standard Input/Output. It cannot write directly to
+  files or send network data on its own. Instead, it uses **eBPF maps** to talk to the outside world.
+
+- Maps are pieces of shared memory. The user-space loader creates the maps first, before attaching the
+  eBPF program. After that, both the kernel code and the user-space program read and write data through
+  standard Linux file descriptors.
+
+**[Common Map Types]** The table shows the maps we use most often:
+
+* We use **`HASH`** maps for looking up key-value pairs.
+* We use **`PERCPU_ARRAY`** for statistics. It creates a separate array for each CPU core, which means it
+  is lock-free and has very high performance.
+* We use **`LRU_HASH`** when we need to track network connections without running out of memory.
+
+**[Why We Choose Ring Buffer]** Let us focus on the **Ring Buffer** (`RINGBUF`). It was added in Linux
+5.8. For all our new projects, we should always choose `RINGBUF` instead of the older `PERF_EVENT_ARRAY`.
+
+Here is why:
+
+* **Memory Efficiency:** It handles variable-length records. We do not need to use fixed-size structures,
+  so we do not waste memory bytes.
+* **Rust Integration:** It works perfectly with standard asynchronous tools like Tokio in Rust. Aya turns
+  the ring buffer into an `AsyncFd`, so your user-space program can read events efficiently without
+  locking up a CPU core.
+* **Easy Monitoring:** If the kernel generates events too fast and data is lost, `RINGBUF` tracks the
+  dropped events and shows the number directly to user space.
+
+Look at the code example at the bottom. This is how we write a ring buffer in Aya. We use the `#[map]`
+attribute and define a static variable with a size—here, 4 Megabytes. It is clean, explicit, and easy to
+read.
+
+---
+### Slide 32: eBPF Framework Landscape (Speaker Notes)
+
+
+**[Introduction]**
+- Let us look at how eBPF tools have changed over time. There are three main generations of eBPF
+  development tools.
+
+**[Generation 1: BCC and bpftrace]**
+- Generation 1 uses BCC and `bpftrace`. BCC compiles the eBPF C code directly on the target device when
+  you run the script. This means you must install the full Clang and LLVM compiler on your production
+  system.
+
+- Tools like `bpftrace` are excellent for quick debugging on a development laptop. But for embedded
+  devices, this approach does not work. A compiler toolchain takes up more than 100 Megabytes of
+  storage space. Also, the code depends on exact kernel header versions, so it is not portable. BCC is
+  a development tool, not a deployment tool.
+
+**[Generation 2: libbpf + CO-RE]**
+- Generation 2 introduced `libbpf` and CO-RE, which stands for Compile Once, Run Everywhere. With this
+  method, you compile the eBPF code ahead of time on your development laptop.
+
+- The compiled ELF file includes BTF type information. When you load the program, `libbpf` reads the
+  running kernel's BTF data and adjusts the memory offsets automatically. This allows you to ship a
+  very small pre-compiled object file and a small shared library (`.so`). You no longer need a compiler
+  on your embedded target.
+
+**[Generation 3: Language-Native Frameworks]**
+- Generation 3 brings first-class language integration. Instead of writing a loader in C and binding it
+  to other languages, we use frameworks built completely inside modern languages like Rust and Go.
+
+* **Aya** is written in **pure Rust**. It does not use the C `libbpf` library at all. It handles
+  everything natively through Rust.
+* **cilium/ebpf** is written in pure Go for the user-space side, but still uses Clang to compile the
+  kernel side.
+* **libbpf-rs** provides Rust bindings that talk to the traditional C `libbpf` library.
+
+Our focus is on Aya because it gives us a single, safe, unified toolchain using pure Rust from top to
+bottom.
+
+---
+### Slide 33: What Popular Projects Use — And Why It Matters for Your Team (Speaker Notes)
+
+**[The Big Industry Trend]**
+- Let us look at how the largest software companies use eBPF today. This will help us understand why
+  choosing the right framework is important for our own team.
+
+**[Cilium: The Industry Standard]**
+- Cilium is the most popular project for production eBPF in large data centers. It handles network
+  traffic and security at a massive scale.
+
+- Cilium uses C for its kernel code, but it uses Go for its user-space loader. Crucially, Cilium does
+  **not** use the traditional C `libbpf.so` library at runtime. Instead, they built their own pure Go
+  library (`cilium/ebpf`) to load the bytecode and manage maps.
+
+- In 2025, engineers even proved that an eBPF kernel program written in Rust using Aya can work perfectly
+  with Cilium’s Go loader.
+
+- The main lesson for our team is this: the industry is moving away from shared C libraries like
+  `libbpf.so`. Modern systems prefer language-native loaders. Cilium chose Go for this purpose. For our
+  team, **Aya is the Rust equivalent**.
+
+**[Aya in Real-World Production]** The table shows other major infrastructure projects that use the Rust
+and Aya stack today:
+
+* **Red Hat bpfman:** This tool manages the lifecycle of eBPF programs on a system, acting like `systemd`
+  but for BPF code. It is built completely with Rust and Aya.
+* **Deepfence ebpfguard:** This tool checks security policies inside the kernel using Linux Security
+  Modules (LSM). By using Aya, they wrote the entire system in Rust with no C code required.
+* **K8s Blixt:** A high-performance network load balancer that runs its fast data path in Rust using XDP.
+
+**[Why These Projects Chose Aya]** All of these modern projects chose Aya for the exact same reasons:
+
+1. **Unified Safety:** They wanted type safety that spans across both the kernel code and the user-space
+code.
+2. **Simple Deployment:** They wanted a single binary file that they can deploy easily, without worrying
+about external runtime C library dependencies.
+
+Older tools like Tracee and Falco still use the traditional C and `libbpf` design. But new infrastructure
+projects are choosing Rust and Aya for safer and cleaner operations.
+
+---
+
+### Slide 34: libbpf + CO-RE — The Reference Workflow (Speaker Notes)
+
+**[Transition]**
+Let us look closer at the modern eBPF workflow. We will focus on CO-RE, which means Compile Once, Run Everywhere.
+
+This part is more specific to our current approach to eBPF
+
+---
+
+### Slide 35: Why CO-RE Matters for BSP Teams (Speaker Notes)
+
+**[The Problem: Different Kernel Versions]**
+Typically our development spans different HW designs running OWRT, Yocto, Android. These devices run
+different Linux kernel versions, like 5.15, 6.1, or 6.6. Each customer might also add their own kernel
+patches.
+
+Inside the Linux kernel source code, structures change between versions. Look at the example on the slide
+for `struct task_struct`:
+
+* In Kernel 5.15, the process ID (`pid`) is at memory offset `0x2C8`.
+* In Kernel 6.1, it moves to offset `0x2D4`.
+* In Kernel 6.6, it moves to offset `0x2E0`.
+
+If a BPF program uses a fixed memory number to read `task->pid`, it will read the wrong memory on a
+different kernel version.
+
+Before CO-RE, you had two choices to fix this: you had to build a separate eBPF binary for every single
+kernel version, or you had to install a compiler on the target device to build the code at runtime. Both
+choices are very difficult for embedded systems.
+
+**[The Solution: How CO-RE Works]** CO-RE solves this problem completely.
+
+1. **At Build Time:** You compile your BPF code just once on your development laptop using Clang or Rust.
+The compiler creates the bytecode and adds special "relocation records" inside a section called `.BTF` in
+the ELF file. This section records which structure fields your code wants to read.
+2. **At Load Time:** You copy that single ELF file to the target device. When your loader program (like
+Aya) starts, it reads the running kernel's own layout info from the file `/sys/kernel/btf/vmlinux`.
+3. **The Fix:** Aya automatically adjusts the memory offsets in the bytecode to match the running kernel
+exactly.
+
+**[Target Requirements]** To use this feature, the target kernel must be compiled with the option
+`CONFIG_DEBUG_INFO_BTF=y`.
+
+Today, this option is enabled by default in all standard Linux distributions and all Android Generic
+Kernel Images (GKI) starting from Android 12. For Android BSP deployment, this means one single compiled
+eBPF file runs perfectly on all devices, no matter the phone manufacturer or kernel changes. You do not
+need multiple sets of kernel headers, and you do not need to recompile code on the device.
+
+--- 
+

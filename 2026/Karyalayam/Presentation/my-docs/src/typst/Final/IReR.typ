@@ -1231,8 +1231,8 @@ cargo test        # unit tests
     If the verifier accepts the program, it *cannot* crash the kernel, infinite-loop, or access out-of-bounds memory. This is a formal proof, not a heuristic.
   ]
 ][
-  #image("./imgs/eBPF-fw.png",height:55%)
-  
+  #image("./imgs/eBPF-fw.png",height:45%)
+ 
   *Hook types your team uses*
 
   #table(
