@@ -1338,3 +1338,565 @@ need multiple sets of kernel headers, and you do not need to recompile code on t
 
 --- 
 
+The image is clear. This slide details the traditional C-based `libbpf` workflow to show the five stages and the target dependencies.
+
+Here are the speaker notes for this slide, using simple, direct English tailored for your audience:
+
+---
+
+### Slide 36: 6.2: libbpf Workflow — The Five Stages (Speaker Notes)
+
+
+**[The Traditional 5-Stage Process]**
+
+- To understand why we use Aya, we must first look at the traditional C workflow using `libbpf`. 
+- This process has five distinct stages:
+
+1. **Write:** You write your kernel BPF program in C. You must use `bpftool` to extract a massive header
+   file called `vmlinux.h` from your kernel.
+2. **Compile:** You use `clang` to compile that C code into an ELF object file containing bytecode and BTF
+   data.
+3. **Skeleton:** You use `bpftool` again to generate a C header file called a "skeleton." This provides
+   typed C structures so your user-space loader can interact with your kernel code.
+4. **Load & Verify:** In your user-space program, you call functions like `skel__open()` and `skel__load()`.
+   This is when `libbpf` applies CO-RE patches and the kernel verifier checks the code.
+5. **Attach & Run:** Finally, you call `skel__attach()`. The program links to the events, and you can now
+   read data from the maps.
+
+**[The Problem: Complex Dependencies on the Target]** Look at the right side of the slide. This traditional
+workflow creates a long chain of library dependencies that you must install on your target embedded device.
+
+To run your application, the target device requires:
+
+* **`libbpf.so`** to load the bytecode.
+* **`libelf.so`** because `libbpf` needs to parse ELF files.
+* **`libz.so`** because `libelf` needs compression libraries.
+
+For embedded Linux developers and BSP teams, this dependency chain causes friction. If you are building a
+clean, minimal root filesystem, managing these extra shared libraries adds extra weight and testing
+complexity.
+
+**[The Teardown Risk in C]** There is also a code maintenance problem with the C implementation. When your
+program exits, you must manually free the ring buffers, detach the skeleton, and destroy the object using
+functions like `skel__destroy()`.
+
+If an engineer forgets to write these cleanup functions, the program will leak memory or file descriptors.
+The C compiler will **not** give you any warnings or errors if you forget them.
+
+---
+### Slide 37: 7.0: Does Rust Fit eBPF? (Speaker Notes)
+
+**[Transition]**
+Now We want to answer an important question: Why should we use Rust for eBPF? Are they a good match for each other?
+
+---
+
+### Slide 38: 7.1: Why Rust is a Natural Fit for eBPF Programs (Speaker Notes)
+
+
+**[Shared Goals: No Undefined Behavior]**
+Rust and eBPF are a perfect match because they have the exact same design goal: 
+    they do not accept undefined behavior.
+
+* The eBPF kernel verifier rejects your program if it cannot prove the code is 100% safe.
+* The Rust compiler rejects your program if it cannot prove the code is 100% safe.
+
+Both systems force you to fix safety issues *before* the code runs, not at runtime.
+
+**[The `#![no_std]` Match]**
+An eBPF program inside the Linux kernel runs in a very restricted environment. It has no standard operating system libraries, and it has no default memory allocator.
+
+Rust is perfect for this environment because it has a built-in mode called `#![no_std]`. This mode tells the compiler to build code without the standard library. The `aya-ebpf` library provides all the necessary BPF helpers, map types, and macros for this restricted environment.
+
+**[The Big Problem in C: Diverging Structures]**
+In traditional C eBPF development, a very common and dangerous bug happens at the boundary between kernel space and user space.
+
+Look at the C code example on the slide.
+
+* Inside the BPF kernel code, an engineer defines an event structure where `pid` is a 32-bit integer (`u32`).
+* Inside the user-space loader code—which is in a completely different file—the engineer accidentally defines `pid` as a 64-bit integer (`u64`).
+
+The two structures do not match in memory. The user-space program will silently read the wrong data from the map. The C compiler will **not** show any error or warning because these are separate files.
+
+**[Aya's Solution: The Shared Crate]**
+Aya solves this problem completely using Rust modules. You create one single, shared folder called a `common` crate using the `#![no_std]` mode. You define your map structures **only once** inside this folder.
+
+Both your kernel eBPF program and your user-space loader import this exact same folder. If you change a variable size, both sides update automatically. If there is a layout mistake, the compiler will halt the build immediately.
+
+This is one of the biggest advantages of using Aya. It gives you true type safety across the kernel and user-space boundary.
+
+---
+
+### Slide 39: 8: The Bytecode Generation Question (Speaker Notes)
+
+
+**[The Left Side: Traditional C Toolchain Workflow]**
+- Let us look at the compilation steps on the left side of the slide. In the traditional C workflow,
+  generating your final program requires several steps and multiple different tools.
+
+- First, you write your kernel code in C. You must use `clang` with a special target to compile it into a
+  BPF object file. Next, you must use a separate tool called `bpftool` to create a skeleton header file.
+  Finally, you use `gcc` or `clang` on your host machine to build the user-space binary.
+
+- This means your build system must install and manage many separate pieces: `clang`, `LLVM`, `bpftool`,
+  `libelf`, and `libbpf`. Even if you use a Rust user-space library like `libbpf-rs`, you are still forced
+  to maintain a full C compiler toolchain just to build the kernel-space code.
+
+**[The Right Side: Modern Rust and Aya Workflow]**
+- Now look at the right side of the slide. This is the Aya workflow. Your kernel code, shared types, and
+  user-space loader all exist inside the same standard Rust project structure.
+
+- We use the standard Rust compiler, `rustc`, along with a tool called `bpf-linker` to compile the kernel
+  code into an ELF object file. Then, inside your user-space code, we use a built-in Rust macro called
+  `include_bytes_aligned!`.
+
+- This macro takes the compiled kernel bytecode and embeds it directly *inside* the user-space binary file
+  during the build. When you run `cargo build`, the output is one single, self-contained binary file that
+  contains everything.
+
+**[The Main Takeaway]**
+- With Aya, your development requirements are small. You only need `rustc` and `bpf-linker`. You do not need
+  `clang`. You do not need `bpftool`. You do not need `libelf`. And you do not need any runtime C
+  toolchains.
+
+- To deploy your application, you only need to copy **one single binary file** to your target embedded
+  machine.
+
+- It is important to understand that Aya does not wrap or hide the C `libbpf` library. It is a completely
+  pure-Rust rewrite of the BPF system call layer. It talks directly to the Linux kernel using standard
+  system calls, making it clean, fast, and completely independent of external C libraries.
+
+---
+### Slide 40: 9.0: Rust Approaches — libbpf-rs and Aya (Speaker Notes)
+
+**(Visual: Section 9 Title Slide)**
+
+**[Transition]**
+When you decide to use Rust for eBPF development, you have two different choices. These choices use two very different strategies.
+
+Let us look at the differences between a tool called `libbpf-rs` and the framework we are focusing on, **Aya**.
+
+---
+
+### Slide 41: 9.1: Two Distinct Strategies (Speaker Notes)
+
+**[Strategy 1: libbpf-rs]**
+The first option is `libbpf-rs`. This tool acts as a bridge or a wrapper over the traditional C code.
+
+* **Kernel Side:** You still write your kernel eBPF program in C. You must compile it using Clang.
+* **User Space:** You write your loader program in Rust. This Rust loader wraps around the standard C
+  `libbpf` library.
+* **How it works:** A tool called `bpf2rs` reads your compiled C bytecode and generates Rust skeleton files.
+* **Target Dependencies:** Because it is just a wrapper, your target embedded hardware **still requires
+  `libbpf.so` and `libelf.so**` to run the program.
+
+`libbpf-rs` is a good choice for teams that already have a large amount of existing C eBPF code and only
+want to update their user-space tools to Rust. The transition cost is low, but you must keep a C compiler in
+your build pipeline.
+
+**[Strategy 2: Aya]**
+The second option is Aya. Aya is a complete rewrite of the eBPF layer using pure Rust.
+
+* **Kernel Side:** You write your eBPF program completely in Rust. You compile it using `rustc` and
+  `bpf-linker`.
+* **User Space:** Your loader is written in pure Rust. It is built on top of the basic `libc` crate. It has
+  zero dependency on the C `libbpf` or `libelf` libraries.
+* **The Embedded Win:** By using the `musl` toolchain, you can compile your entire application into a
+  **single, statically-linked executable file**.
+* **CO-RE Handling:** Aya does not need external tools to handle kernel version changes. It includes its own
+  pure-Rust BTF parser called `aya-obj` to handle CO-RE relocations automatically.
+* **Modern Features:** It is built for asynchronous code. It turns eBPF ring buffers into standard
+  asynchronous types that work directly with the Tokio framework.
+
+`Aya` is the best choice for new projects, embedded Linux boards, and Android systems.
+
+**[Our Choice]** In this presentation, we focus on **Aya**. For our team’s embedded goals, eliminating
+runtime C libraries, avoiding `clang` on the target, and deploying a single static binary file provides the
+highest value.
+
+---
+### Slide 42: 10.0: Aya Framework Overview (Speaker Notes)
+
+**(Visual: Section 10 Title Slide)**
+
+Now, let us look inside the Aya framework. 
+We will see its internal architecture and how its different parts map to the old C tools.
+
+---
+
+### Slide 43: 10.1: Architecture and Component Map (Speaker Notes)
+
+Look at the architecture map on the slide. Aya splits its components into two clear halves: user space at
+the top, and kernel space at the bottom.
+
+Let us review the user-space components first:
+
+* **Your user-space binary** uses standard Rust and asynchronous code. It calls `Ebpf::load()` to start
+  everything.
+
+* **`aya`** is the main library. It wraps the Linux `bpf()` system call natively in Rust. It provides your
+  basic program types like XDP and your map types like Ring Buffer.
+* **`aya-obj`** is the engine that parses ELF and BTF data. It reads the system file
+  `/sys/kernel/btf/vmlinux` and handles all CO-RE adjustments. Because it is pure Rust, it completely
+  removes our need for the `libelf.so` library.
+* **`aya-log`** receives real-time print messages sent from the kernel.
+
+Now look at the kernel-space components at the bottom:
+
+* **Your BPF program** uses `#![no_std]` because it runs inside the kernel.
+* **`aya-ebpf`** provides the core code runtime for the kernel side, including macros like `#[xdp]` and
+  helper functions.
+* **`aya-log-ebpf`** allows you to write simple logging commands like `info!()` and `warn!()` directly
+  inside your kernel code.
+* **`aya-ebpf-bindings`** contains the official Linux kernel structures, generated automatically.
+
+**[What Aya Replaces]** The table shows how Aya simplifies your development system. It completely replaces
+the old C `libbpf` stack:
+
+* `aya` replaces `libbpf.so` and the C skeleton files.
+* `aya-obj` replaces `libelf.so` and `libz.so`.
+* `aya-ebpf` replaces old C headers like `bpf_helpers.h`.
+* `aya-log-ebpf` replaces the old `bpf_printk()` function. It uses a fast ring buffer instead of a slow
+  tracing log.
+* `aya-tool` and `aya-build` replace old manual tools like `bpftool` and complex Makefiles.
+
+**[The Big Benefit]** The main takeaway is simple: **Zero C runtime dependencies on your target hardware.**
+The entire framework is written in Rust. It communicates with the operating system using one single system
+call: `bpf()`. We do not need to install or update any shared C libraries on our production boards.
+
+---
+### Slide 44: 11: Aya for Embedded and Android — The musl Advantage (Speaker Notes)
+
+**[The Deployment Problem]**
+Let us look at the deployment problems on embedded Linux and Android devices.
+
+When you use a traditional C `libbpf` tool, you cannot just copy one file to your target hardware. Your
+program is dynamically linked, meaning it requires three other shared libraries to exist on the device:
+`libbpf.so`, `libelf.so`, and `libz.so`.
+
+On a minimal embedded filesystem or a production Android device, this creates major problems:
+
+* **Missing Libraries:** `libelf` is a development library, so it is usually completely missing from
+  production images.
+* **Version Mismatches:** The version of `libbpf` pre-installed on the device might not match the version
+  you used to compile your code.
+* **Security Blocks:** Android has strict linker namespace rules. The operating system will often block your
+  program from loading unrecognized external shared libraries.
+* **Build Complexity:** If you cross-compile for different target architectures like ARM64 or RISC-V, your
+  development laptop must maintain cross-compiled versions of all three helper libraries. This makes your
+  build scripts very difficult to manage.
+
+**[The Aya and musl Solution]** Aya removes this complexity completely by using the `musl` C library target.
+`musl` is a lightweight alternative to the standard GNU C library (`glibc`) that allows full static linking.
+
+Look at the command examples on the right side of the slide:
+
+1. **Add Target:** We run `rustup target add` once to install the ARM64 musl compilation target.
+2. **Build:** We use a tool called `cross` to cross-compile our code. This tool handles the compilation
+inside a clean container environment automatically.
+
+**[The Final Output]** When you run the Linux `file` command on the compiled output, look at the result. It
+shows that our tool is an ARM64 executable that is **statically linked** and **stripped**.
+
+This means everything your program needs—the user-space loader logic, the required helper libraries, and the
+kernel eBPF bytecode—is packed tightly inside **one single binary file**.
+
+**[Deployment]** Deploying this application to an Android device or an embedded board is incredibly simple.
+As shown in the code blocks, you use `adb push` to copy the single file to the device, use `chmod` to make
+it executable, and run it.
+
+You do not need to install any external packages. You do not need to configure library paths. Combined with
+CO-RE, this single file will run instantly on any ARM64 Linux kernel that supports BTF, including custom
+BSPs and official Android devices.
+
+---
+### Slide 45: 12: Building with Aya Template (Speaker Notes)
+
+
+**[Transition]**
+Let us now look at how to actually set up our development host system and create a new Aya project.
+
+Aya provides an official project template that configures everything for us automatically.
+
+---
+
+### Slide 46: 11.1: Prerequisites and Scaffold (Speaker Notes)
+
+
+**[One-Time Environment Setup]**
+Before we can write any code, we must install a few development tools on our computer. You only need to do
+this setup once:
+
+1. **Rust Nightly:** We must install the nightly version of the Rust toolchain. We need this because the
+   specialized BPF compilation target—called `bpfel-unknown-none`—uses experimental compiler features that
+   are only available in nightly Rust.
+2. **bpf-linker:** This is a custom linker tool for Rust. It includes a built-in copy of the LLVM BPF
+   backend. It translates the compiled Rust output into valid eBPF bytecode.
+3. **cargo-generate:** This is a standard Rust tool used to create new projects from online templates.
+4. **Verification:** You can run the `rustc --print target-list` command shown on the slide to confirm that
+   the `bpfel` target is installed and visible.
+
+**[Scaffolding the Project]**
+- Once your environment is ready, you use the `cargo generate` command. You point it to the official Aya
+  template repository on GitHub and provide a name for your project, such as `dma-latency-tracer`.
+
+- This template sets up the directory structure we discussed earlier. It gives you a folder for the
+  user-space program, a folder for the kernel-space program, and a shared folder for common structures.
+
+**[The Simplified Build Process]** Look at the bottom of the slide. To compile the entire application, you
+only need to type a single command: `cargo build --release`.
+
+- In older versions of Aya, developers had to use a separate automated script called `xtask` to compile the
+  kernel code first, and then compile the user-space code second. The modern Aya template removes this extra
+  step completely.
+
+- The template includes a standard Rust build script called `build.rs` inside the user-space project. When
+  you run `cargo build`, this script automatically starts a background compiler command to compile your eBPF
+  folder using the nightly toolchain.
+
+- Once the kernel bytecode is generated, the script uses the `include_bytes_aligned!` macro to embed that
+  bytecode directly inside your final user-space binary. You run one command, and you get one self-contained
+  deployment file.
+
+---
+### Slide 47: 12.0: Project Layout and Rust Features That Simplify eBPF (Speaker Notes)
+
+Now that we understand the prerequisites, let us look at the exact file layout of an Aya project.
+
+We will see how a standard Rust feature called a **workspace** makes it easy to manage both your kernel code
+and your user-space loader in one place.
+
+---
+
+### Slide 48: 12.1: Three-Crate Workspace Structure (Speaker Notes)
+
+**[The Core Directory Structure]**
+When you generate an Aya project, it creates a single directory containing three separate sub-folders, or
+"crates." This is called a Rust workspace.
+
+* At the root, the main **`Cargo.toml`** file ties all three folders together.
+* The **`rust-toolchain.toml`** file is very important. It pins the specific nightly version of Rust for the
+  project. This ensures that every engineer on your team compiles the code with the exact same compiler
+  version.
+
+**[1. The Common Crate]** The first folder is the **`-common`** crate. This crate uses the `#![no_std]` mode
+because it must remain lightweight.
+
+Look at the structure definition for **`DmaEvent`**. It uses the **`#[repr(C)]`** attribute. This attribute
+tells the Rust compiler to arrange the variables in memory exactly like a standard C structure. This is
+necessary because the Linux kernel expects data to be structured this way.
+
+Because both the kernel eBPF program and the user-space loader import this common folder, they use the exact
+same memory layout. If you add a field here, both sides update instantly.
+
+**[2. The eBPF Crate]** The second folder is the **`-ebpf`** crate. This is where you write your actual
+kernel logic, such as your `kprobe` handlers.
+
+Look at the **`.cargo/config.toml`** file for this folder. It changes the build settings specifically for
+the kernel side:
+
+* **`target = "bpfel-unknown-none"`** sets the compilation target to a little-endian BPF processor.
+* **`"-C", "link-arg=--btf"`** tells the linker tool to generate and embed the BTF type records. This is
+  what makes your binary CO-RE compatible.
+* **`build-std = ["core"]`** tells Rust to compile its core library from source code, because there is no
+  pre-compiled standard library available for the BPF processor.
+
+**[3. The User-Space Crate]** The third folder is the main user-space crate. This is a standard Rust
+application that can use the network, standard libraries, and asynchronous runtimes like Tokio.
+
+This folder contains a file called **`build.rs`**. As you can see in the code extract, when you type `cargo
+build`, this script runs a background command that compiles the eBPF crate using the nightly compiler and
+the BPF target.
+
+Once the compilation finishes, it moves the output bytecode file into your build folder. The user-space code
+then uses the `include_bytes_aligned!` macro to read that file and embed it directly inside your final
+application binary.
+
+You do not need separate build steps, automation scripts, or Makefiles. A single `cargo build` command
+builds everything.
+
+--- 
+### Slide 49: 13.0: How Rust Simplifies eBPF (Speaker Notes)
+
+Now that we have seen the complex setup and manual cleanup required by the traditional C toolchain, let us
+look at how Aya utilizes Rust's native language features to eliminate these pain points.
+
+This slide breaks down six core advantages that make Aya safer, cleaner, and much more reliable for
+production environments.
+
+---
+
+### Slide 50: 13.1: Six Safety and Ergonomic Advantages of Aya (Speaker Notes)
+
+**[1. Shared Common Crate]** First, as we touched on earlier, Aya eliminates the boundary risk between
+kernel space and user space. By defining a structure like `DmaEvent` once inside a shared `no_std` common
+crate, we force the compiler to verify layout safety.
+
+If there is a structural layout mismatch or an invalid field size, it triggers a **compile-time error**. It
+is impossible to accidentally deploy code that silently parses the wrong bytes on the user-space side.
+
+**[2. RAII Attachment Handles]** Second, Aya solves the cleanup problem using a classic Rust pattern called
+RAII, or Resource Acquisition Is Initialization. When you attach an eBPF program, it returns a typed handle
+that implements Rust's `Drop` trait.
+
+If your program encounters an error, propagates a failure with the `?` operator, or exits early, this handle
+goes out of scope. When it does, Rust **automatically detaches the eBPF program and closes the file
+descriptors**. You never have to worry about leaking attachments because you forgot to write a manual
+destroy function.
+
+**[3. Result Types & Error Propagation]** Third, Aya handles system errors explicitly. Every single call to
+load code or modify maps returns a standard Rust `Result`.
+
+If your BPF binary file is malformed or if the kernel verifier rejects your program, it will not silently
+fail and let your application continue running blindly. The `?` operator forces immediate, explicit error
+propagation that catches failures exactly where they happen.
+
+**[4. Async Ring Buffer Integration]** Fourth, reading data streams from the kernel is incredibly efficient.
+Aya wraps the eBPF ring buffer inside an asynchronous file descriptor (`AsyncFd<RingBuf>`). This allows it
+to plug directly into modern async runtimes like Tokio.
+
+Instead of writing complex, global C-style callback loops with void pointers, you write a clean async loop
+that waits for data natively. The application state stays fully owned by your async task.
+
+**[5. Typed Program Kinds]** Fifth, Aya uses explicit type downcasting to protect your event attachments.
+When you pull a program out of an ELF file, it starts as an untyped object. You must explicitly cast it—for
+example, converting it to a `KProbe`.
+
+The compiler will only allow you to call `attach()` with arguments that are legally valid for a kprobe
+event. In traditional C, the attachment functions are untyped, meaning you can accidentally pass an XDP
+argument to a tracepoint hook, causing a silent runtime failure.
+
+**[6. Structured `aya-log`]** Finally, Aya provides modern logging inside the kernel. Instead of using the
+old, slow `bpf_printk()` function—which requires you to manually parse raw debug files out of the global
+tracing pipeline—Aya provides standard `info!()` and `warn!()` macros.
+
+These macros stream structured logs from the kernel into a dedicated ring buffer automatically. Your
+user-space code subscribes to this stream and routes the messages straight into your standard application
+logging framework, like `env_logger`. It looks and feels just like debugging normal user-space code.
+
+---
+### Slide 51: 13.2 : BPF Program Side — Key Patterns (Speaker Notes)
+
+Now that we have reviewed a basic kprobe implementation, let us look at the recurring design patterns you
+will use when writing the kernel-space side of an eBPF program. Writing eBPF in Rust changes the syntax, but
+more importantly, it changes how safely we interact with kernel data types.
+
+### Key Pattern Comparisons
+
+| Pattern | Traditional C / libbpf | Modern Rust / Aya |
+| --- | --- | --- |
+| **Entry Point Definitions** | `SEC("kprobe/dma_map_sg")` | `#[kprobe]` (Attribute Macro) |
+| **Context Handling** | `PT_REGS_PARM1(ctx)` or `BPF_KPROBE` | Strongly-typed `ProbeContext`, `XdpContext` |
+| **Map Interactions** | `bpf_map_update_elem(&map, &k, &v, flags)` | `MAP.insert(&k, &v, flags)` (Object-Oriented) |
+| **Memory Safeguards** | Manual pointer math & unchecked pointer casting | Explicit `unsafe` scoping for boundary reads |
+
+**[Pattern 1: Program Entry Points & Declarations]**
+In the traditional C world, you declare where a program hooks into the kernel using string-based section
+macros, like `SEC("kprobe/...")` or `SEC("xdp")`. If you misspell the string inside that macro, the C
+compiler will not notice. You will only find out much later at runtime when the loader fails to attach the
+program.
+
+Aya replaces these error-prone strings with native Rust **Attribute Macros**, such as `#[kprobe]`, `#[xdp]`,
+or `#[lsm]`. Because these are macro attributes recognized directly by the compiler pipeline, syntax errors
+or invalid hook declarations are caught immediately during compilation.
+
+**[Pattern 2: Strongly-Typed Context Objects]** When an event fires, the kernel passes a raw execution
+context pointer to the eBPF program. In C, extracting function parameters requires wrapping your entry point
+in complex macro abstractions like `BPF_KPROBE(...)` or manually unwrapping CPU registers using
+architecture-specific macros.
+
+Aya delivers native type safety by providing dedicated context structures for each program type. For
+example, a kprobe uses `ProbeContext`, while a network packet filter uses `XdpContext`. These structs expose
+safe, idiomatic methods to read parameters without needing architecture-dependent registry definitions.
+
+**[Pattern 3: Object-Oriented Map Operations]** Interacting with BPF maps in C is procedural and requires
+passing raw pointers continuously. You are forced to call global helper functions like
+`bpf_map_update_elem()`, pass the memory address of your map, the address of your key, and the address of
+your value. This code is verbose and easy to miswrite.
+
+Aya brings an object-oriented approach to the kernel. Maps are declared as static variables using the
+`#[map]` attribute. When you want to save data, you interact with the map object directly by invoking
+standard methods, such as `MAP.insert(&key, &value, 0)`. It reads and writes exactly like standard
+user-space code.
+
+**[Pattern 4: Explicit Isolation of Unsafe Code]** When writing eBPF programs, you must read memory spaces
+that belong to the core Linux kernel. In C, all pointer manipulation looks identical, meaning there is no
+visual distinction between reading local stack variables and reading highly volatile kernel memory
+addresses.
+
+In Rust, interacting with the external host environment forces you to place those specific lines of code
+inside an explicit `unsafe` block. This layout acts as a vital guardrail for our BSP engineering team. It
+immediately signals during code reviews exactly where the program is touching raw kernel internals,
+separating standard safe logic from low-level pointer tracking.
+---
+
+### Slide 52: 13.3: Userspace Loader — Load, Attach, Consume (Speaker Notes)
+
+Now that we have looked at the kernel-space code, let us focus on the host application running in user space.
+
+We will compare the traditional C loading sequence side-by-side with Aya's asynchronous Rust implementation
+to see how we load the bytecode, attach to hooks, and safely consume event streams.
+
+Implementation Comparison — C vs. Rust
+
+**[Phase 1: The Load Phase]** Let us break this code comparison down into the three phases mentioned: Load,
+Attach, and Consume.
+
+First, look at the top of both code blocks for the **Load** phase:
+
+* In C, you work with a raw skeleton structure, invoking procedural commands like `prog_open()` followed by
+  `prog_load()`. This initializes the maps and passes the bytecode through the kernel verifier.
+* In Rust, Aya simplifies this into a single line: `Ebpf::load(BPF_BYTES)?`. The `BPF_BYTES` array is the
+  bytecode that was embedded directly into our binary at build time.
+
+Right after loading, Aya forces a strict type downcast. We look up the program by its string name and
+explicitly call `.try_into::<KProbe>()`. If the bytecode inside the ELF file is actually an XDP program
+instead of a KProbe, this cast fails immediately with a clean Rust error. In C, everything remains an
+untyped pointer, making type mismatches easy to miss.
+
+**[Phase 2: The Attach Phase]** Next is the **Attach** phase:
+
+* In C, you call `prog__attach(skel)`. This attaches the hook and returns a file descriptor behind the
+  scenes inside the skeleton object.
+* In Rust, you call `prog.attach("dma_map_sg", 0)?`. This returns a concrete token called `_link`. This
+  token is tied directly to Rust’s lifetime tracking engine. As long as this variable remains alive in
+  memory, the eBPF hook stays attached.
+
+**[Phase 3: The Consume Phase (The Ring Buffer)]** The most significant architectural change is the
+**Consume** phase, where we pull events out of the kernel ring buffer.
+
+Look at the C implementation on the left. C uses a synchronous, blocking callback architecture:
+
+1. You must call `ring_buffer__new()` and pass a raw C function pointer (`handle_event`).
+2. You must pass `NULL` values for application contexts because C callbacks cannot naturally capture
+surrounding local state.
+3. You must spin up a manual loop that continuously calls `ring_buffer__poll()`, blocking the thread for a
+specified number of milliseconds.
+
+Now look at the modern Aya approach on the right. Aya treats the kernel ring buffer as a standard
+asynchronous event stream:
+
+1. We extract the map safely using `bpf.take_map("EVENTS")`.
+2. We wrap that ring buffer inside an asynchronous file descriptor helper called `AsyncFd::new(rb)`. This
+integrates the kernel ring buffer directly into standard user-space async runtimes like Tokio.
+3. Inside our execution loop, we simply call `afd.readable().await?`. The thread does not block or waste CPU
+cycles polling; it yields control back to the operating system until the kernel explicitly wakes it up
+because new data is ready.
+4. When data arrives, we read it using standard iterator syntax, casting the raw pointer safely to our
+strongly-typed `DmaEvent` struct that we imported from our common crate.
+
+**[Phase 4: The Hidden Benefit — Teardown]** Finally, look at the very bottom of both blocks.
+
+In the C code, you are fully responsible for manual cleanup. You must explicitly remember to call
+`ring_buffer__free()`, `prog__detach()`, and `prog__destroy()`. If your program crashes, panics, or returns
+early due to an error before reaching these lines, those resources will leak in the background.
+
+In the Rust code on the right, there is **zero cleanup code written**. Because `bpf`, `_link`, and `afd` all
+implement Rust’s native `Drop` trait, the moment the execution loop ends—whether it ends normally, returns
+an error via the `?` operator, or crashes—Rust guarantees that all file descriptors are closed and all
+kernel hooks are detached automatically.
+
+---
+
+Demo: Build and cross build:
+
