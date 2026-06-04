@@ -70,12 +70,12 @@
   3. *Correctness is load-bearing*: A bug does not crash one user session; it crashes the whole system, corrupts flash, or silently misdelivers data to hardware
 
   *Rust as systems software:*
-  Compiles directly to Machine code via LLVM, with zero overhead for bare-metal work.
-  - `no_std`: attribute instructs compiler to isolate std lib and OS layers.
-  - `unsafe`: Its the auditable escape hatch ( allows low-level operations, to be placed in blocks for audit)
-  - `asm!` : Supports architecture-specific instructions. 
+  Compiles directly to Machine code via *LLVM*, with zero overhead for bare-metal work.
+  - *_no_std_* : attribute instructs compiler to isolate std lib and OS layers.
+  - *_unsafe_* : Its the auditable escape hatch ( allows low-level operations, to be placed in blocks for audit)
+  - *_asm!_ * : Supports architecture-specific instructions. 
 ][
-  - `#[repr(C)]`: Binary Compatibility, Rust data-structs match exact memory layout of C, ensures seamless FFI execution when working with C.
+  - *_#[repr(C)]_* : Binary Compatibility, Rust data-structs match exact memory layout of C, ensures seamless FFI execution when working with C.
   *The languages that have historically owned this domain*
 
   #codebox(
@@ -216,19 +216,55 @@ ratio: (0.8fr, 1.2fr),
 
   `unsafe { }` is not "turn off Rust": it is an *explicit declaration* that you are taking responsibility for the invariants the type system cannot verify. It is grep-able, auditable, and contained.
 ]
+
 // New slide with same title
 --- 
-*Property 3:  Zero-cost abstractions*
+*Property 3:  Zero-cost abstractions* (The Stroustrup principle, applied )
+    - "What you don't use, you don't pay for. What you do use, you couldn't hand-code any better."
+    - Rust's abstractions compile to the same machine code as the equivalent hand-written C. 
+  //This is not a promise, it is verifiable on  #ref-badge[Compiler Explorer: https://godbolt.org; rustc -O2 )]
 
+  #codeblock()[
+    ```c
+#[unsafe(no_mangle)]                           |int square(int num) {                   |.LC0:                                                          
+pub fn square(num: i32) -> i32 {               |    return num * num;                   |        .string "panic: attempt to multiply with overflow\n" 
+    num * num                                  |}                                       |"square":                                                    
+}                                              |// assembly                             |        push    rbp                                          
+// assembly                                    |"square":                               |        mov     rbp, rsp                |#include <stdio.h>                 |
+square:                                        |        push    rbp                     |        sub     rsp, 32                 |#include <stdlib.h>                |
+        push    rax                            |        mov     rbp, rsp                |        mov     DWORD PTR [rbp-20], edi |int square(int num) {              |
+        mov     dword ptr [rsp + 4], edi       |        mov     DWORD PTR [rbp-4], edi  |        mov     edx, 0                  |int result;                        |
+        imul    edi, edi                       |        mov     eax, DWORD PTR [rbp-4]  |        mov     eax, DWORD PTR [rbp-20] |if (__builtin_mul_overflow (    |                
+        mov     dword ptr [rsp], edi           |        imul    eax, eax                |        imul    eax, eax                |  num,num,& result) {              |
+        seto    al                             |        pop     rbp                     |        jno     .L2                     |   fprintf(stderr,                 |
+        jo      .LBB0_2                        |        ret                             |        mov     edx, 1                  |   "panic multiply with overflow");|
+        mov     eax, dword ptr [rsp]           |                                        |.L2:                                    |   abort();// abort like rs        |
+        pop     rcx                            |                                        |        mov     DWORD PTR [rbp-4], eax  |}                                  |
+        ret                                    |                                        |        mov     eax, edx                                     
+.LBB0_2:                                       |                                        |        and     eax, 1                                       
+        lea     rdi, [rip + .Lanon.2fc01....1]                                          |        test    al, al                                       
+        call    qword ptr [rip + core[18c8dd30382e7099]::panicking::panic_const::pan..  |        je      .L4                                          
+                                                                                        |        mov     rax, QWORD PTR "stderr"[rip]                 
+.Lanon.2fc01ec765ec0cb3dcc559126de20b30.0:                                              |        mov     rcx, rax                                     
+        .asciz  "/app/example.rs"                                                       |        mov     edx, 41                                      
+                                                                                        |        mov     esi, 1                                       
+.Lanon.2fc01ec765ec0cb3dcc559126de20b30.1:                                              |        mov     edi, OFFSET FLAT:.LC0                        
+        .quad   .Lanon.2fc01ec765ec0cb3dcc559126de20b30.0                               |        call    "fwrite"                                     
+        .asciz  "\017\000\000\000\000\000\000\000\013\000..                             |        call    "abort"                                      
+                                                                                        |.L4:                                                         
+// As of Rust 1.75, small funs are automatically marked as #[inline] so they will showup|        mov     eax, DWORD PTR [rbp-4]                       
+// in the output when compiling with optimisations. use #[unsafe(no_mangle)] to work    |        leave                                                
+// around this issue                                                                    |        ret                                                  
+                                                                                        |// This is equivalent fun in C that manually handles overflow and aborts.
+       |
+```
+  ]
+
+--- 
 #cols[
-  *The Stroustrup principle, applied*
-
-  > "What you don't use, you don't pay for. What you do use, you couldn't hand-code any better."
-
-  Rust's abstractions compile to the same machine code as the equivalent hand-written C. This is not a promise, it is verifiable on  #ref-badge[Compiler Exploreri: https://godbolt.org; rustc -O2 )]
+ Zero-Cost abstraction holds for Iterators, closures or traits, comparable to writing equivalent code by hand in low-level style.
 
   *Iterators and closures: no overhead*
-
   #codebox(
     [
       ```rust
@@ -337,6 +373,14 @@ This is the often-overlooked performance *advantage* Rust has *over* C.
     The *same property* that prevents data races also enables better codegen. Safety and performance arise from the same source: the aliasing proof in the type system.
   ]
 ]
+== Recap: 
+
+- Features that make Rust language  as a systems programming:
+   - Minimum runtime and No Garbage collector.
+   - Direct control over hardware and Summitemory layout. 
+   - Inlineable, Zero-Cost abstraction.
+   - *`unsafe () `* for bare-metal freedom.
+   - Seamless interoperability (FFI)
 
 // ------------------------
 // 3. Language features 
