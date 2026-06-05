@@ -357,6 +357,17 @@ It can do everything C can do at the silicon level.
     If you need to hit a HW control register, you can do a volatile write exactly like casting a ptr in C.
 
 * **Inline Assembly:** 
+    Rust uses `asm!` macro instead of GCC ":" based syntax.
+    For example in embedded C writing data synchronization barriers , mainly when dealing with DMA,
+    Context switching, or peripheral registers on ARM, in C it of the form 
+    `__asm__ __volatile__("dsb sy" : : : "memory");`
+    Rust handles the exact arch instruction using `asm!` macro:
+    - `use core::arch::asm;` : Its from Core and not std => its fully available for #![no_std] => can
+      be used with bare-metal firmware, rtos kernels, and bootloaders.
+    - "dsb sy": This is ARM Data synchronization barrier, One massive quality-of-life upgrade in
+      Rust: it defaults to Intel/ARM standard syntax, not the clunky AT&T percent-sign syntax (%%)
+      we often wrestled with in GCC."
+
     If you need to execute an architecture-specific data synchronization barrier ( enforce ordering and
     completion of memory operations (ARM) ) like the `dsb` instruction shown here.
     Rust has direct support for inline assembly that mirrors GNU C syntax.

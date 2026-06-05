@@ -48,6 +48,7 @@
 // ToC:
 == Agenda <touying:hidden>
 #outline(title: none, indent: 1.5em, depth: 1)
+//#components.adaptive-columns(outline(indent: 1em))
 
 // Top level heading: (=) to Create a section divider slide in Metropolis:
 = Introduction to Rust:
@@ -214,7 +215,7 @@ ratio: (0.8fr, 1.2fr),
     ]
   )
 
-  `unsafe { }` is not "turn off Rust": it is an *explicit declaration* that you are taking responsibility for the invariants the type system cannot verify. It is grep-able, auditable, and contained.
+  *`unsafe { }`* is not "turn off Rust": it is an *explicit declaration* that you are taking responsibility for the invariants the type system cannot verify. It is grep-able, auditable, and contained.
 ]
 
 // New slide with same title
@@ -1711,6 +1712,9 @@ cargo test        # unit tests
   │  Helper wrappers: bpf_ktime_get_ns() …       │
   │  Map structs: HashMap RingBuf PerfMap …      │
   ├──────────────────────────────────────────────┤
+  ```
+][
+  ```
   │  aya-log-ebpf ← BPF-side logging             │
   │  info!() warn!() → log ring buffer           │
   ├──────────────────────────────────────────────┤
@@ -1718,7 +1722,6 @@ cargo test        # unit tests
   │  Generated from kernel headers by bindgen    │
   └──────────────────────────────────────────────┘
   ```
-][
   *What each component replaces (vs libbpf stack)*
 
   #table(
