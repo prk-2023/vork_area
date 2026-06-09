@@ -4,31 +4,33 @@
 
 Good afternoon,  Today’s topic is **Introduction to Rust and eBPF Programming with Rust**.
 
-- Before we talk about Rust, it's worth recognizing that modern computing infrastructure is largely built
-  on the foundation of C.
+- Before we begin to talk about Rust, it's worth recognizing that modern computing infrastructure is largely
+  built on the foundation of **C**.
 
-- For more than 50 years, C has been the language of operating systems, device drivers, firmware, 
+- For more than 50 years, **C** has been the language of operating systems, device drivers, firmware, 
   networking stacks, and embedded space.
-  The combination of 
-    performance, 
-    portability, and 
-    direct hardware access 
-  has made C, the most successful and widely used programming language.
+  **C** offered 
+    - performance, 
+    - portability, and 
+    - direct hardware access 
 
-- So this presentation is not about why C is bad, nor is it about replacing decades of successful 
+  all of which made **C**, the most successful and widely used programming language.
+
+- This presentation is not about why **C** is bad, nor is it about replacing decades of successful 
   engineering practices.
 
 - Instead, it is about understanding the evolving systems programming landscape and why Rust has emerged as
-one of the technologies of interest from operating system vendors, silicon companies,
-cloud providers, and the open-source community.
+  one of the technologies of interest from operating system vendors, silicon companies,cloud providers, and
+  the open-source community.
 
-[Why the Industry is Looking for Something New]
+**[ Why the Industry is Looking for Something New ]**
 
-- Over the time we see software systems grow larger and are more connected, this brings changes in
-  expectations.  
-- Today systems are expected to provide not only performance and reliability, but also strong security 
-  guarantees. 
-- With growing codebases, distributed teams, and complex software lifecycles offer different sets of challenges.
+- Will also look at how over the time we see software systems grow larger and are more connected, this
+  brings changes in expectations.  
+- And additional demands today systems are expected to provide along with performance and reliability, but
+  also guarantee's strong security guarantees. 
+- With growing codebases, distributed teams, and complex software lifecycles offer different sets of
+  challenges.
 
 - When we look across the industry, a significant percentage of security vulnerabilities continue to
   originate from memory-safety issues such as:
@@ -51,11 +53,12 @@ cloud providers, and the open-source community.
 
 - This is where Rust comes, It offers one such attempt to answer that question. 
 
-- Although Rust is relatively young compared to C, it has gained substantial industry momentum and has 
-  consistently ranked among the most admired programming languages in developer surveys.
+- Although Rust is relatively young compared to **C**, it has gained substantial industry momentum and has 
+  consistently ranked among the most admired programming languages in developer surveys.(stackoverflow
+  developer surveys)
 
-- What makes Rust particularly interesting is that it targets the same problem domain as C and C++ systems
-  programming while taking a different approach to memory management and concurrency safety.
+- What makes Rust particularly interesting is that it targets the same problem domain as **C** and **C++**
+  systems programming while taking a different approach to memory management and concurrency safety.
 
 - Unlike language that relying primarily on runtime garbage collection or developer discipline alone,
   Rust attempts to move many correctness checks into the compiler.
@@ -68,11 +71,11 @@ cloud providers, and the open-source community.
   All of these and more with out the use of a garbage collector.
 
 
-[Setting Expectations]
+[Setting Expectations] ( Skip this part while speaking )
 
-- So Today's session is not intended to be a debate between C and Rust.
+- So Today's session is not intended to be a debate between **C** and Rust.
 
-- And the good news is most systems software for the foreseeable future will continue to involve in C and
+- And the good news is most systems software for the foreseeable future will continue to involve in **C** and
   many successful projects will remain C-based for years to come.
 
 - Instead, we move our goal in understand the design principles behind Rust,
@@ -92,15 +95,17 @@ cloud providers, and the open-source community.
 
 Disclaimer about the intent of this presentation.
 
-Would like to state again the goal for today is not to start a language war or argue that one language should completely replace another.
+Would like to state again the goal for today, is not to start a language war or argue that one language
+should completely replace another.
 
 Rather, focus is to discuss some of the evolving changes happening in the systems programming space:
 especially in areas closely related to what many of us work on daily.
 
-C remains one of the most important and successful programming languages ever created, and it continues to
-be foundational to operating systems and embedded development today 
+**C** remains one of the most important and successful programming lang ever created, and it continues to be
+foundational to operating systems and embedded development today 
 
-And Rust should not be viewed as a replacement for C, but rather as another tool in the systems programming toolbox.
+And Rust should not be viewed as a replacement for **C**, but rather as another tool in the systems 
+programming toolbox.
 
 The purpose is to view this through the lens of engineering perspective and evaluation to points like:
 
@@ -114,14 +119,15 @@ very opinionated because developers naturally build strong trust in the tools th
 
 More importantly I would like to state clearly:
 
-    - I am not presenting myself as a Rust expert.
-    - Like many engineers in the industry, Rust caught my attention with its adoption into Linux kernel 
-      from early experimental effort into a supported and actively maintained direction as of 2025 December.
+- I am not presenting myself as a Rust expert.
 
-    - I am still exploring the technology myself, and today’s presentation is intended as a shared my 
-      learning experience.
+- Like many engineers in the industry, Rust caught my attention with its adoption into Linux kernel 
+  from early experimental effort into a supported and actively maintained direction as of 2025 December.
 
-    - I will do my best to answer questions to the best of my knowledge and practical understanding.
+- I am still exploring the technology myself, and today’s presentation is intended to shared my learning 
+  experience.
+
+- I will do my best to answer questions to the best of my knowledge and practical understanding.
 
 --- 
 
@@ -130,8 +136,9 @@ More importantly I would like to state clearly:
 
 We divide today’s talk into two sections.
 
-- In the first section, we will introduce Rust from a systems programming perspective and look at some of the
-core concepts that make it increasingly relevant for low-level software development.
+- In the first section: 
+    We will introduce Rust from a systems programming perspective and look at some of the core concepts 
+    that make it increasingly relevant for low-level software development.
 
 This includes topics such as:
 
@@ -147,10 +154,11 @@ control.
 
 - In the second section, we will move into eBPF programming with Rust.
 
-We will explore Aya, a modern pure-Rust based eBPF framework which provides an alternative development approach
-alongside traditional eBPF toolchains such as `libbpf` and `clang`/`LLVM` based workflows.
+We will explore eBPF programming framework called Aya, which is a modern pure-Rust based eBPF framework
+which provides an alternative development approach alongside traditional eBPF toolchains such as `libbpf`
+and `clang`/`LLVM` based workflows.
 
-Finally, we will walk through a small demo project to demonstrate how a user-space Rust application can
+Finally, we will go through a small demo project to demonstrate how a user-space Rust application can
 interact with kernel-space eBPF programs, exchange data efficiently, and build observability or tracing
 pipelines with minimal overhead and latency.
 
@@ -172,7 +180,8 @@ compile-time correctness, predictable performance, and maintainable low-level ab
 
 **[The Baseline Criteria]**
 
-First baseline criteria is to check the requirements of systems software and what essential checklist are its required to be a systems programming language.
+First baseline criteria is to check the requirements of systems software and what essential checklist are
+its required to be a systems programming language.
 
 Systems software is one that controls HW and mediates between the HW and every thing else around it, and
 this compliance are characterized with some constrains: Such as 
@@ -217,25 +226,25 @@ primitives for bare-metal systems work.
 
 - Binary Compatibility (#[repr(C)]): We cannot rewrite entire codebases overnight. 
   Rust uses the #[repr(C)] attribute to guarantee that a Rust data structure matches the exact memory layout,
-  padding, and alignment of a standard C struct. 
-  Ensures completely seamless FFI execution when interfacing with existing C libraries, legacy driver 
+  padding, and alignment of a standard **C** struct. 
+  Ensures completely seamless FFI execution when interfacing with existing **C** libraries, legacy driver 
   components, or fixed hardware descriptors.
 
 **[The Landscape Tradeoffs]**
 When we map C, C++, and Rust against these requirements, the engineering tradeoffs become very clear:
 
 * **Memory & Concurrency Safety:** 
-    - C gives us absolute control but zero built-in safety guarantees;
+    - **C** gives us absolute control but zero built-in safety guarantees;
       correctness relies entirely on our discipline and code reviews. 
-    - C++ introduces RAII, which helps, but tracking ownership across complex, multi-threaded codebases 
+    - **C++** introduces RAII, which helps, but tracking ownership across complex, multi-threaded codebases 
       remains highly manual. 
     - Rust moves both memory and concurrency safety entirely into the **compile-time layer**.
 
 The tradeoff of these langaguages when compared with :
-* **Complexity vs. Abstraction:** C is simple but lacks high-level abstraction power, requiring significant:
+* **Complexity vs. Abstraction:** **C** is simple but lacks high-level abstraction power, requiring significant:
     - manual architecture and boilerplate as codebases scale. 
-    - C++ offers huge abstraction power but at the cost of immense language complexity. 
-    - Rust targets the same high abstraction level as C++ but uses its type system to enforce structural 
+    - **C++** offers huge abstraction power but at the cost of immense language complexity. 
+    - Rust targets the same high abstraction level as **C++** but uses its type system to enforce structural 
       correctness.
 
 Another trade off is the 
@@ -271,8 +280,8 @@ But the percentage of CVEs has not changed since 20+ years...
 
 To answer why does this keep happening? It comes down to the fundamental design of the languages we use. 
 
-- Languages like C intentionally prioritize unrestricted control and performance over safety guarantees.
-- C gives us absolute, direct access to memory, which is exactly what we need for hardware. 
+- Languages like **C** intentionally prioritize unrestricted control and performance over safety guarantees.
+- **C** gives us absolute, direct access to memory, which is exactly what we need for hardware. 
   But natively, it offers zero protection against:
     - Use-after-free: Accessing memory after it has been released back to the allocator.
     - Buffer overflows: Writing just one byte beyond our allocated space and corrupting adjacent memory.
@@ -342,14 +351,14 @@ silently running in the background, no hidden threads, and absolutely no stop-th
 
 Because of this, Rust is safe to run in the most heavily constrained environments we deal with. You can run Rust in an Interrupt Service Routine (ISR), in early-boot firmware before the MMU is even enabled, or on a bare-metal microcontroller with just 16 Kilobytes of RAM.
 
-And critically for build integration: the output is a standard ELF binary. A Rust kernel module compiles to a standard `.ko` file. Tools like `insmod`, `lsmod`, and `rmmod` cannot tell the difference—to the system, it looks and executes exactly like a C object file.
+And critically for build integration: the output is a standard ELF binary. A Rust kernel module compiles to a standard `.ko` file. Tools like `insmod`, `lsmod`, and `rmmod` cannot tell the difference—to the system, it looks and executes exactly like a **C** object file.
 
 **[Property 2: Unrestricted Hardware Access]**
 The second property is direct hardware access. A major fear when adopting a "safe" language is that it will
 hide the hardware behind restrictive abstractions. 
 Rust doesn't do this.
 
-It can do everything C can do at the silicon level.
+It can do everything **C** can do at the silicon level.
 
 *(Point to the code blocks on the slide)*
 
@@ -358,8 +367,8 @@ It can do everything C can do at the silicon level.
 
 * **Inline Assembly:** 
     Rust uses `asm!` macro instead of GCC ":" based syntax.
-    For example in embedded C writing data synchronization barriers , mainly when dealing with DMA,
-    Context switching, or peripheral registers on ARM, in C it of the form 
+    For example in embedded **C** writing data synchronization barriers , mainly when dealing with DMA,
+    Context switching, or peripheral registers on ARM, in **C** it of the form 
     `__asm__ __volatile__("dsb sy" : : : "memory");`
     Rust handles the exact arch instruction using `asm!` macro:
     - `use core::arch::asm;` : Its from Core and not std => its fully available for #![no_std] => can
@@ -370,7 +379,7 @@ It can do everything C can do at the silicon level.
 
     If you need to execute an architecture-specific data synchronization barrier ( enforce ordering and
     completion of memory operations (ARM) ) like the `dsb` instruction shown here.
-    Rust has direct support for inline assembly that mirrors GNU C syntax.
+    Rust has direct support for inline assembly that mirrors GNU **C** syntax.
 
 * **Raw Pointers:** You can still do raw pointer arithmetic like in C.
 
@@ -397,8 +406,8 @@ Property 3 — Zero-cost abstractions (Speaker Notes)
 
 **(Visual: Code snippets showing iterators, generics, and lifetimes)**
 
-**[The C++ Connection]**
-The third property is something many of you who write C++ will be very familiar with: zero-cost abstractions. 
+**[The **C++** Connection]**
+The third property is something many of you who write **C++** will be very familiar with: zero-cost abstractions. 
 
 - Rust fully adopts Stroustrup’s principle: 
     *"What you don't use, you don't pay for. And what you do use, you couldn't hand-code any better."* 
@@ -409,18 +418,18 @@ The third property is something many of you who write C++ will be very familiar 
   We don't have to take the compiler's word for this we can verify it line-by-line on Compiler Explorer.
   (Godbolt.org) 
 
-For comparison I have posted the assembly generated by Rust and C of a function that squares a number.
-- We see the rust part of assembly is longer then C which in the middle. 
+For comparison I have posted the assembly generated by Rust and **C** of a function that squares a number.
+- We see the rust part of assembly is longer then **C** which in the middle. 
 - This is because of rust's default safety guarantees for performing overflow check in *debug* builds. 
 - In the unoptimized Rust snippet `seto al` checks if the multiplication overflowed 
 - `jo .LBB0_2` jumps to the panicking routine if a overflow occurred. 
 
-- When we open the optimization in C and Rust ( or use --release build) we will see the assembly generated
+- When we open the optimization in **C** and Rust ( or use --release build) we will see the assembly generated
   have almost same number of instructs. ( -O2 or -C opt-level=2 or --release ( which is -C opt-level=3)  )
 
-- In standard C singed Int overflow is UB, the compiler assumes it will never happen, which is why GCC does
+- In standard **C** singed Int overflow is UB, the compiler assumes it will never happen, which is why GCC does
   not generate any safety check. 
-- To make C behave like Rust code ( checking overflow and terminating) we use `__builtin_mul_overflow` or
+- To make **C** behave like Rust code ( checking overflow and terminating) we use `__builtin_mul_overflow` or
   compiler flags. 
 
 - Note: What I notice is zero-cost abstraction means you dont pay performance penalty for using higher-level
@@ -471,7 +480,7 @@ The final runtime binary is as lean and raw as hand-written C.
 ### Slide 11: 2.2: The aliasing advantage — Rust beats C's optimiser (Speaker Notes)
 
 
-//The code blocks show C `restrict` problem vs. the Rust exclusive borrow 
+//The code blocks show **C** `restrict` problem vs. the Rust exclusive borrow 
 
 **[The Performance Surprise]**
 
@@ -479,16 +488,16 @@ When we talk about Rust in systems programming, the conversation almost always f
 But this slide highlights something that is frequently overlooked: 
     the performance *advantage* Rust often has over C.
 
-**[The C Compiler's Dilemma]**
+**[The **C** Compiler's Dilemma]**
 
-Let’s look at a very standard C function: processing two byte arrays.
-*(Point to the C code)*
+Let’s look at a very standard **C** function: processing two byte arrays.
+*(Point to the **C** code)*
  According to C's pointer aliasing rules, the compiler must assume that two `uint8_t` `src` and `dst` 
  pointers might  overlap in memory. 
 
- Because of this, the C compiler is forced to be defensive and generates less optimized code.
+ Because of this, the **C** compiler is forced to be defensive and generates less optimized code.
 
-**[The C Workaround: Promises, not Proofs]**
+**[The **C** Workaround: Promises, not Proofs]**
 
 The workaroud function is shown as below. with addition of the `restrict` keyword, this tells the compiler, 
  *"I promise these buffers do not overlap."*
@@ -577,7 +586,7 @@ Let’s look at the first code example to see how this plays out.
 
 *(Point to the String example)*
 When we create `s1`, it owns that heap-allocated string. 
-When we say `let s2 = s1;`, a C developer might think we are just copying a pointer. 
+When we say `let s2 = s1;`, a **C** developer might think we are just copying a pointer. 
 But in Rust, this is a **Move**. 
 
 Ownership of that memory is transferred entirely to `s2`.
@@ -600,7 +609,7 @@ In C, we have to manually ensure that every single execution path—including er
 returns—calls the appropriate `free()` or cleanup function. If we miss just one path, we leak resources.
 
 In Rust, the moment `buf` hits that closing curly brace and goes out of scope, the compiler automatically 
-inserts the call to `Drop::drop()`. It acts exactly like C++ RAII, but it is deeply woven into the language 
+inserts the call to `Drop::drop()`. It acts exactly like **C++** RAII, but it is deeply woven into the language 
 rules. There is no `free()` for the developer to forget, and no silent leak is possible.
 
 
@@ -610,7 +619,7 @@ It takes what has historically been a stressful runtime discipline, relying on d
 mistake and turns it into a compile-time verification problem solved entirely by the type system.
 
 ---
-### Slide 14: 3.2: Ownership vs. C — Eliminating Use-After-Free (Speaker Notes)
+### Slide 14: 3.2: Ownership vs. **C** — Eliminating Use-After-Free (Speaker Notes)
 
 
 **[Contextualizing the Threat]**
@@ -625,8 +634,8 @@ The core point to make here is that :
 In standard C, you simply do not have a way to express to the compiler that a pointer has become invalid 
 after a certain point in time.
 
-**[The C Reality]**
-Look at the C snippet on the left. This is a very typical pattern we see in drivers:
+**[The **C** Reality]**
+Look at the **C** snippet on the left. This is a very typical pattern we see in drivers:
 
 1. We allocate a DMA buffer.
 2. We submit it to the hardware.
@@ -674,9 +683,9 @@ In C, tracking state across error exit paths is a purely human discipline.
 Rust makes it structurally impossible to get this wrong.
 
 
-**[The C Reality: The `goto` Maintenance Tax]**
+**[The **C** Reality: The `goto` Maintenance Tax]**
 
-Let’s walk through the C snippet.
+Let’s walk through the **C** snippet.
 
 We allocate `res_a`. 
 If it succeeds, we try to allocate `res_b`. If `res_b` fails, we have to remember to free `res_a` before 
@@ -744,7 +753,7 @@ If a thread is writing to a buffer, no one else should touch it.
 We implement this using locks, spinlocks, and design patterns.
 
 Rust doesn't change these rules; it simply formalizes them in the compiler. 
-**In Rust, a reference is not just a raw memory address like a C pointer it is a distinct type with strict 
+**In Rust, a reference is not just a raw memory address like a **C** pointer it is a distinct type with strict 
 metadata that the compiler tracks statically.**
 
 **[Shared Borrows: `&T` (The Read Lock)]**
@@ -908,12 +917,12 @@ like a `SpinLock`.
 Notice the structure here: `SpinLock<PerCpuDmaStats>`. In Rust, a lock does not sit *next* to the data it 
 protects; the lock **encapsulates** the data.
 
-Think about how we do this in C today. 
+Think about how we do this in **C** today. 
 We write a global variable, and right next to it, we write a comment:
 `/* NOTE: Must hold dma_stats_lock before accessing this structure! */`. 
 
 That comment is a polite request. 
-If an developer, misses the comment, and accesses the variable directly without acquiring the lock, the C 
+If an developer, misses the comment, and accesses the variable directly without acquiring the lock, the **C** 
 compiler will not say a word. You have just introduced a silent, intermittent multi-core race condition 
 that might take weeks to root-cause.
 
@@ -930,13 +939,13 @@ A missed lock isn't a runtime bug here—it's a compile error.
 In kernel space, it is a constant source of oopses and security flaws, especially inside driver 
 initialization and device probe paths.
 
-The fundamental problem in C is that a pointer is just a raw memory address. 
+The fundamental problem in **C** is that a pointer is just a raw memory address. 
 It can point to a valid structure, or it can point to `0x0`. The compiler cannot tell the difference, 
 leaving it entirely up to the developer to remember the check.
 
 
-**[The C Reality: Invisible Risks]**
-Look at the C snippet on the slide. We call `platform_get_resource`. If that resource isn't present in the 
+**[The **C** Reality: Invisible Risks]**
+Look at the **C** snippet on the slide. We call `platform_get_resource`. If that resource isn't present in the 
 Device Tree, it returns `NULL`. 
 
 If an engineer is rushing or refactoring and immediately passes `res->start` into `ioremap`, the system 
@@ -962,7 +971,7 @@ Once you pass that match block, the variable `base` is guaranteed by the compile
 
 Now, performance and hardware engineers will immediately ask: *"Doesn't wrapping every reference in an enum add extra layout bytes and runtime tagging overhead?"* The answer is no, thanks to a compiler feature called the **niche optimization**. The compiler knows that a valid Rust reference can never be zero (`0x0`). Therefore, the compiler uses `0x0` internally to represent `None`, and any non-zero address to represent `Some`.
 
-At the machine level, the binary layout of a Rust `Option<&T>` is bit-for-bit identical to a standard C nullable pointer. It occupies exactly one machine word. You get absolute compile-time enforcement of safety with exactly zero bytes of memory overhead and zero runtime cycles wasted on extra tags.
+At the machine level, the binary layout of a Rust `Option<&T>` is bit-for-bit identical to a standard **C** nullable pointer. It occupies exactly one machine word. You get absolute compile-time enforcement of safety with exactly zero bytes of memory overhead and zero runtime cycles wasted on extra tags.
 
 ---
 
@@ -976,7 +985,7 @@ In C, error signaling is largely an implicit protocol.
 Functions return an `int`, where a negative value indicates an error code like `-EINVAL` or `-ENOMEM`.
 
 The core flaw in this model is that the language allows you to completely ignore that integer. 
-Look at the C example: calling `pci_enable_device`, `pci_request_regions`, and `request_irq` sequentially without capturing their return values compiles flawlessly. If the first function fails, the driver blindly marches forward, attempting to request hardware regions and register interrupts on a half-dead or uninitialized device. This puts the hardware in an completely undefined state, creating silent bugs that are notoriously difficult to reproduce and debug.
+Look at the **C** example: calling `pci_enable_device`, `pci_request_regions`, and `request_irq` sequentially without capturing their return values compiles flawlessly. If the first function fails, the driver blindly marches forward, attempting to request hardware regions and register interrupts on a half-dead or uninitialized device. This puts the hardware in an completely undefined state, creating silent bugs that are notoriously difficult to reproduce and debug.
 
 **[Forced Error Propagation with `#[must_use]`]**
 Rust fixes this by formalizing error handling into a concrete type: `Result<T, E>`. A function either returns `Ok(value)` or `Err(error)`.
@@ -1003,22 +1012,22 @@ Every enterprise systems team has coding style guides that mandate checking ever
 
 ### Slide 22: 5.4: Exhaustive `match` — No Silent Enum Gaps (Speaker Notes)
 
-**(Visual: Side-by-side comparison of a C `switch` statement with a `default` catch-all vs. Rust's `match` statement showing Compiler Error E0004)**
+**(Visual: Side-by-side comparison of a **C** `switch` statement with a `default` catch-all vs. Rust's `match` statement showing Compiler Error E0004)**
 
 **[The Maintenance Tax on Enums]**
 
 As systems evolve, our hardware specifications change. Protocols get updated, and new hardware generations 
 are introduced. 
 
-In both C and Rust, we represent these architectural states using enumerations.
+In both **C** and Rust, we represent these architectural states using enumerations.
 
 But when an enum expands, a massive maintenance risk is introduced. 
 This slide exposes how a routine specification update can introduce a critical runtime failure in C, and 
 how Rust intercepts it at build time.
 
-**[The C Reality: The Silent Fall-Through]**
+**[The **C** Reality: The Silent Fall-Through]**
 
-Look at the C snippet on the left. We have an enum tracking PCIe speeds, originally going up to `GEN4`. A driver function calculates the available bandwidth based on this speed. To be defensive, the developer added a `default:` case that returns `0`.
+Look at the **C** snippet on the left. We have an enum tracking PCIe speeds, originally going up to `GEN4`. A driver function calculates the available bandwidth based on this speed. To be defensive, the developer added a `default:` case that returns `0`.
 
 Now, imagine a year later, the specification updates and another engineer adds `GEN5` to the enum definition. They audit the code, but they miss this specific utility function in a deep subsystem. What happens?
 
@@ -1038,7 +1047,7 @@ Rust completely eliminates the need for an arbitrary `default:` or wildcard arm.
 **(Visual: Layout listing the 4 capabilities of `unsafe`, the `grep` command snippet, and a block diagram representing the Linux Kernel's 3-layer Rust architecture)**
 
 **[The Reality of Low-Level Work]**
-Everything we have covered so far sounds incredible for application development, but we are systems engineers. We write code that handles hardware interrupts, configures MMU tables, maps registers, and interoperates with legacy C subsystems. If the compiler strictly blocks raw pointer access and memory manipulation, how can we actually write a driver?
+Everything we have covered so far sounds incredible for application development, but we are systems engineers. We write code that handles hardware interrupts, configures MMU tables, maps registers, and interoperates with legacy **C** subsystems. If the compiler strictly blocks raw pointer access and memory manipulation, how can we actually write a driver?
 
 The answer is the `unsafe` keyword. It is the language's built-in mechanism for interfacing directly with the physical world.
 
@@ -1046,7 +1055,7 @@ The answer is the `unsafe` keyword. It is the language's built-in mechanism for 
 There is a massive misconception that `unsafe` disables the Rust compiler. It does not. An `unsafe { }` block grants you exactly **four specific capabilities** that the compiler cannot automatically verify for safety:
 
 1. The ability to dereference a raw pointer (`*const T` or `*mut T`).
-2. The ability to call an unsafe function—which includes all external C functions via FFI.
+2. The ability to call an unsafe function—which includes all external **C** functions via FFI.
 3. The ability to access or modify mutable global static variables.
 4. The ability to manually implement an unsafe trait, like `Send` or `Sync`.
 
@@ -1058,13 +1067,13 @@ This creates a massive paradigm shift for code reviews and security audits.
 
 Look at the `grep` command on the slide. If a safety-critical bug or memory corruption issue occurs in a driver subsystem, a code auditor can run a single `grep` command to isolate the entire attack surface. Every line of code capable of corrupting memory is explicitly wrapped in the word `unsafe`.
 
-In a traditional C codebase, every single line of code is part of the audit surface. There is no equivalent query to isolate memory-unsafe operations because any pointer access anywhere can cause undefined behavior.
+In a traditional **C** codebase, every single line of code is part of the audit surface. There is no equivalent query to isolate memory-unsafe operations because any pointer access anywhere can cause undefined behavior.
 
 **[The Kernel's Three-Layer Architecture]**
 The modern approach to Rust in the kernel exploits this isolation through a clean, three-layer architecture:
 
-* At the very bottom, we have `rust/bindings/`. This layer directly interfaces with the core C kernel headers. It is full of `unsafe` calls, but it is automatically generated by tools like `bindgen`, audited once, and rarely touched.
-* In the middle, we have `rust/kernel/`. This layer takes those raw C bindings and wraps them in safe, idiomatic Rust abstractions. This is where the heavy engineering happens to ensure that lifetimes and ownership match the kernel's design.
+* At the very bottom, we have `rust/bindings/`. This layer directly interfaces with the core **C** kernel headers. It is full of `unsafe` calls, but it is automatically generated by tools like `bindgen`, audited once, and rarely touched.
+* In the middle, we have `rust/kernel/`. This layer takes those raw **C** bindings and wraps them in safe, idiomatic Rust abstractions. This is where the heavy engineering happens to ensure that lifetimes and ownership match the kernel's design.
 * At the top layer, we have `drivers/your_ip/`. This is where the actual device driver code lives. Because it consumes the safe kernel abstractions, it can be written in **100% pure, safe Rust with zero `unsafe` blocks**.
 
 This means your day-to-day driver logic is completely covered by compile-time proofs against use-after-free, data races, and null pointer exceptions. If a crash or memory bug happens, you don't waste time debugging your driver logic; you check the centralized abstraction layer.
@@ -1092,7 +1101,7 @@ Let us review what the compiler guarantees:
 * **Complete Logic:** As we saw with the PCIe speed example, `match` blocks must cover every choice. If you add a new option, the compiler tells you exactly where to fix your code.
 * **Error Checking:** If a function returns a `Result` error code, you must handle it. If you ignore it, the compiler gives you a warning or an error. You cannot drop errors silently.
 
-**[Comparison with C Tools]**
+**[Comparison with **C** Tools]**
 In C, you can find these bugs too. But you need many separate tools to do it.
 
 Here is the problem in C:
@@ -1127,7 +1136,7 @@ They are official, and they work together perfectly.
 
 Let us look at the main tools in the table:
 
-| Tool | Role | C Equivalent |
+| Tool | Role | **C** Equivalent |
 | --- | --- | --- |
 | **`cargo`** | Builds code, runs tests, manages external libraries | Make / CMake / `pkg-config` |
 | **`rustfmt`** | Formats your code automatically | `clang-format` |
@@ -1178,7 +1187,7 @@ the programs for tracing and observability as they have been covered in earlier 
 **[The Four-Step Lifecycle]**
 Every eBPF program follows a strict four-step process:
 
-1. **Write:** We write our program in a high-level language like C or Rust. Then we compile it into
+1. **Write:** We write our program in a high-level language like **C** or Rust. Then we compile it into
    standard eBPF bytecode.
 2. **Verify:** We load the bytecode into the kernel. The kernel verifier checks the code completely. It
    checks for safe loops, valid memory limits, and correct types.
@@ -1245,7 +1254,7 @@ read.
   development tools.
 
 **[Generation 1: BCC and bpftrace]**
-- Generation 1 uses BCC and `bpftrace`. BCC compiles the eBPF C code directly on the target device when
+- Generation 1 uses BCC and `bpftrace`. BCC compiles the eBPF **C** code directly on the target device when
   you run the script. This means you must install the full Clang and LLVM compiler on your production
   system.
 
@@ -1264,14 +1273,14 @@ read.
   on your embedded target.
 
 **[Generation 3: Language-Native Frameworks]**
-- Generation 3 brings first-class language integration. Instead of writing a loader in C and binding it
+- Generation 3 brings first-class language integration. Instead of writing a loader in **C** and binding it
   to other languages, we use frameworks built completely inside modern languages like Rust and Go.
 
-* **Aya** is written in **pure Rust**. It does not use the C `libbpf` library at all. It handles
+* **Aya** is written in **pure Rust**. It does not use the **C** `libbpf` library at all. It handles
   everything natively through Rust.
 * **cilium/ebpf** is written in pure Go for the user-space side, but still uses Clang to compile the
   kernel side.
-* **libbpf-rs** provides Rust bindings that talk to the traditional C `libbpf` library.
+* **libbpf-rs** provides Rust bindings that talk to the traditional **C** `libbpf` library.
 
 Our focus is on Aya because it gives us a single, safe, unified toolchain using pure Rust from top to
 bottom.
@@ -1287,14 +1296,14 @@ bottom.
 - Cilium is the most popular project for production eBPF in large data centers. It handles network
   traffic and security at a massive scale.
 
-- Cilium uses C for its kernel code, but it uses Go for its user-space loader. Crucially, Cilium does
-  **not** use the traditional C `libbpf.so` library at runtime. Instead, they built their own pure Go
+- Cilium uses **C** for its kernel code, but it uses Go for its user-space loader. Crucially, Cilium does
+  **not** use the traditional **C** `libbpf.so` library at runtime. Instead, they built their own pure Go
   library (`cilium/ebpf`) to load the bytecode and manage maps.
 
 - In 2025, engineers even proved that an eBPF kernel program written in Rust using Aya can work perfectly
   with Cilium’s Go loader.
 
-- The main lesson for our team is this: the industry is moving away from shared C libraries like
+- The main lesson for our team is this: the industry is moving away from shared **C** libraries like
   `libbpf.so`. Modern systems prefer language-native loaders. Cilium chose Go for this purpose. For our
   team, **Aya is the Rust equivalent**.
 
@@ -1304,7 +1313,7 @@ and Aya stack today:
 * **Red Hat bpfman:** This tool manages the lifecycle of eBPF programs on a system, acting like `systemd`
   but for BPF code. It is built completely with Rust and Aya.
 * **Deepfence ebpfguard:** This tool checks security policies inside the kernel using Linux Security
-  Modules (LSM). By using Aya, they wrote the entire system in Rust with no C code required.
+  Modules (LSM). By using Aya, they wrote the entire system in Rust with no **C** code required.
 * **K8s Blixt:** A high-performance network load balancer that runs its fast data path in Rust using XDP.
 
 **[Why These Projects Chose Aya]** All of these modern projects chose Aya for the exact same reasons:
@@ -1312,9 +1321,9 @@ and Aya stack today:
 1. **Unified Safety:** They wanted type safety that spans across both the kernel code and the user-space
 code.
 2. **Simple Deployment:** They wanted a single binary file that they can deploy easily, without worrying
-about external runtime C library dependencies.
+about external runtime **C** library dependencies.
 
-Older tools like Tracee and Falco still use the traditional C and `libbpf` design. But new infrastructure
+Older tools like Tracee and Falco still use the traditional **C** and `libbpf` design. But new infrastructure
 projects are choosing Rust and Aya for safer and cleaner operations.
 
 ---
@@ -1380,15 +1389,15 @@ Here are the speaker notes for this slide, using simple, direct English tailored
 
 **[The Traditional 5-Stage Process]**
 
-- To understand why we use Aya, we must first look at the traditional C workflow using `libbpf`. 
+- To understand why we use Aya, we must first look at the traditional **C** workflow using `libbpf`. 
 - This process has five distinct stages:
 
 1. **Write:** You write your kernel BPF program in C. You must use `bpftool` to extract a massive header
    file called `vmlinux.h` from your kernel.
-2. **Compile:** You use `clang` to compile that C code into an ELF object file containing bytecode and BTF
+2. **Compile:** You use `clang` to compile that **C** code into an ELF object file containing bytecode and BTF
    data.
-3. **Skeleton:** You use `bpftool` again to generate a C header file called a "skeleton." This provides
-   typed C structures so your user-space loader can interact with your kernel code.
+3. **Skeleton:** You use `bpftool` again to generate a **C** header file called a "skeleton." This provides
+   typed **C** structures so your user-space loader can interact with your kernel code.
 4. **Load & Verify:** In your user-space program, you call functions like `skel__open()` and `skel__load()`.
    This is when `libbpf` applies CO-RE patches and the kernel verifier checks the code.
 5. **Attach & Run:** Finally, you call `skel__attach()`. The program links to the events, and you can now
@@ -1407,12 +1416,12 @@ For embedded Linux developers and BSP teams, this dependency chain causes fricti
 clean, minimal root filesystem, managing these extra shared libraries adds extra weight and testing
 complexity.
 
-**[The Teardown Risk in C]** There is also a code maintenance problem with the C implementation. When your
+**[The Teardown Risk in C]** There is also a code maintenance problem with the **C** implementation. When your
 program exits, you must manually free the ring buffers, detach the skeleton, and destroy the object using
 functions like `skel__destroy()`.
 
 If an engineer forgets to write these cleanup functions, the program will leak memory or file descriptors.
-The C compiler will **not** give you any warnings or errors if you forget them.
+The **C** compiler will **not** give you any warnings or errors if you forget them.
 
 ---
 ### Slide 37: 7.0: Does Rust Fit eBPF? (Speaker Notes)
@@ -1440,14 +1449,14 @@ An eBPF program inside the Linux kernel runs in a very restricted environment. I
 Rust is perfect for this environment because it has a built-in mode called `#![no_std]`. This mode tells the compiler to build code without the standard library. The `aya-ebpf` library provides all the necessary BPF helpers, map types, and macros for this restricted environment.
 
 **[The Big Problem in C: Diverging Structures]**
-In traditional C eBPF development, a very common and dangerous bug happens at the boundary between kernel space and user space.
+In traditional **C** eBPF development, a very common and dangerous bug happens at the boundary between kernel space and user space.
 
-Look at the C code example on the slide.
+Look at the **C** code example on the slide.
 
 * Inside the BPF kernel code, an engineer defines an event structure where `pid` is a 32-bit integer (`u32`).
 * Inside the user-space loader code—which is in a completely different file—the engineer accidentally defines `pid` as a 64-bit integer (`u64`).
 
-The two structures do not match in memory. The user-space program will silently read the wrong data from the map. The C compiler will **not** show any error or warning because these are separate files.
+The two structures do not match in memory. The user-space program will silently read the wrong data from the map. The **C** compiler will **not** show any error or warning because these are separate files.
 
 **[Aya's Solution: The Shared Crate]**
 Aya solves this problem completely using Rust modules. You create one single, shared folder called a `common` crate using the `#![no_std]` mode. You define your map structures **only once** inside this folder.
@@ -1461,8 +1470,8 @@ This is one of the biggest advantages of using Aya. It gives you true type safet
 ### Slide 39: 8: The Bytecode Generation Question (Speaker Notes)
 
 
-**[The Left Side: Traditional C Toolchain Workflow]**
-- Let us look at the compilation steps on the left side of the slide. In the traditional C workflow,
+**[The Left Side: Traditional **C** Toolchain Workflow]**
+- Let us look at the compilation steps on the left side of the slide. In the traditional **C** workflow,
   generating your final program requires several steps and multiple different tools.
 
 - First, you write your kernel code in C. You must use `clang` with a special target to compile it into a
@@ -1471,7 +1480,7 @@ This is one of the biggest advantages of using Aya. It gives you true type safet
 
 - This means your build system must install and manage many separate pieces: `clang`, `LLVM`, `bpftool`,
   `libelf`, and `libbpf`. Even if you use a Rust user-space library like `libbpf-rs`, you are still forced
-  to maintain a full C compiler toolchain just to build the kernel-space code.
+  to maintain a full **C** compiler toolchain just to build the kernel-space code.
 
 **[The Right Side: Modern Rust and Aya Workflow]**
 - Now look at the right side of the slide. This is the Aya workflow. Your kernel code, shared types, and
@@ -1493,9 +1502,9 @@ This is one of the biggest advantages of using Aya. It gives you true type safet
 - To deploy your application, you only need to copy **one single binary file** to your target embedded
   machine.
 
-- It is important to understand that Aya does not wrap or hide the C `libbpf` library. It is a completely
+- It is important to understand that Aya does not wrap or hide the **C** `libbpf` library. It is a completely
   pure-Rust rewrite of the BPF system call layer. It talks directly to the Linux kernel using standard
-  system calls, making it clean, fast, and completely independent of external C libraries.
+  system calls, making it clean, fast, and completely independent of external **C** libraries.
 
 ---
 ### Slide 40: 9.0: Rust Approaches — libbpf-rs and Aya (Speaker Notes)
@@ -1512,17 +1521,17 @@ Let us look at the differences between a tool called `libbpf-rs` and the framewo
 ### Slide 41: 9.1: Two Distinct Strategies (Speaker Notes)
 
 **[Strategy 1: libbpf-rs]**
-The first option is `libbpf-rs`. This tool acts as a bridge or a wrapper over the traditional C code.
+The first option is `libbpf-rs`. This tool acts as a bridge or a wrapper over the traditional **C** code.
 
 * **Kernel Side:** You still write your kernel eBPF program in C. You must compile it using Clang.
 * **User Space:** You write your loader program in Rust. This Rust loader wraps around the standard C
   `libbpf` library.
-* **How it works:** A tool called `bpf2rs` reads your compiled C bytecode and generates Rust skeleton files.
+* **How it works:** A tool called `bpf2rs` reads your compiled **C** bytecode and generates Rust skeleton files.
 * **Target Dependencies:** Because it is just a wrapper, your target embedded hardware **still requires
   `libbpf.so` and `libelf.so**` to run the program.
 
-`libbpf-rs` is a good choice for teams that already have a large amount of existing C eBPF code and only
-want to update their user-space tools to Rust. The transition cost is low, but you must keep a C compiler in
+`libbpf-rs` is a good choice for teams that already have a large amount of existing **C** eBPF code and only
+want to update their user-space tools to Rust. The transition cost is low, but you must keep a **C** compiler in
 your build pipeline.
 
 **[Strategy 2: Aya]**
@@ -1531,7 +1540,7 @@ The second option is Aya. Aya is a complete rewrite of the eBPF layer using pure
 * **Kernel Side:** You write your eBPF program completely in Rust. You compile it using `rustc` and
   `bpf-linker`.
 * **User Space:** Your loader is written in pure Rust. It is built on top of the basic `libc` crate. It has
-  zero dependency on the C `libbpf` or `libelf` libraries.
+  zero dependency on the **C** `libbpf` or `libelf` libraries.
 * **The Embedded Win:** By using the `musl` toolchain, you can compile your entire application into a
   **single, statically-linked executable file**.
 * **CO-RE Handling:** Aya does not need external tools to handle kernel version changes. It includes its own
@@ -1542,7 +1551,7 @@ The second option is Aya. Aya is a complete rewrite of the eBPF layer using pure
 `Aya` is the best choice for new projects, embedded Linux boards, and Android systems.
 
 **[Our Choice]** In this presentation, we focus on **Aya**. For our team’s embedded goals, eliminating
-runtime C libraries, avoiding `clang` on the target, and deploying a single static binary file provides the
+runtime **C** libraries, avoiding `clang` on the target, and deploying a single static binary file provides the
 highest value.
 
 ---
@@ -1551,7 +1560,7 @@ highest value.
 **(Visual: Section 10 Title Slide)**
 
 Now, let us look inside the Aya framework. 
-We will see its internal architecture and how its different parts map to the old C tools.
+We will see its internal architecture and how its different parts map to the old **C** tools.
 
 ---
 
@@ -1582,18 +1591,18 @@ Now look at the kernel-space components at the bottom:
 * **`aya-ebpf-bindings`** contains the official Linux kernel structures, generated automatically.
 
 **[What Aya Replaces]** The table shows how Aya simplifies your development system. It completely replaces
-the old C `libbpf` stack:
+the old **C** `libbpf` stack:
 
-* `aya` replaces `libbpf.so` and the C skeleton files.
+* `aya` replaces `libbpf.so` and the **C** skeleton files.
 * `aya-obj` replaces `libelf.so` and `libz.so`.
-* `aya-ebpf` replaces old C headers like `bpf_helpers.h`.
+* `aya-ebpf` replaces old **C** headers like `bpf_helpers.h`.
 * `aya-log-ebpf` replaces the old `bpf_printk()` function. It uses a fast ring buffer instead of a slow
   tracing log.
 * `aya-tool` and `aya-build` replace old manual tools like `bpftool` and complex Makefiles.
 
-**[The Big Benefit]** The main takeaway is simple: **Zero C runtime dependencies on your target hardware.**
+**[The Big Benefit]** The main takeaway is simple: **Zero **C** runtime dependencies on your target hardware.**
 The entire framework is written in Rust. It communicates with the operating system using one single system
-call: `bpf()`. We do not need to install or update any shared C libraries on our production boards.
+call: `bpf()`. We do not need to install or update any shared **C** libraries on our production boards.
 
 ---
 ### Slide 44: 11: Aya for Embedded and Android — The musl Advantage (Speaker Notes)
@@ -1601,7 +1610,7 @@ call: `bpf()`. We do not need to install or update any shared C libraries on our
 **[The Deployment Problem]**
 Let us look at the deployment problems on embedded Linux and Android devices.
 
-When you use a traditional C `libbpf` tool, you cannot just copy one file to your target hardware. Your
+When you use a traditional **C** `libbpf` tool, you cannot just copy one file to your target hardware. Your
 program is dynamically linked, meaning it requires three other shared libraries to exist on the device:
 `libbpf.so`, `libelf.so`, and `libz.so`.
 
@@ -1617,8 +1626,8 @@ On a minimal embedded filesystem or a production Android device, this creates ma
   development laptop must maintain cross-compiled versions of all three helper libraries. This makes your
   build scripts very difficult to manage.
 
-**[The Aya and musl Solution]** Aya removes this complexity completely by using the `musl` C library target.
-`musl` is a lightweight alternative to the standard GNU C library (`glibc`) that allows full static linking.
+**[The Aya and musl Solution]** Aya removes this complexity completely by using the `musl` **C** library target.
+`musl` is a lightweight alternative to the standard GNU **C** library (`glibc`) that allows full static linking.
 
 Look at the command examples on the right side of the slide:
 
@@ -1714,7 +1723,7 @@ When you generate an Aya project, it creates a single directory containing three
 because it must remain lightweight.
 
 Look at the structure definition for **`DmaEvent`**. It uses the **`#[repr(C)]`** attribute. This attribute
-tells the Rust compiler to arrange the variables in memory exactly like a standard C structure. This is
+tells the Rust compiler to arrange the variables in memory exactly like a standard **C** structure. This is
 necessary because the Linux kernel expects data to be structured this way.
 
 Because both the kernel eBPF program and the user-space loader import this common folder, they use the exact
@@ -1749,7 +1758,7 @@ builds everything.
 --- 
 ### Slide 49: 13.0: How Rust Simplifies eBPF (Speaker Notes)
 
-Now that we have seen the complex setup and manual cleanup required by the traditional C toolchain, let us
+Now that we have seen the complex setup and manual cleanup required by the traditional **C** toolchain, let us
 look at how Aya utilizes Rust's native language features to eliminate these pain points.
 
 This slide breaks down six core advantages that make Aya safer, cleaner, and much more reliable for
@@ -1814,7 +1823,7 @@ more importantly, it changes how safely we interact with kernel data types.
 
 ### Key Pattern Comparisons
 
-| Pattern | Traditional C / libbpf | Modern Rust / Aya |
+| Pattern | Traditional **C** / libbpf | Modern Rust / Aya |
 | --- | --- | --- |
 | **Entry Point Definitions** | `SEC("kprobe/dma_map_sg")` | `#[kprobe]` (Attribute Macro) |
 | **Context Handling** | `PT_REGS_PARM1(ctx)` or `BPF_KPROBE` | Strongly-typed `ProbeContext`, `XdpContext` |
@@ -1822,7 +1831,7 @@ more importantly, it changes how safely we interact with kernel data types.
 | **Memory Safeguards** | Manual pointer math & unchecked pointer casting | Explicit `unsafe` scoping for boundary reads |
 
 **[Pattern 1: Program Entry Points & Declarations]**
-In the traditional C world, you declare where a program hooks into the kernel using string-based section
+In the traditional **C** world, you declare where a program hooks into the kernel using string-based section
 macros, like `SEC("kprobe/...")` or `SEC("xdp")`. If you misspell the string inside that macro, the C
 compiler will not notice. You will only find out much later at runtime when the loader fails to attach the
 program.
@@ -1840,7 +1849,7 @@ Aya delivers native type safety by providing dedicated context structures for ea
 example, a kprobe uses `ProbeContext`, while a network packet filter uses `XdpContext`. These structs expose
 safe, idiomatic methods to read parameters without needing architecture-dependent registry definitions.
 
-**[Pattern 3: Object-Oriented Map Operations]** Interacting with BPF maps in C is procedural and requires
+**[Pattern 3: Object-Oriented Map Operations]** Interacting with BPF maps in **C** is procedural and requires
 passing raw pointers continuously. You are forced to call global helper functions like
 `bpf_map_update_elem()`, pass the memory address of your map, the address of your key, and the address of
 your value. This code is verbose and easy to miswrite.
@@ -1865,10 +1874,10 @@ separating standard safe logic from low-level pointer tracking.
 
 Now that we have looked at the kernel-space code, let us focus on the host application running in user space.
 
-We will compare the traditional C loading sequence side-by-side with Aya's asynchronous Rust implementation
+We will compare the traditional **C** loading sequence side-by-side with Aya's asynchronous Rust implementation
 to see how we load the bytecode, attach to hooks, and safely consume event streams.
 
-Implementation Comparison — C vs. Rust
+Implementation Comparison — **C** vs. Rust
 
 **[Phase 1: The Load Phase]** Let us break this code comparison down into the three phases mentioned: Load,
 Attach, and Consume.
@@ -1896,10 +1905,10 @@ untyped pointer, making type mismatches easy to miss.
 **[Phase 3: The Consume Phase (The Ring Buffer)]** The most significant architectural change is the
 **Consume** phase, where we pull events out of the kernel ring buffer.
 
-Look at the C implementation on the left. C uses a synchronous, blocking callback architecture:
+Look at the **C** implementation on the left. **C** uses a synchronous, blocking callback architecture:
 
-1. You must call `ring_buffer__new()` and pass a raw C function pointer (`handle_event`).
-2. You must pass `NULL` values for application contexts because C callbacks cannot naturally capture
+1. You must call `ring_buffer__new()` and pass a raw **C** function pointer (`handle_event`).
+2. You must pass `NULL` values for application contexts because **C** callbacks cannot naturally capture
 surrounding local state.
 3. You must spin up a manual loop that continuously calls `ring_buffer__poll()`, blocking the thread for a
 specified number of milliseconds.
@@ -1918,7 +1927,7 @@ strongly-typed `DmaEvent` struct that we imported from our common crate.
 
 **[Phase 4: The Hidden Benefit — Teardown]** Finally, look at the very bottom of both blocks.
 
-In the C code, you are fully responsible for manual cleanup. You must explicitly remember to call
+In the **C** code, you are fully responsible for manual cleanup. You must explicitly remember to call
 `ring_buffer__free()`, `prog__detach()`, and `prog__destroy()`. If your program crashes, panics, or returns
 early due to an error before reaching these lines, those resources will leak in the background.
 
