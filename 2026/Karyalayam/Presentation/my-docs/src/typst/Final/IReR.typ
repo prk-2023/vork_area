@@ -90,7 +90,7 @@
     [Assembly], [firmware, boot], [✗], [✓],
     [C],         [OS, drivers, embedded], [✗], [✓],
     [C++],       [firmware, RTOS, Android HAL], [✗ ¹], [✓],
-    [Go],        [tooling, cloud], [✓], [✗],
+    // [Go],        [tooling, cloud], [✓], [✗],
     [*Rust*],    [*all of the above*], [*✓*], [*✓*],
   )
 
@@ -101,7 +101,8 @@
   )
 
   #callout(color: safe-green)[
-    Rust is the first language to occupy the *top-right cell simultaneously*, giving memory safety *and* no GC — with a formally verified type system. #ref-badge[Jung et al., RustBelt, POPL 2018]
+    - Rust is the first language to satisfy, memory safety with out GC, and has a formally verified type system. #ref-badge[Jung et al., RustBelt, POPL 2018]
+    - Trade off: steep learning curve.
   ]
 ]
 
@@ -162,6 +163,14 @@ ratio: (0.8fr, 1.2fr),
     - Rust meets all the systems programming requirements.
       - 3rd Programming model. ( Memory Management Via Ownership & Borrowing )
       - type-system, compiler.
+  ]
+  #callout(color: rust-red)[
+    Moving correctness and safety checks from runtime debugging into compile-time enforcement:
+    - use-after-free:         *Compile time error* 
+    - iterator invalidation:  *Compile time error*
+    - double free:            *Compile time error* 
+    - and many forms of data races: *Compile time error*
+    ...
   ]
 
 // ---------------------------

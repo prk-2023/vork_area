@@ -4,17 +4,17 @@
 
 Good afternoon,  Today’s topic is **Introduction to Rust and eBPF Programming with Rust**.
 
-- Before we begin to talk about Rust, it's worth recognizing that modern computing infrastructure is largely
-  built on the foundation of **C**.
+- Before we begin to talk about Rust, it's worth to recognizing that modern computing infrastructure is 
+  largely built on the foundation of **C** language.
 
 - For more than 50 years, **C** has been the language of operating systems, device drivers, firmware, 
   networking stacks, and embedded space.
-  **C** offered 
+  **C** offers 
     - performance, 
     - portability, and 
     - direct hardware access 
 
-  all of which made **C**, the most successful and widely used programming language.
+  all of which makes it the most successful and widely used programming language.
 
 - This presentation is not about why **C** is bad, nor is it about replacing decades of successful 
   engineering practices.
@@ -25,15 +25,15 @@ Good afternoon,  Today’s topic is **Introduction to Rust and eBPF Programming 
 
 **[ Why the Industry is Looking for Something New ]**
 
-- Will also look at how over the time we see software systems grow larger and are more connected, this
+- Will also look at how over the time when software systems grow larger and are more connected, this
   brings changes in expectations.  
-- And additional demands today systems are expected to provide along with performance and reliability, but
+- And with these additional demands, today systems are expected to provide performance and reliability, and 
   also guarantee's strong security guarantees. 
-- With growing codebases, distributed teams, and complex software lifecycles offer different sets of
-  challenges.
+- With growing codebases, distributed teams, and complex software lifecycles  all of which bring in 
+  different sets of challenges.
 
-- When we look across the industry, a significant percentage of security vulnerabilities continue to
-  originate from memory-safety issues such as:
+- When we look across the industry, a major percentage of security vulnerabilities continue to  originate
+  from memory-safety issues such as:
 
     - Buffer overflows
     - Use-after-free bugs
@@ -41,35 +41,32 @@ Good afternoon,  Today’s topic is **Introduction to Rust and eBPF Programming 
     - Data races
     - Lifetime and ownership errors
 
-- While these issues are not fully due to poor engineering. 
-  They are often the consequence of building highly complex systems using languages that place
-  responsibility for correctness of the developer.
+- While these bugs aren't for poor engineering, they are often the consequence of building highly complex
+  systems using languages that force developers to handle every single detail perfectly. 
 
-- Also from Industry we see a common question that many organizations are now asking:
-    - Can we maintain the performance and control of low-level programming while reducing entire classes 
-      of bugs before the code ever runs?
+- Also from Industry there is a common question that many organizations are now asking:
+    - Can we maintain the performance and control of low-level programming 
+      while reducing entire classes of bugs before the code ever runs?
 
 [The Rise of Rust]
 
 - This is where Rust comes, It offers one such attempt to answer that question. 
 
-- Although Rust is relatively young compared to **C**, it has gained substantial industry momentum and has 
-  consistently ranked among the most admired programming languages in developer surveys.(stackoverflow
-  developer surveys)
+- Though Rust is relatively young compared to **C**, it has gained industry momentum and has consistently 
+  ranked among the most admired programming languages in developer surveys.(stackoverflow devel surveys)
 
 - What makes Rust particularly interesting is that it targets the same problem domain as **C** and **C++**
-  systems programming while taking a different approach to memory management and concurrency safety.
+  systems programming while it taking a different approach to memory management and concurrency safety.
 
-- Unlike language that relying primarily on runtime garbage collection or developer discipline alone,
-  Rust attempts to move many correctness checks into the compiler.
+- Unlike language such as java/py/go  which relying primarily on runtime garbage collection or developer
+  discipline alone, Rust attempts to move many correctness checks into the compiler.
 
-- The result is a language that aims to provide:
+- As a result we get a language that aims to provide:
     - Low-level control
     - Predictable performance
     - Memory safety
     - Concurrency safety
-  All of these and more with out the use of a garbage collector.
-
+  and more with out the use of a garbage collector.
 
 [Setting Expectations] ( Skip this part while speaking )
 
@@ -85,8 +82,8 @@ Good afternoon,  Today’s topic is **Introduction to Rust and eBPF Programming 
 - From there, we'll explore Rust from a systems programming perspective and look at how it is increasingly
   being used in kernel and eBPF development.
 
-- Its also important to note that Introduction of a new language into use with existing systems has its own 
-  pros and cons. And early study would help us better adapt to the fast changing landscape of programming.
+- Its also important to note that introducing any new language into use with existing systems has its own 
+  pros and cons. And early study would help us better adapt to the fast changing in this domain.
 
 ---
 
@@ -107,7 +104,7 @@ foundational to operating systems and embedded development today
 And Rust should not be viewed as a replacement for **C**, but rather as another tool in the systems 
 programming toolbox.
 
-The purpose is to view this through the lens of engineering perspective and evaluation to points like:
+Rather we should view this through the lens of engineering and evaluation to points like:
 
     * why the industry is paying attention to it,
     * what problems it attempts to solve,
@@ -117,12 +114,12 @@ The purpose is to view this through the lens of engineering perspective and eval
 Discussions around programming languages especially in Linux kernel and systems communities, can become 
 very opinionated because developers naturally build strong trust in the tools they have relied on for decades.
 
-More importantly I would like to state clearly:
+Most importantly I would also like to state clearly:
 
 - I am not presenting myself as a Rust expert.
 
-- Like many engineers in the industry, Rust caught my attention with its adoption into Linux kernel 
-  from early experimental effort into a supported and actively maintained direction as of 2025 December.
+- Like most of us in the industry, Rust caught my attention with its adoption into Linux kernel from early 
+  experimental effort into a supported and actively maintained direction as of 2025 December.
 
 - I am still exploring the technology myself, and today’s presentation is intended to shared my learning 
   experience.
@@ -138,7 +135,7 @@ We divide today’s talk into two sections.
 
 - In the first section: 
     We will introduce Rust from a systems programming perspective and look at some of the core concepts 
-    that make it increasingly relevant for low-level software development.
+    that make low-level software development relevant in Rust.
 
 This includes topics such as:
 
@@ -148,13 +145,13 @@ This includes topics such as:
 * memory layout control,
 * and concurrency safety.
 
-With limited time the goal is not to cover the entire language, but to understand the design philosophy
+With limited time we will not be covering the entire language, but to understand the design philosophy
 behind Rust and how it attempts to provide both performance and safety without sacrificing low-level
 control.
 
 - In the second section, we will move into eBPF programming with Rust.
 
-We will explore eBPF programming framework called Aya, which is a modern pure-Rust based eBPF framework
+We will explore a Rust based eBPF framework called Aya, which is a modern pure-Rust based eBPF framework
 which provides an alternative development approach alongside traditional eBPF toolchains such as `libbpf`
 and `clang`/`LLVM` based workflows.
 
@@ -169,7 +166,7 @@ pipelines with minimal overhead and latency.
 
 **[Transition & Introduction]**
 
-In this section, we will see how Rust fits to be in the club of systems programming languages. 
+In this section, Fist we will see if Rust fits to be used in systems programming languages. 
 And also examine, important properties behind its growing adoption and what it actually guarantees: 
 compile-time correctness, predictable performance, and maintainable low-level abstractions.
 
@@ -180,9 +177,11 @@ compile-time correctness, predictable performance, and maintainable low-level ab
 
 **[The Baseline Criteria]**
 
-First baseline criteria is to check the requirements of systems software and what essential checklist are
-its required to be a systems programming language.
+To see if Rust is fit to be used in systems programming zone: 
+The First baseline criteria is to check the requirements of systems software and essential checklist 
+are required.
 
+We define
 Systems software is one that controls HW and mediates between the HW and every thing else around it, and
 this compliance are characterized with some constrains: Such as 
 
@@ -192,7 +191,8 @@ this compliance are characterized with some constrains: Such as
    **Zero-cost abstractions:** If we use a higher-level abstraction, it cannot introduce hidden runtime
    overhead. The compiled machine code must be as efficient as manual, low-level implementation.
 
-2. **Deterministic memory management:** A garbage collector is a non-starter for kernels, BSPs, and drivers.
+2. **Deterministic memory management:** To provide deterministic performance the language should not use 
+   garbage collector and this is the key requirement for kernels, BSPs, and drivers.
    We must know exactly when memory is allocated and precisely when it is freed to ensure predictable
    execution latency.
 
@@ -212,23 +212,23 @@ primitives for bare-metal systems work.
   It strips the runtime down to the bare metal, leaving only the core language primitives. 
   This is what allows Rust to be used for early-boot code, microcontrollers, and deep kernel subsystems.
 
-- `unsaf`e (The Auditable Escape Hatch): Rust does not forbid low-level operations like 
+- `unsaf`e (The Auditable Escape Hatch): Rust does not stop you from low-level operations like 
   dereferencing raw memory-mapped pointers or interacting with hardware registers. 
   It simply requires you to wrap these operations in an unsafe block, this is to tells the compiler: 
   "I know the hardware layout here; stop checking this specific block." 
 
-  This gives isolation of the critical sections of codebase into an easily auditable map where unsafe 
-  boundaries are explicitly defined.
+  This way we isolate the critical sections of codebase into an easily auditable map where unsafe boundaries
+  are explicitly defined.
 
 - `asm!`: Inline Assembly (asm!) Rust has first-class support for architecture-specific instructions. 
-  When we need to execute a cache invalidation pipeline, barrier instructions, or change CPU privilege 
+  Say we need to execute a cache invalidation pipeline, barrier instructions, or change CPU privilege 
   levels, we drop into inline assembly exactly like we do in C.
 
 - Binary Compatibility (#[repr(C)]): We cannot rewrite entire codebases overnight. 
   Rust uses the #[repr(C)] attribute to guarantee that a Rust data structure matches the exact memory layout,
   padding, and alignment of a standard **C** struct. 
-  Ensures completely seamless FFI execution when interfacing with existing **C** libraries, legacy driver 
-  components, or fixed hardware descriptors.
+  This ensures a seamless FFI execution when interfacing with existing **C** libraries, legacy driver 
+  components.
 
 **[The Landscape Tradeoffs]**
 When we map C, C++, and Rust against these requirements, the engineering tradeoffs become very clear:
@@ -240,19 +240,21 @@ When we map C, C++, and Rust against these requirements, the engineering tradeof
       remains highly manual. 
     - Rust moves both memory and concurrency safety entirely into the **compile-time layer**.
 
-The tradeoff of these langaguages when compared with :
-* **Complexity vs. Abstraction:** **C** is simple but lacks high-level abstraction power, requiring significant:
-    - manual architecture and boilerplate as codebases scale. 
-    - **C++** offers huge abstraction power but at the cost of immense language complexity. 
-    - Rust targets the same high abstraction level as **C++** but uses its type system to enforce structural 
-      correctness.
+Rust is the first language that guarantees memory-safety with out GC and has a verified typesystem.
 
-Another trade off is the 
 * **The Learning Curve:** 
 
     The most important trade-off we face with Rust is its steep learning curve.
     Rust's compiler does not negotiate; it forces you to resolve ownership and lifetime ambiguities before 
     a single line of machine code is generated. 
+
+The tradeoff of these langaguages when compared with :
+* **Complexity vs. Abstraction:**  **C** is simple but lacks high-level abstraction power, requiring significant:
+    - manual architecture and boilerplate as codebases scale. 
+    - **C++** offers huge abstraction power but at the cost of immense language complexity. 
+    - Rust targets the same high abstraction level as **C++** but uses its type system to enforce structural 
+      correctness.
+
 ---
 ### Slide 6: The cost of the status quo - in numbers
 
