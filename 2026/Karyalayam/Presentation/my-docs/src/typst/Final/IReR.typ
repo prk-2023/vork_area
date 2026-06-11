@@ -211,13 +211,13 @@ ratio: (0.8fr, 1.2fr),
       );
   }
 
-  // Inline assembly — same as GNU C __asm__ __volatile__
+  // Inline assembly : same as GNU C __asm__ __volatile__
   use core::arch::asm;
   unsafe {
       asm!("dsb sy", options(nostack));
   }
 
-  // Raw pointer arithmetic — same as C, explicitly unsafe
+  // Raw pointer arithmetic : same as C, explicitly unsafe
   let ptr = base_addr as *mut u32;
   unsafe { *ptr.add(offset) = value; }
   ```
@@ -272,8 +272,8 @@ square:                                        |        push    rbp             
 
 --- 
 #cols[
- Zero-Cost abstraction holds for Iterators, closures or traits, comparable to writing equivalent code by hand in low-level style.
-
+  *Zero-Cost abstraction*
+  - Holds for Iterators, closures or traits, comparable to writing equivalent code by hand in low-level style.
   *Iterators and closures: no overhead*
   #codebox(
     [
@@ -293,9 +293,9 @@ square:                                        |        push    rbp             
       ```
     ]
   )
-  #ref-badge[Compiler Explorer — godbolt.org; rustc -O2]
+  #ref-badge[Compiler Explorer : godbolt.org; rustc -O2]
 ][
-  *Generics — monomorphisation, not boxing*
+  *Generics : monomorphisation*
 
   #codebox(
     [
@@ -328,7 +328,7 @@ square:                                        |        push    rbp             
   )
 
   #callout(color: safe-green)[
-    Borrow checking, lifetime analysis, type inference — all stripped before LLVM sees the code. *The runtime binary is as lean as hand-written C.*
+    Borrow checking, lifetime analysis, type inference : all stripped before LLVM sees the code. *The runtime binary is as lean as hand-written C.*
   ]
 ]
 
