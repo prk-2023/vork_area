@@ -345,6 +345,15 @@ The first and most critical property of Rust for our domain is determinism.
 Unlike languages like Go or Java, Rust has no garbage collector. It has no reference-counting runtime 
 silently running in the background, no hidden threads, and absolutely no stop-the-world pauses.
 
+( - Reference counting: (swift, python) cleanup happens automatically and immediate when a
+piece of data's rc hits zero. To do this language injects hidden code around variables 
+  - Rust’s compiler strictly enforces thread safety. A standard `Rc` pointer cannot be sent across threads,
+    meaning it uses blazing-fast, non-atomic math. 
+    If you want thread-safe reference counting, you must explicitly use `Arc` (Atomic Reference Counted). 
+    Rust forces you to make the conscious choice between speed and thread safety, rather than making a 
+    safe-but-slow assumption for you behind the scenes.
+),
+
 **The memory model maps exactly to what you already know in C:**
 
 * **Stack allocation:** Has zero overhead. It is identical to declaring an `int x;` in C.
