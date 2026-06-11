@@ -509,6 +509,53 @@ once satisfied they get stripped. ( no additional code is inserted )
 ---
 ### Slide 11: 2.2: The aliasing advantage — Rust beats C's optimiser (Speaker Notes)
 
+Shorter version:
+-=-=-=-=-=-=-=-
+
+- One of the Rust's less discussed performance advantage comes from its aliasing model. 
+- In C the compiler must often assume that 2 pointer may refer to overlapping memory unless the programmer
+  explicitly provides additional information. 
+- C's `restrict` keyword can provide that information, but it is an unchecked promise made by the programmer.
+  If the promise is violated the program has undefined behaviour and may silently produce incorrect result
+  or data corruption. 
+
+- Rust's approach the problem differently. A Mutable reference (`&mut T`) is exclusive by construction: 
+  _safe_ Rust prevents the existence of other references that could access the same memory at the same time. 
+
+- Because these exclusivity guarantees are enforced by the type system, the compiler automatically can
+  derive non-aliasing information without requiring special annotations such as `restrict`.
+
+- Rust then passes this information to LLVM through alias-analysis metadata, allowing the optimizer to
+  reason more aggressively about memory accesses. 
+
+- Better alias information can enable optimization such as 
+    - Auto-Vectorization 
+    - Load/store reordering 
+    - Register promotion 
+    - Elimination of unnecessary memory dependencies. 
+
+- For looks that read from one buffer and write to another LLVM can often prove that iterations are
+  independent and generated SIMD instructions automatically. 
+
+- The key idea is that Rust's safety guarantees and optimization oppertunities come from the same source:
+  the language;s enforced aliasing and borrowing rules.  
+
+
+Takeaway: Rust does not perfoms magic optimization that C cannot. Rather Rust provides the optimizer with
+reliable, compiler-verified aliasing information by default, whereas C often relies on "Programmer-supplied"
+promises such as "restrict"
+```
+    &mut T is exclusive
+        ↓
+    No competing accesses through references
+        ↓
+    Stronger alias analysis
+        ↓
+    More optimization opportunities
+        ↓
+    Better code generation
+```
+-=-=-=-=-=-=-=-=-=-=-==
 
 //The code blocks show **C** `restrict` problem vs. the Rust exclusive borrow 
 
@@ -573,6 +620,9 @@ Safety and performance are not a tradeoff here, they both arise from the same al
 
 Till now we covered some of important the baseline properties for why Rust fits to be a systems language. 
 We will move over to look at the core engine of the language itself. 
+
+Since it's not possible to cover the entire scope of Rust, we will focus specifically on the aspects that
+matter most for systems programming.
 
 If you  happen to read any book or article on Rust, there are four terms you will see repeat : 
 **Ownership, Borrowing, Lifetimes, and Thread Safety**.

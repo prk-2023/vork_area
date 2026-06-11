@@ -332,7 +332,7 @@ square:                                        |        push    rbp             
   ]
 ]
 
-== The aliasing advantage — Rust beats C's optimiser
+== The aliasing advantage: Why Rust often optimizes better than C
 
 This is the often-overlooked performance *advantage* Rust has *over* C.
 
@@ -380,17 +380,19 @@ This is the often-overlooked performance *advantage* Rust has *over* C.
   )
 
   #callout(color: safe-green)[
-    The *same property* that prevents data races also enables better codegen. Safety and performance arise from the same source: the aliasing proof in the type system.
+    - The *same exclusive mutable property* that prevents data races also enables better codegen. 
+    - Safety and performance arise from the same source: the aliasing guarantees proven by Rust's type system.
   ]
 ]
 == Recap: 
 
-- Features that make Rust language  as a systems programming:
+- Features that make Rust language a systems programming language:
    - Minimum runtime and No Garbage collector.
-   - Direct control over hardware and Summitemory layout. 
-   - Inlineable, Zero-Cost abstraction.
+   - Direct control over hardware and memory layout. 
+   - Inlineable, Zero-Cost abstractions.
    - *`unsafe () `* for bare-metal freedom.
    - Seamless interoperability (FFI)
+   - And more 
 
 // ------------------------
 // 3. Language features 
