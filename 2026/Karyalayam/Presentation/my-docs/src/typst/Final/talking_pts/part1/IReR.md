@@ -621,24 +621,25 @@ Safety and performance are not a tradeoff here, they both arise from the same al
 Till now we covered some of important the baseline properties for why Rust fits to be a systems language. 
 We will move over to look at the core engine of the language itself. 
 
-Since it's not possible to cover the entire scope of Rust, we will focus specifically on the aspects that
-matter most for systems programming.
+As its not possible to cover all of Rust, we will focus on the parts that matter most for systems
+programming and on how Rust approaches memory safety. 
 
-If you  happen to read any book or article on Rust, there are four terms you will see repeat : 
+If you read about Rust, you will often see these four terms repeated : 
 **Ownership, Borrowing, Lifetimes, and Thread Safety**.
 
 **[The Systems Perspective]**
 
-We aren't going to look at these features as just syntax rules. 
-Instead, we are going to look at them as concrete engineering tools designed to eliminate specific, costly 
-classes of runtime bugs that we fight every day things like 
+We are not going to look at these concepts as just language rules. 
+
+Instead, we will look at them as concrete engineering tools that help prevent common and costly bugs, such
+as:
     use-after-free, 
     double frees, 
     dangling pointers, 
 and multi-core data races.
 
-Let’s step through them one by one to see how they actually map to the memory layout and how the compiler 
-tracks them.
+We will quickly go through them one by one and see how they relate to memory layout and how the compiler
+tracks and enforces them.
 
 ---
 ### Slide 13: 3.1: Ownership — Memory Safety at Compile Time (Speaker Notes)
@@ -648,9 +649,9 @@ tracks them.
 
 **[The Core Engine]**
 
-Now we are touching the absolute core engine of Rust: **Ownership**. If you look under the hood, ownership 
-isn’t a runtime library or a magic trick; it is a strict, type theoretic answer to the challenges of manual
-memory management.
+Now we come to the core concept of Rust: **Ownership** 
+Ownership is not a runtime library, a garbage collector or a hidden runtime check. 
+It is a set of Rules that the compiler checks at compilation time to manage memory safety.
 
 In C, if you copy a pointer, you now have two variables pointing to the same block of memory. 
 If one path frees that memory, the other path doesn't know, and you get a silent corruption or a crash. 

@@ -420,21 +420,21 @@ This is the often-overlooked performance *advantage* Rust has *over* C.
 
 #cols[
   - *Rule 1 : Each value has exactly one owner* 
-  - *Rule 2 : There can only be one owner at a time (ownership can be moved).*
+  - *Rule 2 : Ownership can be moved, but there can only be one owner at a time.*
 
-  #codeblock(title: "C : compiles, crashes or corrupts silently")[
+  #codeblock(title: "Rust: compile time error")[
   ```rust
   let s1 = String::from("hello"); // s1 owns the heap data
-  let s2 = s1;          // ownership MOVES to s2
+  let s2 = s1;          // ownership MOVES to s2 ( s1  ----move---->  s2 )
   // println!("{}", s1); // ← compile error: s1 was moved
   ```
   ]
 
-  The compiler tracks ownership *statically*. No runtime book keeping.
+  The compiler tracks ownership *statically*. No runtime bookkeeping is required.
 
   - *Rule 3 : When the owner goes out of scope, the value is dropped*
 
-  #codeblock(title: "C : compiles, crashes or corrupts silently")[
+  #codeblock(title: "C: Potential: use-after-free not detected at compile time, compiles, runs or crashes or corrupts (depends on program)")[
   ```rust
   {
       let buf = alloc_dma_buf(); // allocation
@@ -444,25 +444,25 @@ This is the often-overlooked performance *advantage* Rust has *over* C.
   ]
 ][
 #callout[
-  *Rust's ownership system* it's a type theoretic answer to manual memory management. 
+  *Rust's ownership system* is a compile-time memory management model.( type-system-based approach to memory management)
   - It's a memory management model where each value has a single owner at a time, and the Compiler enforces rules about ownership/borrowing/lifetimes. 
   - Shifts memory safety from a runtime concern (like GC) to a compile time verification handled by the type system. 
 ]
-  #callout(color: safe-green)[ -> Shifts memory safety from a runtime concern (like garbage collection) to a compile-time verification problem handled by the type system.
+  #callout(color: safe-green)[ -> Ownership shifts memory safety from a runtime concern to a compile-time verification problem handled by the compiler.
   ]
 ]
 
 == Ownership vs C: use-after-free: ( #1 Kernel CVE Class )
 
-Most common kernel CVE class : caught at compile time in Rust.
+Most common kernel CVE class : use-after-free: caught before the code runs
 
 #callout[
-  - This is not a bug detection problem.
-  - This is program expressiveness problem. 
+  - This is not a bug-finding problem.
+  - This is program representation/expressiveness problem. 
 ]
 
 #cols[
-  #codeblock(title: "C : compiles, crashes or corrupts silently")[
+  #codeblock(title: "C : potential use-after-free not detected")[
     ```c
     struct dma_buf *buf = dma_alloc(dev, size);
     submit_dma(dev, buf);
@@ -475,7 +475,7 @@ Most common kernel CVE class : caught at compile time in Rust.
     ```
   ]
 ][
-  #codeblock(title: "Rust : compile error, zero runtime cost")[
+  #codeblock(title: "Rust : compile-time error (zero runtime cost)")[
     ```rust
     let buf = DmaBuf::alloc(dev, size)?;
     submit_dma(dev, &buf);
@@ -493,7 +493,10 @@ Most common kernel CVE class : caught at compile time in Rust.
 
 #callout[
   - The error message names the *exact line* where the value was moved and the *exact line* of the illegal use, before the code ever runs. 
-  - no `valgrind`, no `KASAN`, no `OEM` execution.
+  - Where the ownership was transferred.
+  - Where the invalid use occurred.
+  - no runtime instrumentation (`valgrind`,`OEM`) required.
+  - no test execution required to discover this defect.
 ]
 
 
