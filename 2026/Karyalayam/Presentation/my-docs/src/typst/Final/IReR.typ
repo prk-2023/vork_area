@@ -339,7 +339,7 @@ This is the often-overlooked performance *advantage* Rust has *over* C.
 #cols[
   *The C aliasing problem*
 
-  C's pointer aliasing rules (C99 §6.5) say two pointers of different types *may not* alias — but two `u8*` pointers *might* always alias. The compiler must assume they overlap.
+  C's pointer aliasing rules (C99 §6.5) say two pointers of different types *may not* alias, but two `u8*` pointers *might* always alias. The compiler must assume they overlap.
 
   #codebox(
     [  

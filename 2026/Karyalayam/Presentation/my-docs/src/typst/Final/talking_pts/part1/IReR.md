@@ -2,37 +2,39 @@
 
 - **[Opening]** 
 
-Good afternoon,  Today’s topic is **Introduction to Rust and eBPF Programming with Rust**.
+Good afternoon,  Today’s topic is **Introduction to Rust and eBPF Programming with Rust language**.
 
 - Before we begin to talk about Rust, it's worth to recognizing that modern computing infrastructure is 
   largely built on the foundation of **C** language.
 
-- For more than 50 years, **C** has been the language of operating systems, device drivers, firmware, 
+- For more than 50 years, **C** has been the language for operating systems, device drivers, firmware, 
   networking stacks, and embedded space.
-  **C** offers 
+  The reason for this is **C** offers 
     - performance, 
     - portability, and 
     - direct hardware access 
 
-  all of which makes it the most successful and widely used programming language.
+  all of these make C  successful and widely used programming language in systems programming domain.
 
 - This presentation is not about why **C** is bad, nor is it about replacing decades of successful 
   engineering practices.
 
-- Instead, it is about understanding the evolving systems programming landscape and why Rust has emerged as
-  one of the technologies of interest from operating system vendors, silicon companies,cloud providers, and
-  the open-source community.
+- Instead, it is about understanding How systems programming landscape is evolving, and why Rust has 
+  has been one of the such technologies of interest for operating system vendors, silicon companies, cloud 
+  providers, and mainly from the open-source community.
 
 **[ Why the Industry is Looking for Something New ]**
 
-- Will also look at how over the time when software systems grow larger and are more connected, this
-  brings changes in expectations.  
-- And with these additional demands, today systems are expected to provide performance and reliability, and 
-  also guarantee's strong security guarantees. 
-- With growing codebases, distributed teams, and complex software lifecycles  all of which bring in 
+- Will also look at how over the time when software systems grow larger and get more connected, they present
+  new changes and expectations. 
+
+- With these additional demands, today systems are expected to provide not just performance and reliability,
+  but offer strong security guarantees. 
+
+- But with growing codebases, distributed teams, and complex software lifecycles  they all  bring in 
   different sets of challenges.
 
-- When we look across the industry, a major percentage of security vulnerabilities continue to  originate
+- Now when we look across the industry, a major percentage of security loopholes continue to  originate
   from memory-safety issues such as:
 
     - Buffer overflows
@@ -41,50 +43,55 @@ Good afternoon,  Today’s topic is **Introduction to Rust and eBPF Programming 
     - Data races
     - Lifetime and ownership errors
 
-- While these bugs aren't for poor engineering, they are often the consequence of building highly complex
-  systems using languages that force developers to handle every single detail perfectly. 
+- While these bugs are not fully due to poor engineering skills, they are also a consequence of building 
+  highly complex systems using languages that force developers to handle every single detail perfectly and
+  this challenge even is get tougher when a large code base is required to maintain with shifting developers
+  over time.
 
-- Also from Industry there is a common question that many organizations are now asking:
+- Also from Industry there is a common question/demand for the need that : 
     - Can we maintain the performance and control of low-level programming 
       while reducing entire classes of bugs before the code ever runs?
 
 [The Rise of Rust]
 
-- This is where Rust comes, It offers one such attempt to answer that question. 
+- This is where Rust comes, It is one such attempt to answer this many questions: 
 
-- Though Rust is relatively young compared to **C**, it has gained industry momentum and has consistently 
-  ranked among the most admired programming languages in developer surveys.(stackoverflow devel surveys)
+- Though Rust is relatively young compared to **C**, it has gained industry momentum 
+- Its also ranked ranked as the most admired programming languages at stackoverflow developers survey for
+  the past 10+ years in straight.  
 
-- What makes Rust particularly interesting is that it targets the same problem domain as **C** and **C++**
-  systems programming while it taking a different approach to memory management and concurrency safety.
+- Now what makes Rust particularly interesting is that it targets the same problem domain as **C** and
+  **C++** systems programming while it taking a different approach to memory management and concurrency
+  to guarantee safety.
 
-- Unlike language such as java/py/go  which relying primarily on runtime garbage collection or developer
-  discipline alone, Rust attempts to move many correctness checks into the compiler.
+- Unlike language such as java/py/go where memory safety is guarantees come by a runtime garbage collection
+  or along with developer discipline, But Rust attempts to move many of these correctness checks
+  into its compiler.
 
 - As a result we get a language that aims to provide:
     - Low-level control
     - Predictable performance
-    - Memory safety
+    - Memory  and 
     - Concurrency safety
-  and more with out the use of a garbage collector.
+  and more. And most importantly with out the use of a garbage collector.
 
 [Setting Expectations] ( Skip this part while speaking )
 
-- So Today's session is not intended to be a debate between **C** and Rust.
-
-- And the good news is most systems software for the foreseeable future will continue to involve in **C** and
-  many successful projects will remain C-based for years to come.
-
-- Instead, we move our goal in understand the design principles behind Rust,
-  And why major projects such as the Linux kernel have begun adopting it, and where it may fit alongside 
-  existing systems programming practices.
-
-- From there, we'll explore Rust from a systems programming perspective and look at how it is increasingly
-  being used in kernel and eBPF development.
-
-- Its also important to note that introducing any new language into use with existing systems has its own 
-  pros and cons. And early study would help us better adapt to the fast changing in this domain.
-
+//- So Today's session is not intended to be a debate between **C** and Rust.
+//
+//- And the good news is most systems software for the foreseeable future will continue to involve in **C** and
+//  many successful projects will remain C-based for years to come.
+//
+//- Instead, we move our goal in understand the design principles behind Rust,
+//  And why major projects such as the Linux kernel have begun adopting it, and where it may fit alongside 
+//  existing systems programming practices.
+//
+//- From there, we'll explore Rust from a systems programming perspective and look at how it is increasingly
+//  being used in kernel and eBPF development.
+//
+//- Its also important to note that introducing any new language into use with existing systems has its own 
+//  pros and cons. And early study would help us better adapt to the fast changing in this domain.
+//
 ---
 
 ### Slide 2:  ( Disclaimer:)
@@ -92,39 +99,40 @@ Good afternoon,  Today’s topic is **Introduction to Rust and eBPF Programming 
 
 Disclaimer about the intent of this presentation.
 
-Would like to state again the goal for today, is not to start a language war or argue that one language
-should completely replace another.
+Goal of this presenation is not to start a language war or argue that one language should completely 
+replace another.
 
-Rather, focus is to discuss some of the evolving changes happening in the systems programming space:
-especially in areas closely related to what many of us work on daily.
+Rather, we discuss .. Some of the evolving changes,  happening in the systems programming space:
+Mainly as this is the areas that we are closely related to our daily work.
 
-**C** remains one of the most important and successful programming lang ever created, and it continues to be
-foundational to operating systems and embedded development today 
+The purpose of this slide is not to give a misconception that Rust is here as a replacement. 
+**C** will remain as the most important and successful lang and continues to be the foundation for 
+operating systems and embedded development for long.
 
-And Rust should not be viewed as a replacement for **C**, but rather as another tool in the systems 
-programming toolbox.
-
-Rather we should view this through the lens of engineering and evaluation to points like:
+Rather Rust should be viewed as another tool in the systems programming toolbox:
 
     * why the industry is paying attention to it,
     * what problems it attempts to solve,
     * whether it provides practical value for low-level development,
     * => whether Rust can improve: such as memory safety, reliability, and long-term maintainability.
 
-Discussions around programming languages especially in Linux kernel and systems communities, can become 
-very opinionated because developers naturally build strong trust in the tools they have relied on for decades.
+Discussions around programming languages mainly around Linux kernel and systems communities, can become 
+very opinionated, because generally developers build strong trust in the tools they have used. 
 
-Most importantly I would also like to state clearly:
+
+
+Most importantly I would also like to state:
 
 - I am not presenting myself as a Rust expert.
 
-- Like most of us in the industry, Rust caught my attention with its adoption into Linux kernel from early 
-  experimental effort into a supported and actively maintained direction as of 2025 December.
+- Like most of us in the industry, Rust caught my attention with its adoption into Linux kernel, mainly when 
+  it officially moved from experimental stage to active and maintained direction during the end of 2025
+  maintainer summit in Tokyo.
 
-- I am still exploring the technology myself, and today’s presentation is intended to shared my learning 
+- And I am still exploring the technology myself, and today’s presentation is to shared my learning 
   experience.
 
-- I will do my best to answer questions to the best of my knowledge and practical understanding.
+- I will do my best to answer questions.
 
 --- 
 
@@ -134,8 +142,8 @@ Most importantly I would also like to state clearly:
 We divide today’s talk into two sections.
 
 - In the first section: 
-    We will introduce Rust from a systems programming perspective and look at some of the core concepts 
-    that make low-level software development relevant in Rust.
+    We will quickly introduce Rust from a systems programming perspective and look at some of the core
+    concepts that are essential for low-level software development. 
 
 This includes topics such as:
 
@@ -145,15 +153,15 @@ This includes topics such as:
 * memory layout control,
 * and concurrency safety.
 
-With limited time we will not be covering the entire language, but to understand the design philosophy
-behind Rust and how it attempts to provide both performance and safety without sacrificing low-level
-control.
+With limited time we will not be covering the entire language, but the aim is to understand the design 
+philosophy behind Rust and how it attempts to provide both performance and safety without sacrificing
+low-level control.
 
 - In the second section, we will move into eBPF programming with Rust.
 
-We will explore a Rust based eBPF framework called Aya, which is a modern pure-Rust based eBPF framework
-which provides an alternative development approach alongside traditional eBPF toolchains such as `libbpf`
-and `clang`/`LLVM` based workflows.
+We will explore a Rust based eBPF framework called Aya, which is a modern pure-Rust based eBPF programming
+approach, it offers an alternative development approach alongside traditional eBPF toolchains such as 
+`libbpf` and `clang`/`LLVM` based workflows.
 
 Finally, we will go through a small demo project to demonstrate how a user-space Rust application can
 interact with kernel-space eBPF programs, exchange data efficiently, and build observability or tracing
@@ -165,9 +173,12 @@ pipelines with minimal overhead and latency.
 
 
 **[Transition & Introduction]**
+ 
+In this section, we cover what are the requirements of systems programming language, and see if Rust fits 
+in, to be used as systems programming languages. ( cause there can be a misconception as Rust is generally
+mentioned as a general purpose programming language )
 
-In this section, Fist we will see if Rust fits to be used in systems programming languages. 
-And also examine, important properties behind its growing adoption and what it actually guarantees: 
+And also examine, important properties and for its growing adoption and what it actually guarantees: 
 compile-time correctness, predictable performance, and maintainable low-level abstractions.
 
 
@@ -177,13 +188,11 @@ compile-time correctness, predictable performance, and maintainable low-level ab
 
 **[The Baseline Criteria]**
 
-To see if Rust is fit to be used in systems programming zone: 
-The First baseline criteria is to check the requirements of systems software and essential checklist 
-are required.
+To see if Rust is fit to be used as a systems programming languge: 
+For a language to be used for systems programming, it should first meet all the criteria:
 
-We define
-Systems software is one that controls HW and mediates between the HW and every thing else around it, and
-this compliance are characterized with some constrains: Such as 
+The accepted definition for Systems software is, one that controls HW and mediates between the HW and every 
+thing else around it, and this compliance should meet the constrains of the system:  Such as 
 
 1. Systems Language should provide a **Direct HW access:** example it should allow to map MMIO registers, 
    handle CPU-specific instructions, control precise memory layouts, and interface directly with silicon.
@@ -193,13 +202,13 @@ this compliance are characterized with some constrains: Such as
 
 2. **Deterministic memory management:** To provide deterministic performance the language should not use 
    garbage collector and this is the key requirement for kernels, BSPs, and drivers.
-   We must know exactly when memory is allocated and precisely when it is freed to ensure predictable
+   Where we must know exactly when memory is allocated and precisely when it is freed to ensure predictable
    execution latency.
 
 3. When bugs occur the effect should be contained ( to one user or limited scope), This demands the
    systems programming language for program correctness, as small bug can have large consequence.
 
-**Rust as systems software:**
+Mapping this with **Rust as systems software:**
 
 A common misconception among low-level developers is that because Rust focuses heavily on safety, it must 
 hide the hardware or abstract away raw pointers. 
@@ -209,26 +218,32 @@ primitives for bare-metal systems work.
 
 - `no_std` (The Bare-Metal Switch): This attribute instructs the compiler to completely detach from the 
   standard library and OS layers. 
-  It strips the runtime down to the bare metal, leaving only the core language primitives. 
+  The effect is it strips the runtime down to the bare metal, leaving only the core language primitives. 
   This is what allows Rust to be used for early-boot code, microcontrollers, and deep kernel subsystems.
 
-- `unsaf`e (The Auditable Escape Hatch): Rust does not stop you from low-level operations like 
-  dereferencing raw memory-mapped pointers or interacting with hardware registers. 
-  It simply requires you to wrap these operations in an unsafe block, this is to tells the compiler: 
-  "I know the hardware layout here; stop checking this specific block." 
+- `unsaf`e (The Auditable Escape Hatch): General Rust features along with its compiler offers safety and
+  prevents you to perform any low-level operations example to dereferencing raw memory-mapped pointers or 
+  interacting with hardware registers. 
 
+  To overcome this `unsafe` block is used to wrap unsafe operations into blocks. This tells the compiler:
+  "I know the hardware layout here; stop checking this specific block." 
+  
   This way we isolate the critical sections of codebase into an easily auditable map where unsafe boundaries
   are explicitly defined.
 
-- `asm!`: Inline Assembly (asm!) Rust has first-class support for architecture-specific instructions. 
-  Say we need to execute a cache invalidation pipeline, barrier instructions, or change CPU privilege 
-  levels, we drop into inline assembly exactly like we do in C.
+- `asm!`: 
+// Inline Assembly (asm!) Rust has first-class support for architecture-specific instructions. 
+//  Say we need to execute a cache invalidation pipeline, barrier instructions, or change CPU privilege 
+//  levels, we drop into inline assembly exactly like we do in C.
+    Rust features robust, native support for architecture-specific instructions. For critical Kernel-space
+    tasks, like cache invalidation,  CPU privilege level manipulation. The `asm!` macro gives direct HW
+    access. Unlike the complex constrains of traditional C inline assembly, Rust offers more predictable
+    and offers modern syntax for managing registers. 
 
-- Binary Compatibility (#[repr(C)]): We cannot rewrite entire codebases overnight. 
-  Rust uses the #[repr(C)] attribute to guarantee that a Rust data structure matches the exact memory layout,
-  padding, and alignment of a standard **C** struct. 
-  This ensures a seamless FFI execution when interfacing with existing **C** libraries, legacy driver 
-  components.
+- Binary Compatibility (#[repr(C)]): Replacing legacy codebase is rarely practical, so Rust used the
+  `#[repr(C)]` attribute which tells the compiler to generate Rust data structures to adhere to C ABI
+  matching the exact memory layout, padding and alignment to a standard C struct. This offers zero-overhead
+  FFI execution when interfacing with existing C libraries and legacy driver components. 
 
 **[The Landscape Tradeoffs]**
 When we map C, C++, and Rust against these requirements, the engineering tradeoffs become very clear:
@@ -241,6 +256,8 @@ When we map C, C++, and Rust against these requirements, the engineering tradeof
     - Rust moves both memory and concurrency safety entirely into the **compile-time layer**.
 
 Rust is the first language that guarantees memory-safety with out GC and has a verified typesystem.
+
+Other important factors and challenges:
 
 * **The Learning Curve:** 
 
@@ -258,27 +275,25 @@ The tradeoff of these langaguages when compared with :
 ---
 ### Slide 6: The cost of the status quo - in numbers
 
-To understand why companies like Google, Microsoft, Amazon, and the broader Linux ecosystem are investing 
-so in Rust, is clearly driven from statical data related these bugs.
+To understand why big tech companies and the broader Linux ecosystem are investing in Rust, 
+is clearly driven from stats related to these bugs.
 
-The reality is that the industry is trapped by what we can call the "eternal memory bug." 
+// The reality is that the industry is trapped by what we can call the "eternal memory bug." 
 
-Look at the numbers on the slide: 
+When we look that the numbers for CVE in the table below: 
 
-Historical reports from the Microsoft Security Response Center showed that roughly 70% of their tracked 
-Common Vulnerabilities and Exposures CVEs were caused by memory safety issues. 
+The Microsoft Security Response Center and Chrome team showed that 70% of common vulnerabilities and
+exposures CVEs are caused by memory safety issues. 
 
-Independent studies of the Linux kernel show a remarkably similar pattern: 
-    ~67% of kernel vulnerabilities are memory-safety related.
+An Independent studies of the Linux kernel show a remarkably similar pattern with ~67% of kernel 
+CVEs are memory-safety related.
 
-What makes these numbers so staggering is that they persist despite massive investments in modern tooling.
-Developers/Companies use:
-    Advanced static analysis tools
-    Kernel sanitizers (KASAN, etc.)
-    A Rigorous formal review processes
-    ...and highly experienced systems developers writing the code.
+The estimated cost of these CVE runs into billions of dollars.
+And the new NSA guidelines also mandates for its new code projects demanding the use of memory-safety
+languages over C and C++. 
 
-But the percentage of CVEs has not changed since 20+ years...
+Despite using modern tools to hunt these bugs, such as static analysers, kernel sanitizers and strict review
+process, even with highly experimental developers. The number of CVEs have not changed over past 20+ years.
 
 To answer why does this keep happening? It comes down to the fundamental design of the languages we use. 
 
@@ -290,11 +305,12 @@ To answer why does this keep happening? It comes down to the fundamental design 
     - Data races: Unsynchronised concurrent access to shared state across threads or cores.
 
 When a codebase is small, a single developer can keep the memory model in their head. 
-But as firmware, BSPs, and kernel subsystems grow into millions of lines of code—spanning multiple teams, 
-different vendors, and hardware generations relying entirely on developer discipline to catch every memory 
-violation is a statistical impossibility.
+But with firmwares, BSPs, and kernel subsystems when grow into millions of lines of code also spanning 
+multiple development teams, different vendors, In which case it becomes hard to rely on developer discipline
+to catch every memory violation and this is statistical importantly. 
 
-This is the exact problem Rust was built to solve at the compiler level.
+This is the exact problem Rust was built to solve at the compiler level :
+
 
 ---
 ### Slide 7:  The cost of status quo - In numbers
@@ -326,15 +342,14 @@ Moving large categories of correctness and safety checks from runtime debugging 
 
 ### Slide 8: 2. How Rust Fits system programming:
 
-So far, we have talked about the why the historical context and the data driving the industry's shift. 
+So far, we have looked at the CVE stats and why the industry's shift.
 
-Now let’s move into the how.
+//Now let’s move into the how.
 
-In this section, we are going to look at exactly how Rust maps to the day-to-day realities of systems 
-programming. 
+In this section, we are going to look at exactly how Rust maps to the requirements of  systems programming. 
 
-We will look at how it handles the hardware interface, how it manages memory without a runtime, and how it 
-actually integrates into environments like the kernel.
+We will quickly look at how it handles the hardware interface, how it manages memory without a runtime, and 
+how it actually integrates into environments like the kernel.
 
 ---
 ### Slide 9:  2.1: The Properties That Make Rust a Systems Language (Speaker Notes)
@@ -342,8 +357,9 @@ actually integrates into environments like the kernel.
 **[Property 1: Absolute Determinism (No GC, No Runtime)]**
 The first and most critical property of Rust for our domain is determinism.
 
-Unlike languages like Go or Java, Rust has no garbage collector. It has no reference-counting runtime 
-silently running in the background, no hidden threads, and absolutely no stop-the-world pauses.
+Unlike languages like Go or Java, Rust has no garbage collector. It does not use any reference-counting 
+runtime, which typically run in the background, also it has no hidden threads, this offers a predictable 
+behavior, unlike pauses that come with other memory safe languages. 
 
 ( - Reference counting: (swift, python) cleanup happens automatically and immediate when a
 piece of data's rc hits zero. To do this language injects hidden code around variables 
@@ -358,7 +374,7 @@ piece of data's rc hits zero. To do this language injects hidden code around var
 
 * **Stack allocation:** Has zero overhead. It is identical to declaring an `int x;` in C.
 * **Heap allocation:** Is entirely explicit and backed by whatever custom allocator you provide.
-( In c++ (new Object()) the language runtime handles where and how of memory behing the secnes, In rust this
+( In c++ (new Object()) the language runtime handles where and how of memory behind the scenes, In rust this
 is entirely explicitly backed by custom allocator, means you have absolute granular control over every byte
 requested from the system.)
 * **Cleanup:** When a variable goes out of scope, the compiler inserts the cleanup code at a *statically
@@ -380,44 +396,47 @@ Rust doesn't do this.
 It can do everything **C** can do at the silicon level.
 
 *(Point to the code blocks on the slide)* 
-The code examples that compare low level access with C and how its done in Rust.
+The below code examples show and compare low level access with C and how its done in Rust.
 
 * **Memory-Mapped I/O:** 
     If you need to hit a HW control register, you can do a volatile write exactly like casting a ptr in C.
 
 * **Inline Assembly:** 
     Rust uses `asm!` macro instead of GCC ":" based syntax.
-    For example in embedded **C** writing data synchronization barriers , mainly when dealing with DMA,
-    Context switching, or peripheral registers on ARM, in **C** it of the form 
-    `__asm__ __volatile__("dsb sy" : : : "memory");`
-    Rust handles the exact arch instruction using `asm!` macro:
-    - `use core::arch::asm;` : Its from Core and not std => its fully available for #![no_std] => can
-      be used with bare-metal firmware, rtos kernels, and bootloaders.
-    - "dsb sy": This is ARM Data synchronization barrier, One massive quality-of-life upgrade in
-      Rust: it defaults to Intel/ARM standard syntax, not the clunky AT&T percent-sign syntax (%%)
-      we often wrestled with in GCC."
+    // For example in embedded **C** writing data synchronization barriers , mainly when dealing with DMA,
+    // Context switching, or peripheral registers on ARM, in **C** it of the form 
+    // `__asm__ __volatile__("dsb sy" : : : "memory");`
+    Rust handles the exact arch instruction using `asm!` macro: Which comes from 
 
-    If you need to execute an architecture-specific data synchronization barrier ( enforce ordering and
-    completion of memory operations (ARM) ) like the `dsb` instruction shown here.
-    Rust has direct support for inline assembly that mirrors GNU **C** syntax.
+    - `use core::arch::asm;` : Its from Core and not std => its fully available for `#![no_std]` => can
+      be used with bare-metal firmware, rtos kernels, and bootloaders.
+
+    // - "dsb sy": This is ARM Data synchronization barrier, One massive quality-of-life upgrade in
+    //  Rust: it defaults to Intel/ARM standard syntax, not the clunky AT&T percent-sign syntax (%%)
+    //  we often wrestled with in GCC."
+
+    // If you need to execute an architecture-specific data synchronization barrier ( enforce ordering and
+    // completion of memory operations (ARM) ) like the `dsb` instruction shown here.
+    // Rust has direct support for inline assembly that mirrors GNU **C** syntax.
 
 * **Raw Pointers:** You can still do raw pointer arithmetic like in C.
 
 
 **[Demystifying `unsafe`]**
 
-Notice that all of these above operations are wrapped in an `unsafe { }` block.
+If you Notice all of the above operations are wrapped in an `unsafe { }` block.
 
 It is very important to understand what this means. `unsafe` is **not** a switch that turns off the Rust 
 compiler. 
-It is an explicit, verifiable declaration. It is you, the developer, telling the compiler: 
+
+It is an explicit, verifiable declaration. 
+It is we, the developer, telling the compiler: 
 
 *"I am directly interacting with HW state or raw memory that you cannot verify. I am taking responsibility 
   for this specific block."*
 
-From an engineering management and security review perspective, this is huge. 
-It means that instead of undefined behavior hiding anywhere in a massive codebase, all potentially dangerous
-hardware interactions are explicitly marked, highly grep-able, and strictly contained.
+From a security review perspective, this is big: as it helps to identify undefined behavior in a big 
+codebase, for all potentially dangerous hardware interactions and they are grep-able
 
 ---
 ### Slide 10: 2.1: The Properties That Make Rust a Systems Language (Speaker Notes) ( continuation )
@@ -435,22 +454,23 @@ The third property is something many of you who write **C++** will be very famil
   Rust allows to write highly expressive, modern-looking code, but it guarantees that this code compiles 
   down to the exact same machine instructions as manual C. 
 
-  We don't have to take the compiler's word for this we can verify it line-by-line on Compiler Explorer.
-  (Godbolt.org) 
+  The code examples show the assembly for rust vs C. If you wish to do a line-by-line code comparison can be
+  done You can use (Godbolt.org) if you do not have the infrastructure installed to verify.  
 
-For comparison I have posted the assembly generated by Rust and **C** of a function that squares a number.
+For comparison I have posted the assembly generated by Rust and **C** for a squares a number function:
 - We see the rust part of assembly is longer then **C** which in the middle. 
 - This is because of rust's default safety guarantees for performing overflow check in *debug* builds. 
-- In the unoptimized Rust snippet `seto al` checks if the multiplication overflowed 
-- `jo .LBB0_2` jumps to the panicking routine if a overflow occurred. 
+// - In the unoptimized Rust snippet `seto al` checks if the multiplication overflowed 
+// - `jo .LBB0_2` jumps to the panicking routine if a overflow occurred. 
 
 - When we open the optimization in **C** and Rust ( or use --release build) we will see the assembly generated
   have almost same number of instructs. ( -O2 or -C opt-level=2 or --release ( which is -C opt-level=3)  )
 
-- In standard **C** singed Int overflow is UB(undefined behavior), the compiler assumes it will never 
-  happen, which is why GCC does not generate any safety check. 
+- In standard **C** singed Int overflow is UB(undefined behavior), in this case the compiler assumes it 
+  will never happen, which is why GCC does not generate any safety check. 
+
 - To make **C** behave like Rust code ( checking overflow and terminating) we use `__builtin_mul_overflow` or
-  compiler flags. 
+  compiler flags. which is a macro like function built directly into the compiler.
 
 ---
 
@@ -477,9 +497,10 @@ with out code duplication)
 
 In the example the generic function like `min_of`, 
 
-- Rustcompiler generates a specialized versions for every types that is used as shown in the comment 
-this is called Monomorphization. i.e the compiler that generates `min_of::<u32>` or `min_of::<u64>`, and 
-so on and the cpu executes direct machine instructions. ( this is critical for low-level code where few 
+- Rust compiler generates a specialized versions for every types that is used as shown in the comment 
+this is called Monomorphization. 
+i.e the compiler that generates `min_of::<u32>` or `min_of::<u64>`, 
+and so on and the cpu executes direct machine instructions. ( this is critical for low-level code where few 
 cycles matter but this increases binary size as compiler generates different specialized copies)
 
 
@@ -492,27 +513,31 @@ It looks complex, but here is the most important thing to understand about lifet
 
 => Rust lifetimes are just a compile-time linter for pointer validity. They don't change how the CPU executes code; they just prevent you from compiling a bug.
 
-Rust front end parses the code with annotation and Rust borrow checker used these annotations to build a
-direct graph of the references, It ensures no reference outlives the data it points to. 
+Rust front end parses the code with these annotation and Rust borrow checker used these annotations to build 
+a direct graph of the references, It ensures no reference outlives the data it points to. 
+
 Once this stage is passed the compiler translated the code to MIR (mid-level intermediate representation)
 When this MIR is converted to LLVM IR(lowlevel virtual machine intermediate representation) the lifetimes
-annotations are completely gone, and LLVM just sees a raw pointer, value and control flow.( like in C
-compiled with clang )
+annotations are completely gone, and LLVM just sees a raw pointer, value and control flow.
+
+// ( like in C langauge when compiled with clang )
 
 
-The compiler uses it purely for static analysis to prove memory safety. 
-Once the proof is complete, it is stripped away. 
+The compiler uses these annotation for static analysis to prove memory safety. 
+Once the proof is complete, the annotations are stripped.
+
 The final runtime binary is as lean and raw as hand-written C.
 => Rusts compile time validation mechanism for lifetimes solely exist for compiler safety algorithm, and
 once satisfied they get stripped. ( no additional code is inserted )
 
 ---
-### Slide 11: 2.2: The aliasing advantage — Rust beats C's optimiser (Speaker Notes)
+### Slide 11: 2.2: The aliasing advantage — Rust  often optimizes better than C's optimiser (Speaker Notes)
 
 Shorter version:
 -=-=-=-=-=-=-=-
 
 - One of the Rust's less discussed performance advantage comes from its aliasing model. 
+  
 - In C the compiler must often assume that 2 pointer may refer to overlapping memory unless the programmer
   explicitly provides additional information. 
 - C's `restrict` keyword can provide that information, but it is an unchecked promise made by the programmer.
@@ -522,28 +547,38 @@ Shorter version:
 - Rust's approach the problem differently. A Mutable reference (`&mut T`) is exclusive by construction: 
   _safe_ Rust prevents the existence of other references that could access the same memory at the same time. 
 
-- Because these exclusivity guarantees are enforced by the type system, the compiler automatically can
-  derive non-aliasing information without requiring special annotations such as `restrict`.
+- Because these exclusivity guarantees that are are enforced by the type system, the compiler automatically 
+  can derive non-aliasing information without requiring special annotations such as `restrict`.
 
-- Rust then passes this information to LLVM through alias-analysis metadata, allowing the optimizer to
-  reason more aggressively about memory accesses. 
+- Rust then passes this information to LLVM, allowing the optimizer to  reason more aggressively about 
+  memory accesses. 
 
-- Better alias information can enable optimization such as 
-    - Auto-Vectorization 
-    - Load/store reordering 
-    - Register promotion 
-    - Elimination of unnecessary memory dependencies. 
+// - Better alias information can enable optimization such as 
+//     - Auto-Vectorization 
+//     - Load/store reordering 
+//     - Register promotion 
+//     - Elimination of unnecessary memory dependencies. 
+// SIMD stands for Single Instruction, Multiple Data.a hardware-level optimization feature found in modern CPUs 
+// SIMD is incredibly powerful, but it only works on problems where the data is laid out contiguously in memory 
+// and the exact same math operation needs to be applied to every element independently.
+// 
+// Auto-vectorization is an advanced compiler optimization technique where the compiler automatically converts 
+// traditional scalar code (which processes one data point at a time) into vector code (which uses CPU SIMD 
+// instructions to process multiple data points simultaneously).
+// 
+// Instead of requiring you, the developer, to manually write complex, architecture-specific assembly 
+// instructions, the compiler does all the heavy lifting during compilation.
 
-- For looks that read from one buffer and write to another LLVM can often prove that iterations are
-  independent and generated SIMD instructions automatically. 
+- From the rust code the read from one buffer and write to another, LLVM can often prove that iterations are
+  independent and generated SIMD instructions automatically.  
 
 - The key idea is that Rust's safety guarantees and optimization oppertunities come from the same source:
   the language;s enforced aliasing and borrowing rules.  
 
 
 Takeaway: Rust does not perfoms magic optimization that C cannot. Rather Rust provides the optimizer with
-reliable, compiler-verified aliasing information by default, whereas C often relies on "Programmer-supplied"
-promises such as "restrict"
+Takeaway: Rust provides the optimizer with reliable, compiler-verified aliasing information by default,
+whereas C often relies on "Programmer-supplied" promises such as "restrict"
 ```
     &mut T is exclusive
         ↓
@@ -557,61 +592,61 @@ promises such as "restrict"
 ```
 -=-=-=-=-=-=-=-=-=-=-==
 
-//The code blocks show **C** `restrict` problem vs. the Rust exclusive borrow 
-
-**[The Performance Surprise]**
-
-When we talk about Rust in systems programming, the conversation almost always focuses on memory safety. 
-But this slide highlights something that is frequently overlooked: 
-    the performance *advantage* Rust often has over C.
-
-**[The **C** Compiler's Dilemma]**
-
-Let’s look at a very standard **C** function: processing two byte arrays.
-*(Point to the **C** code)*
- According to C's pointer aliasing rules, the compiler must assume that two `uint8_t` `src` and `dst` 
- pointers might  overlap in memory. 
-
- Because of this, the **C** compiler is forced to be defensive and generates less optimized code.
-
-**[The **C** Workaround: Promises, not Proofs]**
-
-The workaroud function is shown as below. with addition of the `restrict` keyword, this tells the compiler, 
- *"I promise these buffers do not overlap."*
-And allow to generate a better optimized code. 
-
- But here is the critical flaw: `restrict` is just a promise. It is an unchecked human guarantee. 
-
- If the caller makes a mistake and passes overlapping buffers, the compiler will not warn you, and you will 
- get silent data corruption at runtime.
-
-
-**[The Rust Solution: Compile-Time Proof]**
-Now look at the exact same function in Rust.
-
-*(Point to the Rust code)*
-Rust solves this not with a promises but with guarantees from the type system.
-
-We take a mutable reference for the 'output' (`&mut [u8]`) and an immutable reference for the 'input'.  
-=> Rust’s fundamental borrowing rule is that a mutable reference is strictly **exclusive**. 
-   i.e No other reference can point to same memory (pointed by the mutable reference) while it exists. 
-   //Which means aliasing is discouraged, in Rust ( safe code )
-
-   If this code compiles, it is mathematically proven that no other reference to that memory exists. 
-   The buffers *cannot* overlap.
-
-**[LLVM Auto-Vectorization]**
-Because of this, the LLVM backend gets this exclusivity proof for free. 
-It doesn't need a `restrict` hint. 
-It looks at this loop, knows the pointers cannot alias, and aggressively auto-vectorizes it into 
-instructions. 
-No annotations. No trusting the caller.
-
-**[The Core Takeaway]**
-
-This also brings us to one of the most elegant aspects of the language: 
-**The exact same property that prevents data races is the property that enables better code generation.** 
-Safety and performance are not a tradeoff here, they both arise from the same aliasing proof in the type system.
+////The code blocks show **C** `restrict` problem vs. the Rust exclusive borrow 
+//
+//   **[The Performance Surprise]**
+//
+//   When we talk about Rust in systems programming, the conversation almost always focuses on memory safety. 
+//   But this slide highlights something that is frequently overlooked: 
+//       the performance *advantage* Rust often has over C.
+//
+//   **[The **C** Compiler's Dilemma]**
+//
+//   Let’s look at a very standard **C** function: processing two byte arrays.
+//   *(Point to the **C** code)*
+//    According to C's pointer aliasing rules, the compiler must assume that two `uint8_t` `src` and `dst` 
+//    pointers might  overlap in memory. 
+//
+//    Because of this, the **C** compiler is forced to be defensive and generates less optimized code.
+//
+//   **[The **C** Workaround: Promises, not Proofs]**
+//
+//   The workaroud function is shown as below. with addition of the `restrict` keyword, this tells the compiler, 
+//    *"I promise these buffers do not overlap."*
+//   And allow to generate a better optimized code. 
+//
+//    But here is the critical flaw: `restrict` is just a promise. It is an unchecked human guarantee. 
+//
+//    If the caller makes a mistake and passes overlapping buffers, the compiler will not warn you, and you will 
+//    get silent data corruption at runtime.
+//
+//
+//   **[The Rust Solution: Compile-Time Proof]**
+//   Now look at the exact same function in Rust.
+//
+//   *(Point to the Rust code)*
+//   Rust solves this not with a promises but with guarantees from the type system.
+//
+//   We take a mutable reference for the 'output' (`&mut [u8]`) and an immutable reference for the 'input'.  
+//   => Rust’s fundamental borrowing rule is that a mutable reference is strictly **exclusive**. 
+//      i.e No other reference can point to same memory (pointed by the mutable reference) while it exists. 
+//      //Which means aliasing is discouraged, in Rust ( safe code )
+//
+//      If this code compiles, it is mathematically proven that no other reference to that memory exists. 
+//      The buffers *cannot* overlap.
+//
+//   **[LLVM Auto-Vectorization]**
+//   Because of this, the LLVM backend gets this exclusivity proof for free. 
+//   It doesn't need a `restrict` hint. 
+//   It looks at this loop, knows the pointers cannot alias, and aggressively auto-vectorizes it into 
+//   instructions. 
+//   No annotations. No trusting the caller.
+//
+//   **[The Core Takeaway]**
+//
+//   This also brings us to one of the most elegant aspects of the language: 
+//   **The exact same property that prevents data races is the property that enables better code generation.** 
+//   Safety and performance are not a tradeoff here, they both arise from the same aliasing proof in the type system.
 
 ---
 ### Slide 12:  3.0: Important Language Features (Speaker Notes)
