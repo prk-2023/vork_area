@@ -384,15 +384,16 @@ This is the often-overlooked performance *advantage* Rust has *over* C.
     - Safety and performance arise from the same source: the aliasing guarantees proven by Rust's type system.
   ]
 ]
-== Recap: 
-
-- Features that make Rust language a systems programming language:
-   - Minimum runtime and No Garbage collector.
-   - Direct control over hardware and memory layout. 
-   - Inlineable, Zero-Cost abstractions.
-   - *`unsafe () `* for bare-metal freedom.
-   - Seamless interoperability (FFI)
-   - And more 
+// == Recap: 
+// //
+// #text(size:23pt)[
+//    - Minimum runtime and No Garbage collector.
+//    - Direct control over hardware and memory layout. 
+//    - Inlineable, Zero-Cost abstractions.
+//    - *`unsafe () `* for bare-metal freedom.
+//    - Seamless interoperability (FFI)
+//    - And more 
+//  ]
 
 // ------------------------
 // 3. Language features 
@@ -857,7 +858,7 @@ let base = match res {
   - Every early return is a `?` — auditable in code review
 
   #callout(color: safe-green)[
-    The Linux kernel style guide recommends checking every return value. Rust makes non-checking a *compiler warning by default* — the rule that currently lives in `checkpatch.pl` is instead enforced at compilation.
+    The Linux kernel style guide recommends checking every return value. Rust makes non-checking a *compiler warning by default*.
   ]
 ]
 
@@ -941,21 +942,22 @@ let base = match res {
   # There is no equivalent grep.
   ```
 
-  *The kernel's three-layer architecture uses this:*
+  // *The kernel's three-layer architecture uses this:*
 
-  ```
-  rust/bindings/     ← all unsafe — auto-generated,
-                       reviewed once, never touched
-       ↓ wraps
-  rust/kernel/       ← safe abstractions built on top
-       ↓ exposes
-  drivers/your_ip/   ← pure safe Rust — zero unsafe
-                       UAF / race / null proof covers
-                       all of your driver code
-  ```
+  // ```
+  // rust/bindings/     ← all unsafe — auto-generated,
+  //                      reviewed once, never touched
+  //      ↓ wraps
+  // rust/kernel/       ← safe abstractions built on top
+  //      ↓ exposes
+  // drivers/your_ip/   ← pure safe Rust — zero unsafe
+  //                      UAF / race / null proof covers
+  //                      all of your driver code
+  // ```
 
   #callout[
-    In C, "how much of this is manually memory-managed?" has no answer. In Rust: *count the `unsafe` blocks*.
+    - In C, "how much of this is manually memory is managed?" ( no answer )
+    - In Rust: *count the `unsafe` blocks*.
   ]
 ]
 

@@ -653,28 +653,28 @@ whereas C often relies on "Programmer-supplied" promises such as "restrict"
 
 **(Visual: Section 3 Title Slide outlining: Ownership, Borrowing, Lifetimes, Thread Safety)**
 
-Till now we covered some of important the baseline properties for why Rust fits to be a systems language. 
-We will move over to look at the core engine of the language itself. 
+Till now we covered some of important properties and saw how Rust fits to be a systems language. 
+In this section we will look at the core engine of the language itself. 
 
-As its not possible to cover all of Rust, we will focus on the parts that matter most for systems
+Since its not possible to cover all of Rust, we will focus on the those parts that matter most for systems
 programming and on how Rust approaches memory safety. 
 
-If you read about Rust, you will often see these four terms repeated : 
+If you have ever had a chance to reading or watched any video about Rust, you will often see these terms 
+terms getting repeated : 
 **Ownership, Borrowing, Lifetimes, and Thread Safety**.
 
 **[The Systems Perspective]**
 
-We are not going to look at these concepts as just language rules. 
+// We are not going to look at these concepts as just language rules. 
 
-Instead, we will look at them as concrete engineering tools that help prevent common and costly bugs, such
-as:
+These are the core important concepts that enforce memory safety at compile time with out GC. 
+In the next slides We shall quickly look at how these tools prevent common and expensive bugs such as:
     use-after-free, 
     double frees, 
     dangling pointers, 
 and multi-core data races.
 
-We will quickly go through them one by one and see how they relate to memory layout and how the compiler
-tracks and enforces them.
+we will also look at how they relate to memory layout and how the compiler tracks and enforces them.
 
 ---
 ### Slide 13: 3.1: Ownership — Memory Safety at Compile Time (Speaker Notes)
@@ -684,24 +684,33 @@ tracks and enforces them.
 
 **[The Core Engine]**
 
-Now we come to the core concept of Rust: **Ownership** 
-Ownership is not a runtime library, a garbage collector or a hidden runtime check. 
-It is a set of Rules that the compiler checks at compilation time to manage memory safety.
+We will start with the first core concept of Rust: **Ownership** 
+Ownership is the crown Jewel Rust was the first language that introduced this concept and formalized it into
+sets of rules.  
 
-In C, if you copy a pointer, you now have two variables pointing to the same block of memory. 
+So Ownership is not a runtime library, or a garbage collector  // or a hidden runtime check. 
+Rather they are strict set of rules that govern how program manages memory. 
+
+These set of rules are checked by the compiler at compilation time to manage memory safety and achieve
+performance. 
+
+In C, if you can copy a pointer, doing so you will end up with two variables pointing to the same block of 
+memory. 
+
 If one path frees that memory, the other path doesn't know, and you get a silent corruption or a crash. 
+
 Rust eliminates this entirely by enforcing three compile-time rules.
 
 **[Rule 1 & 2: Single Ownership and the Move Semantic]**
 
-* **Rule 1:** Each value has exactly one owner.
+* **Rule 1:** Each value has exactly one owner. 
 * **Rule 2:** There can only be one owner at a time. Ownership can be moved, but it cannot be duplicated 
               implicitly.
 
 Let’s look at the first code example to see how this plays out.
 
 *(Point to the String example)*
-When we create `s1`, it owns that heap-allocated string. 
+When we create `s1`, and it owns the heap-allocated string. 
 When we say `let s2 = s1;`, a **C** developer might think we are just copying a pointer. 
 But in Rust, this is a **Move**. 
 
@@ -711,22 +720,40 @@ From this exact line onward, `s1` is considered uninitialized by the compiler.
 If you try to use `s1` on the very next line, the code will refuse to compile. 
 
 In C, a mistake like this compiles perfectly, only to crash or corrupt memory silently at runtime. 
+And its also possible to developer may call free both `s1` and `s2`, causing a double free bug and to 
+corrupt the memory. 
+
 In Rust, the compiler tracks this tracking statically there is absolutely zero runtime bookkeeping or 
 performance overhead.
+
+// Under the hood: 
+// When we create a string it has 2 parts: Stack data which has pointer to the heap, its capacity and length
+// and Heap data that has the actual text characters. 
+// When we write let s2 = s1; Rust copies that small metadata block from s1 to s2 on the stack just like c
+// would copy a pointer/struct. In C after this step both s1 and s2 point to same heap memory. In rust
+// compiler makes s1 uninitialized/invalid in its internal tracking table. 
+// So additional cleanup code is generated for s1 after it moves. 
 
 **[Rule 3: Deterministic Cleanup (Drop)]**
 
 * **Rule 3:** When the owner goes out of scope, the value is dropped automatically.
 
 *(Point to the DMA buffer example)*
-Let’s look at how this applies to something close to our work: allocating a DMA buffer inside a code block. 
+Let’s look at how this applies in the code example: allocating a DMA buffer inside the code block. 
 
-In C, we have to manually ensure that every single execution path—including error paths and early 
-returns—calls the appropriate `free()` or cleanup function. If we miss just one path, we leak resources.
+In C, we have to manually ensure that every single execution path—including error paths or any early 
+returns calls the appropriate `free()` or cleanup function. If we miss just one path, we leak resources.
 
 In Rust, the moment `buf` hits that closing curly brace and goes out of scope, the compiler automatically 
-inserts the call to `Drop::drop()`. It acts exactly like **C++** RAII, but it is deeply woven into the language 
-rules. There is no `free()` for the developer to forget, and no silent leak is possible.
+inserts the call to `Drop::drop()`. 
+//It acts exactly like **C++** RAII, but it is deeply woven into the language rules. 
+So for developer there is no need to add `free()`  call.
+
+// When a function block runs it creates a stack frame ( temp memory for that scope )
+// variables in that scope ( say own heap memory ), when this scope ends, rust runs the Drop() function to
+// free up heap memory.
+// After this the stack frame shrinks, CPU adjusts a pointer to slide back up effectively erasing the local
+// variable. 
 
 
 **[The Big Shift]**
@@ -747,7 +774,7 @@ The core point to make here is that :
 
 **this is not a bug detection problem; it is a program expressiveness problem.** 
 
-In standard C, you simply do not have a way to express to the compiler that a pointer has become invalid 
+In standard C, we  do not have a way to express to the compiler that a pointer has become invalid 
 after a certain point in time.
 
 **[The **C** Reality]**
@@ -757,8 +784,8 @@ Look at the **C** snippet on the left. This is a very typical pattern we see in 
 2. We submit it to the hardware.
 3. We free it using `kfree(buf)`.
 
-Then, maybe 500 lines of complex logic later or perhaps inside an asynchronous callback or after an error 
-handling branch, someone attempts to read the completion status using that same `buf` pointer.
+Then, maybe 500 lines of complex logic later or perhaps inside an asynchronous callback, someone attempts 
+to read the completion status using that same `buf` pointer.
 
 This is a classic Use-After-Free. It is pure undefined behavior. But as far as GCC or Clang are concerned, 
 this code is perfectly valid. The compiler will give you zero warnings and zero errors. It compiles cleanly, 
@@ -774,15 +801,14 @@ completely halts the build.
 It throws **Compiler Error E0382: use of moved value**.
 
 **[The Power of Compile-Time Diagnostics]**
-What makes this incredibly powerful is the clarity of the diagnostic. The compiler doesn’t just say "error." 
-The error message names the *exact line* where the value was initialized, the *exact line* where it was 
+What makes this powerful is the clarity of the diagnostic. The compiler doesn’t just say "error." 
+The error message points to the *exact line* where the value was initialized, the *exact line* where it was 
 dropped and moved out of scope, and the *exact line* of the illegal subsequent use. 
-It gives you a complete temporal analysis of your memory before a single byte of machine code is generated.
+Compiler gives a complete temporal analysis of your memory before a single byte of machine code is generated.
 
-Think about what this means for our daily workflow. We don't have to spin up a specialized simulation, we 
-don't have to run heavy `Valgrind` builds, and we don't have to wait for `KASAN` (Kernel Address Sanitizer) 
-to catch a panic during OEM execution testing. The security boundary is enforced instantly at every single
-build.
+Now what this points to our daily workflow. We don't have to run specialized simulation, or don't have to 
+run heavy `Valgrind` builds, and we don't have to wait for `KASAN` (Kernel Address Sanitizer) to catch a 
+panic during testing. The security boundary is enforced instantly at every single build.
 
 ---
 
@@ -790,7 +816,7 @@ build.
 
 **[Context & The Kernel Reality]**
 
-The Psudo Liux driver code with `probe` function as shown on the left side of this slide. 
+The Pseudo Liux driver code with `probe` function as shown on the left side of this slide. 
 
 Here Managing resource allocation during device initialization can be tedious and error-prone parts of 
 kernel development.
@@ -808,10 +834,10 @@ If it succeeds, we try to allocate `res_b`. If `res_b` fails, we have to remembe
 returning an error code. If we then try to allocate `res_c` and *that* fails, we have to free both 
 `res_B` and `res_A` in the correct reverse order.
 
-In a real kernel driver, this usually leads to massive cascades of `goto` cleanups like 
+In a real kernel driver, this usually leads to cascades of `goto` cleanups like 
 `goto err_free_res_b;`, `goto err_free_res_a;`. 
 
-The Linux kernel source tree literally has thousands of these cleanup labels. 
+The Linux kernel source tree has thousands of these cleanup labels. 
 Every single time a new feature or error branch is added, the developer has to manually audit every single 
 exit path to ensure no resources are leaked. Miss just one path, and you have a memory or hardware resource leak.
 
@@ -826,8 +852,9 @@ immediately triggers an early return from the function.
 But here is the critical part: because `res_a` was successfully initialized and owns its resource, the 
 compiler automatically inserts a call to `res_a.drop()` right on that early return path.
 
-If all three allocations succeed, they are wrapped up into our driver structure. If the driver is later 
-unloaded, all three resources are automatically torn down in the exact reverse order of their allocation.
+If all three allocations succeed, they are wrapped up into our driver structure. 
+Now while unloading the driver, all three resources are automatically freed up in the exact reverse order 
+of their allocation.
 
 
 **[The Structural Win]**
@@ -861,29 +888,52 @@ guarantee data race freedom at compile time.
 
 **(Visual: Code blocks for Shared Borrows `&T` and Exclusive Borrows `&mut T` side-by-side with kernel-locking comparisons)**
 
+With ownership rules writing code would be absolute nightmare. You would constantly be passing variable into
+functions, losing them and forcing functions to return the variable back. To fix this rust Introduced
+borrowing via reference (&). Instead of giving away owenrship we just point to the data to functions,
+letting them read or modify and keep using the variable afterwards without any handover.
+
+**So In Rust, a reference is not just a raw memory address like a **C** pointer it is a distinct type with 
+strict metadata that the compiler tracks statically.**
+
+To keep this data sharing model safe Rust divides borrowing into two modes: Immutable borrows for reading
+and mutable borrows for writing. 
+
+And to ensure safety the compiler enforces a strict set of rules on these reference.
+
+//Borrowing is Rusts system for temporary access without transferring ownership. 
+
 **[Formalizing the Unspoken Rules]**
-As systems and kernel developers, we all know the informal rules of memory management: if multiple threads 
-are reading a buffer, no one should write to it. 
 
-If a thread is writing to a buffer, no one else should touch it.
-We implement this using locks, spinlocks, and design patterns.
+Now And in Systems programming, general practice used when multiple threads are reading a buffer is no one 
+should write to it. 
 
-Rust doesn't change these rules; it simply formalizes them in the compiler. 
-**In Rust, a reference is not just a raw memory address like a **C** pointer it is a distinct type with strict 
-metadata that the compiler tracks statically.**
+And when a thread is writing to a buffer, no one else should touch it.
+
+We implement this rules using locks, spinlocks, and design patterns.
+
+Rust doesn't change these rules; it formalizes them in the compiler. 
+
 
 **[Shared Borrows: `&T` (The Read Lock)]**
 
 Let's look at the first category: **Shared Borrows**, denoted by `&T`.
+
 *(Point to the `print_all` code example)*
 When we pass `&ring.entries` to `print_all`, we are lending a read-only view of the data.
 
-* You can have as many concurrent readers as you want.
+* In this case we can have as many concurrent readers as we need.
+
 * But as long as those readers exist, the compiler will completely block any attempt to modify that data.
+
 * Once the function returns and the borrows end, the original owner (`ring`) is fully available.
 
 **[The Data Race Formula]**
-Before we look at mutable references, let's remember the mathematical definition of a data race:
+
+
+Before we look at mutable references, recollect the definition of a data race:
+Data races occur when two or more threads concurrently access the same memory location, with at least one of
+those accesses is a write, and the threads are not using any synchronization
 
 
 Data Race = Aliasing (multiple pointers) + Mutation (writing) + No Synchronization
@@ -899,11 +949,11 @@ When we pass `&mut ring` to `add_entry`, we are granting a mutable reference.
 
 This maps directly to holding a **spinlock** or a **write-lock**.
 The rule here is strict: you can have exactly *one* writer, and while that writer has access,
-*zero* concurrent readers are allowed anywhere else in the program.
+No other concurrent readers are allowed anywhere else in the program.
 
-**[The Compile-Time Law: Aliasing XOR Mutation]**
-To summarize this entire system, the Rust compiler enforces a strict mathematical law: 
-    **Aliasing XOR Mutation**.
+// **[The Compile-Time Law: Aliasing XOR Mutation]**
+// To summarize this entire system, the Rust compiler enforces a strict mathematical law: 
+//    **Aliasing XOR Mutation**.
 
 At any given point in a program's execution, a memory location can have either:
 
@@ -911,6 +961,7 @@ At any given point in a program's execution, a memory location can have either:
 2. Exactly one exclusive writer (`&mut T`).
 
 But it can never have both. 
+
 Because the compiler checks and proves this invariant at every single build line, data races are entirely 
 eliminated before your code ever runs on hardware.
 
@@ -921,8 +972,11 @@ eliminated before your code ever runs on hardware.
 **[Transition & Core Concept]**
 
 We just established that Rust allows us to borrow data. 
-But borrowing raises a fundamental question: *How does the compiler guarantee that the data being borrowed 
-doesn't vanish while we are still looking at it?* 
+
+But borrowing raises a fundamental question: 
+*How does the compiler guarantee that the data being borrowed doesn't vanish while we are still looking at 
+it?* 
+
 This is where **Lifetimes** come in. 
 Lifetimes are simply the compiler's mechanism for proving that every single reference remains valid for its
 entire scope of use.
@@ -946,13 +1000,16 @@ It explicitly tells the compiler:
 The compiler then verifies this rule at every single call site.
 
 **[The Kernel Reality: Invalidation Before Drop]**
-To see why this matters deeply to us, let's look at a concrete kernel driver example. 
-Think about how many CVEs in systems software boil down to a "dangling pointer to a freed device."
+How Lifetimes  can be used in kernel context, let's look at the below kernel driver example. 
+
+Think about how many CVEs in systems software are related to a "dangling pointer to a freed device."
+
 
 *(Point to the `IrqHandler` example)*
 
 Imagine we have an interrupt handler struct, `IrqHandler`, that needs to hold a reference to our hardware
 `Device`. 
+
 By declaring `struct IrqHandler<'dev>`, we are encoding a strict hardware invariant directly into the code. 
 We are telling the compiler that this handler contains references that are bound to the lifetime of the 
 device, `'dev`.
@@ -961,16 +1018,17 @@ Now, look at what happens if the driver flow calls something like `device_unregi
 The `Device` is dropped. 
 Because of the lifetime relationship we defined, the borrow checker proves that the `IrqHandler` becomes 
 statically invalid *before* that drop can occur. 
+
 If any code tries to trigger that handler or read its data after the device is gone, the build fails.
 
-**[The Performance Win]**
-And remember the underlying theme of this presentation: this entire tracking mechanism has 
-**zero runtime representation**. 
-There are no reference counters ticking away in the background, and no hidden CPU cycles spent checking 
-bounds. 
+// **[The Performance Win]**
+// And remember the underlying theme of this presentation: this entire tracking mechanism has 
+// **zero runtime representation**. 
+// There are no reference counters ticking away in the background, and no hidden CPU cycles spent checking 
+// bounds. 
 
-The lifetimes are entirely erased before code generation. 
-The security is completely structural, verified 100% at compile time.
+The lifetimes are entirely erased before code generation. ( which we covered in the earlier slides)
+// The security is completely structural, verified 100% at compile time.
 
 ---
 ### Slide 19: 5.1: The Type System as a Security Tool (Speaker Notes)
@@ -983,9 +1041,13 @@ representation of a piece of data in memory.
 An `int` is 4 bytes; a pointer is 8 bytes.
 
 In Rust, the type system is extended to act as a concurrency security tool. 
-It doesn't just track *what* the data is; it tracks *how* the data is allowed to behave across 
-multi-threaded and multi-core boundaries. 
-It does this through two foundational concepts called **Marker Traits**: `Send` and `Sync`.
+
+The Rust compiler does not just guess if some thing is safe to share between threads. For this it uses two
+built-in markers ( called traits ) to mathematically prove it:
+
+// It doesn't just track *what* the data is; it tracks *how* the data is allowed to behave across 
+// multi-threaded and multi-core boundaries. 
+// It does this through two foundational concepts called **Marker Traits**: `Send` and `Sync`.
 
 **[Two Marker Traits, Zero Runtime Cost]**
 
@@ -993,31 +1055,44 @@ It does this through two foundational concepts called **Marker Traits**: `Send` 
 * **`Sync`** means a type can be safely **shared** between multiple threads simultaneously via immutable 
   references (`&T`).
 
-The most critical engineering point here is that these are **marker traits**. 
-They contain no code, they have no virtual method tables (vtables), and they introduce absolutely zero 
-runtime checking overhead. They are purely compile-time flags used by the compiler to verify thread safety.
+Compiler automatically derives these traits for our custom data types. If all the members of our struct are
+`Send` and `Sync`, our struct automatically becomes `Send` and `Sync`.
+
+// Rust takes a highly conservative approach to code safety. 
+// When you define a new structure, Rust automatically checks every single field inside it. 
+// Your new type is only considered `Send` or `Sync` if *every single sub-component* has already been proven 
+// safe. 
+
+You don't have to remember to opt in to thread safety; the compiler forces safety by default.
+
+// The most critical engineering point here is that these are **marker traits**. 
+// Marker trairs contain no code, they have no virtual method tables (vtables), and they introduce absolutely 
+// zero runtime checking overhead. 
+// They are purely compile-time flags used by the compiler to verify thread safety.
+
+How ever when we need to break the standard ownership rules, like sharing data or mutating, we use these 4
+special types, and what each one does and its Send/sync status matters: 
 
 **[Conservative by Default]**
-Rust takes a highly conservative approach to code safety. 
-When you define a new structure, Rust automatically checks every single field inside it. 
-Your new type is only considered `Send` or `Sync` if *every single sub-component* has already been proven 
-safe. 
-You don't have to remember to opt in to thread safety; the compiler forces safety by default.
 
 Look at the examples on the slide:
 
 * `Rc<T>` uses a standard, fast reference counter. Because modifying it from two threads simultaneously 
    would cause a data race, the compiler flags it as *not* `Send`. 
-   If you try to pass it to another thread, your build fails.
+   If we try to pass it to another thread, our build fails.
 
 * `Arc<T>` uses atomic operations for its counter. The compiler recognizes this and marks it as safe to
   share across threads.
 
-* `Cell<T>` allows internal mutation without locking. 
-  Therefore, it is strictly flagged as *not* `Sync`.
+* `Cell<T>` allows internal mutation without locking.( we can change values inside the cell ) 
+  means it is strictly *not* `Sync`.
+
+- `Mutex<T>` Concurrency primitive used to safely mutate data share across threads.
+  ( to read or write the data inside a thread must call `.lock()`)
+  => This is `Sync`
 
 **[The Driver Win: Replacing Comments with Compiler Laws]**
-Let’s look at why this matters intimately to a BSP or driver team working on multi-core silicon.
+Now Let’s look at why this matters 
 
 *(Point to the `PerCpuDmaStats` example)*
 
@@ -1039,13 +1114,14 @@ We write a global variable, and right next to it, we write a comment:
 
 That comment is a polite request. 
 If an developer, misses the comment, and accesses the variable directly without acquiring the lock, the **C** 
-compiler will not say a word. You have just introduced a silent, intermittent multi-core race condition 
-that might take weeks to root-cause.
+compiler will not say a word. Silently introducing a multi-core race condition that might take weeks to 
+root-cause.
 
-In Rust, you physically cannot bypass the lock. The inner data is completely inaccessible until you call 
-`.lock()`, which returns a lock guard. 
-The type system forces you to hold the lock to even see the data. 
-A missed lock isn't a runtime bug here—it's a compile error.
+// In Rust, you physically cannot bypass the lock. 
+// The inner data is completely inaccessible until you call  `.lock()`, which returns a lock guard. 
+
+// The type system forces you to hold the lock to even see the data. 
+// A missed lock isn't a runtime bug here—it's a compile error.
 
 ---
 ### Slide 20 : 5.2: `Option<T>` — Null Pointer Elimination (Speaker Notes)
@@ -1055,28 +1131,38 @@ A missed lock isn't a runtime bug here—it's a compile error.
 In kernel space, it is a constant source of oopses and security flaws, especially inside driver 
 initialization and device probe paths.
 
-The fundamental problem in **C** is that a pointer is just a raw memory address. 
-It can point to a valid structure, or it can point to `0x0`. The compiler cannot tell the difference, 
-leaving it entirely up to the developer to remember the check.
+The main problem in **C** is that a pointer is just a raw memory address. 
+
+It can point to a valid structure, or it can point to `0x0`. 
+
+The C compiler cannot tell the difference, leaving it entirely up to the developer to remember the check.
 
 
 **[The **C** Reality: Invisible Risks]**
-Look at the **C** snippet on the slide. We call `platform_get_resource`. If that resource isn't present in the 
-Device Tree, it returns `NULL`. 
 
-If an engineer is rushing or refactoring and immediately passes `res->start` into `ioremap`, the system 
+Look at the **C** snippet on the slide. We call `platform_get_resource`. 
+If that resource isn't present in the Device Tree, it returns `NULL`. 
+
+
+If the developer is rushing or refactoring and immediately passes `res->start` into `ioremap`, the system 
 tries to read offset zero. 
+
 The kernel will instantly trigger a `BUG()` panic or a kernel oops. 
-The compiler gives zero warnings because, syntactically, accessing a struct member via a pointer is 
+
+The compiler gives zero warnings because, syntactically, accessing a struct member via a pointer is
 completely valid.
 
 **[The Rust Alternative: Making Absence Explicit]**
 Rust completely eliminates this class of bugs by removing universal null pointers from safe code. 
+
 Instead, if a resource might be absent, the API is forced to return an `Option<Resource>` enum.
 
-An `Option` can either be `Some(Resource)` or `None`. Because it is an enum, you physically cannot call 
-`.start` or `.size()` directly on `res`. 
+An `Option` can either be `Some(Resource)` or `None`. 
+
+// Because it is an enum, you physically cannot call `.start` or `.size()` directly on `res`. 
+
 The type system completely isolates the underlying resource. 
+
 The only way to get to the inner data is to explicitly unpack it, typically using a `match` block as shown 
 on the right.
 
@@ -1101,28 +1187,47 @@ In C, error signaling is largely an implicit protocol.
 Functions return an `int`, where a negative value indicates an error code like `-EINVAL` or `-ENOMEM`.
 
 The core flaw in this model is that the language allows you to completely ignore that integer. 
-Look at the **C** example: calling `pci_enable_device`, `pci_request_regions`, and `request_irq` sequentially without capturing their return values compiles flawlessly. If the first function fails, the driver blindly marches forward, attempting to request hardware regions and register interrupts on a half-dead or uninitialized device. This puts the hardware in an completely undefined state, creating silent bugs that are notoriously difficult to reproduce and debug.
+
+Look at the **C** example: calling `pci_enable_device`, `pci_request_regions`, and `request_irq`
+
+Sequentially without capturing their return values compiles flawlessly. 
+If the first function fails, the driver blindly marches forward, attempting to request hardware regions and 
+register interrupts on a half-dead or uninitialized device. 
+This puts the hardware in an completely undefined state, creating silent bugs that are very difficult to 
+reproduce and debug.
 
 **[Forced Error Propagation with `#[must_use]`]**
-Rust fixes this by formalizing error handling into a concrete type: `Result<T, E>`. A function either returns `Ok(value)` or `Err(error)`.
+Rust fixes this by formalizing error handling into a concrete type: `Result<T, E>`. A function either
+returns `Ok(value)` or `Err(error)`.
 
-Crucially, the `Result` type is decorated with the `#[must_use]` compiler attribute. If a function returns a `Result` and you attempt to discard it or ignore it, the compiler treats it as a **warning by default**—and in our kernel and production builds, we turn these warnings into hard compilation errors. You are structurally forced by the type system to acknowledge the failure path.
+The `Result` type is attached with the `#[must_use]` compiler attribute. If a function returns a
+`Result` and you attempt to discard it or ignore it, the compiler treats it as a **warning by default**—and
+in our kernel and production builds, we turn these warnings into hard compilation errors. You are
+structurally forced by the type system to acknowledge the failure path.
 
 **[Demystifying the `?` Operator]**
-To prevent this strictness from cluttering your code with endless nested error checks, Rust provides the question mark (`?`) operator.
+To prevent this strictness from cluttering your code with endless nested error checks, Rust provides the
+question mark (`?`) operator.
 
-It can look like syntax magic at first glance, so let’s pull back the curtain. Look at the lower code block: writing `pdev.enable()?` expands exactly to a local `match` statement. If the result is `Ok`, it extracts the inner value and execution continues. If it is an `Err`, it immediately returns from the current function and propagates that error up the call stack, automatically converting it if necessary.
+It can look like syntax : writing `pdev.enable()?` expands exactly to a local `match` statement. 
+If the result is `Ok`, it extracts the inner value and execution continues. 
+If it is an `Err`, it immediately returns from the current function and propagates that error up the call 
+stack, automatically converting it if necessary.
 
 **[No Hidden Mechanics]**
-For low-level software, what the `?` operator *doesn't* do is just as important as what it does:
+// For low-level software, what the `?` operator *doesn't* do is just as important as what it does:
 
 * There are **no exceptions**—meaning no hidden control flow paths.
 * There is **no `longjmp**` and absolutely no complex stack unwinding runtime overhead.
 
-The generated assembly consists of standard, highly predictable conditional branch instructions. Every single early return path remains completely explicit, local, and fully grep-able during code reviews.
+The generated assembly consists of standard, highly predictable conditional branch instructions. 
+Every single early return path remains completely explicit, local, and fully grep-able during code reviews.
 
 **[Moving Policy into the Compiler]**
-Every enterprise systems team has coding style guides that mandate checking every single return value, and we write tools like `checkpatch.pl` to flag violations after the fact. Rust takes those defensive policies out of fragile, external scripts and enforces them directly within the language grammar. You cannot accidentally cut corners on error handling.
+// Every enterprise systems team has coding style guides that mandate checking every single return value, and
+// we write tools like `checkpatch.pl` to flag violations after the fact. Rust takes those defensive policies
+// out of fragile, external scripts and enforces them directly within the language grammar. You cannot
+// accidentally cut corners on error handling.
 
 ---
 
@@ -1138,23 +1243,35 @@ are introduced.
 In both **C** and Rust, we represent these architectural states using enumerations.
 
 But when an enum expands, a massive maintenance risk is introduced. 
-This slide exposes how a routine specification update can introduce a critical runtime failure in C, and 
+This slide exposes that with a specification update we can introduce a critical runtime failure in C, and 
 how Rust intercepts it at build time.
 
 **[The **C** Reality: The Silent Fall-Through]**
 
-Look at the **C** snippet on the left. We have an enum tracking PCIe speeds, originally going up to `GEN4`. A driver function calculates the available bandwidth based on this speed. To be defensive, the developer added a `default:` case that returns `0`.
+Look at the **C** snippet on the left. We have an enum tracking PCIe speeds, originally going up to `GEN4`.
+A driver function calculates the available bandwidth based on this speed. To be defensive, the developer
+added a `default:` case that returns `0`.
 
-Now, imagine a year later, the specification updates and another engineer adds `GEN5` to the enum definition. They audit the code, but they miss this specific utility function in a deep subsystem. What happens?
+Now, imagine a year later, the specification updates and another engineer adds `GEN5` to the enum
+definition. They audit the code, but they miss this specific utility function in a deep subsystem. What
+happens?
 
-The code compiles with absolutely zero errors. At runtime, when a Gen 5 card is inserted, the switch block fails to match, hits the `default:` escape hatch, and silently returns `0` bytes of bandwidth. This is a catastrophic, silent logical failure.
+The code compiles with absolutely zero errors. At runtime, when a Gen 5 card is inserted, the switch block
+fails to match, hits the `default:` escape hatch, and silently returns `0` bytes of bandwidth. This is a
+catastrophic, silent logical failure.
 
-Yes, tools like GCC with `-Wall` or `sparse` *might* warn you about unhandled enums, but they only do so if you remember to use them, parse the logs, and explicitly treat those warnings as hard errors.
+Yes, tools like GCC with `-Wall` or `sparse` *might* warn you about unhandled enums, but they only do so if
+you remember to use them, parse the logs, and explicitly treat those warnings as hard errors.
 
-**[The Rust Alternative: Exhaustive Enforcement]**
-Now look at the Rust example on the right. We add `Gen5` to our `PcieSpeed` enum. If we forget to add the corresponding arm to our `match` block, the compiler halts the entire build immediately with **Error E0004: non-exhaustive patterns**. It explicitly names the exact variant you forgot to handle.
+**[The Rust Alternative: Exhaustive Enforcement]** Now look at the Rust example on the right. We add `Gen5`
+to our `PcieSpeed` enum. If we forget to add the corresponding arm to our `match` block, the compiler halts
+the entire build immediately with **Error E0004: non-exhaustive patterns**. It explicitly names the exact
+variant you forgot to handle.
 
-Rust completely eliminates the need for an arbitrary `default:` or wildcard arm. When you expand an enum, the type system systematically alerts you to *every single location* across your entire codebase, including external crates, that must be updated to support the new hardware. Refactoring code ceases to be a guessing game; it becomes a compiler-guided checklist.
+Rust completely eliminates the need for an arbitrary `default:` or wildcard arm. When you expand an enum,
+the type system systematically alerts you to *every single location* across your entire codebase, including
+external crates, that must be updated to support the new hardware. Refactoring code ceases to be a guessing
+game; it becomes a compiler-guided checklist.
 
 ---
 
@@ -1163,12 +1280,19 @@ Rust completely eliminates the need for an arbitrary `default:` or wildcard arm.
 **(Visual: Layout listing the 4 capabilities of `unsafe`, the `grep` command snippet, and a block diagram representing the Linux Kernel's 3-layer Rust architecture)**
 
 **[The Reality of Low-Level Work]**
-Everything we have covered so far sounds incredible for application development, but we are systems engineers. We write code that handles hardware interrupts, configures MMU tables, maps registers, and interoperates with legacy **C** subsystems. If the compiler strictly blocks raw pointer access and memory manipulation, how can we actually write a driver?
+Everything we have covered so far sounds incredible for application development, but in systems programming 
+We write code that handles hardware interrupts, configures MMU tables, maps registers, and interoperates 
+with legacy **C** subsystems. 
+If the compiler strictly blocks raw pointer access and memory manipulation, how can we actually write a 
+driver?
 
-The answer is the `unsafe` keyword. It is the language's built-in mechanism for interfacing directly with the physical world.
+The answer is the `unsafe` keyword. 
+It is the language's built-in mechanism for interfacing directly with the physical world.
 
 **[Demystifying `unsafe`: The Four Superpowers]**
-There is a massive misconception that `unsafe` disables the Rust compiler. It does not. An `unsafe { }` block grants you exactly **four specific capabilities** that the compiler cannot automatically verify for safety:
+There is a massive misconception that `unsafe` disables the Rust compiler. It does not. An `unsafe { }`
+block grants you exactly **four specific capabilities** that the compiler cannot automatically verify for
+safety:
 
 1. The ability to dereference a raw pointer (`*const T` or `*mut T`).
 2. The ability to call an unsafe function—which includes all external **C** functions via FFI.
@@ -1176,23 +1300,40 @@ There is a massive misconception that `unsafe` disables the Rust compiler. It do
 4. The ability to manually implement an unsafe trait, like `Send` or `Sync`.
 
 **[What `unsafe` Does NOT Do]**
-It is just as critical to understand what `unsafe` does *not* do. Inside an `unsafe` block, the borrow checker is still fully active. Type checking is still active. Lifetime analysis is still fully enforced. If you attempt to violate a lifetime rule or misalign types inside an `unsafe` block, the compiler will still reject the build. You have not turned off the compiler; you have simply stepped into an auditable zone where you are taking manual responsibility for raw memory safety invariants.
+It is just as critical to understand what `unsafe` does *not* do. Inside an `unsafe` block, the borrow
+checker is still fully active. Type checking is still active. Lifetime analysis is still fully enforced. If
+you attempt to violate a lifetime rule or misalign types inside an `unsafe` block, the compiler will still
+reject the build. We have not turned off the compiler; we have simply stepped into an auditable zone where
+we are taking manual responsibility for raw memory safety invariants.
 
 **[The Audit Argument]**
 This creates a massive paradigm shift for code reviews and security audits.
 
-Look at the `grep` command on the slide. If a safety-critical bug or memory corruption issue occurs in a driver subsystem, a code auditor can run a single `grep` command to isolate the entire attack surface. Every line of code capable of corrupting memory is explicitly wrapped in the word `unsafe`.
+Look at the `grep` command on the slide. If a safety-critical bug or memory corruption issue occurs in a
+driver subsystem, a code auditor can run a single `grep` command to isolate the entire attack surface. Every
+line of code capable of corrupting memory is explicitly wrapped in the word `unsafe`.
 
-In a traditional **C** codebase, every single line of code is part of the audit surface. There is no equivalent query to isolate memory-unsafe operations because any pointer access anywhere can cause undefined behavior.
+In a traditional **C** codebase, every single line of code is part of the audit surface. There is no
+equivalent query to isolate memory-unsafe operations because any pointer access anywhere can cause undefined
+behavior.
 
-**[The Kernel's Three-Layer Architecture]**
-The modern approach to Rust in the kernel exploits this isolation through a clean, three-layer architecture:
+// **[The Kernel's Three-Layer Architecture]** The modern approach to Rust in the kernel exploits this
+// isolation through a clean, three-layer architecture:
+//
+//   * At the very bottom, we have `rust/bindings/`. This layer directly interfaces with the core **C** kernel
+//     headers. It is full of `unsafe` calls, but it is automatically generated by tools like `bindgen`, audited
+//     once, and rarely touched.
+//   * In the middle, we have `rust/kernel/`. This layer takes those raw **C** bindings and wraps them in safe,
+//     idiomatic Rust abstractions. This is where the heavy engineering happens to ensure that lifetimes and
+//     ownership match the kernel's design.
+//   * At the top layer, we have `drivers/your_ip/`. This is where the actual device driver code lives. Because
+//     it consumes the safe kernel abstractions, it can be written in **100% pure, safe Rust with zero `unsafe`
+//     blocks**.
 
-* At the very bottom, we have `rust/bindings/`. This layer directly interfaces with the core **C** kernel headers. It is full of `unsafe` calls, but it is automatically generated by tools like `bindgen`, audited once, and rarely touched.
-* In the middle, we have `rust/kernel/`. This layer takes those raw **C** bindings and wraps them in safe, idiomatic Rust abstractions. This is where the heavy engineering happens to ensure that lifetimes and ownership match the kernel's design.
-* At the top layer, we have `drivers/your_ip/`. This is where the actual device driver code lives. Because it consumes the safe kernel abstractions, it can be written in **100% pure, safe Rust with zero `unsafe` blocks**.
-
-This means your day-to-day driver logic is completely covered by compile-time proofs against use-after-free, data races, and null pointer exceptions. If a crash or memory bug happens, you don't waste time debugging your driver logic; you check the centralized abstraction layer.
+This => oue day-to-day driver logic is completely covered by compile-time proofs against use-after-free,
+data races, and null pointer exceptions. 
+If a crash or memory bug happens, you don't waste time debugging your driver logic; you check the 
+centralized abstraction layer.
 
 --- 
 ### Slide 24: 6.0: Compiler Checks — Beyond Memory Safety (Speaker Notes)
@@ -1200,19 +1341,20 @@ This means your day-to-day driver logic is completely covered by compile-time pr
 We just talked about how Rust protects memory. Now, let us look at the bigger picture.
 
 
-The Rust compiler does not just check memory. It also checks types, math errors, and code logic. It does all of this at the same time, during every single build.
+The Rust compiler does not just check memory. It also checks types, math errors, and code logic. It does all
+of this at the same time, during every single build.
 
 ---
 
 ### Slide 25: 6.1: What the Rust Compiler Verifies at Every Build (Speaker Notes)
 
-In Rust, the compiler gives you automatic safety. 
-It checks your code completely every time you compile.
+In Rust, the compiler gives us automatic safety. 
+It checks our code completely every time we compile.
 
 Let us review what the compiler guarantees:
 
 * **Memory Safety:** No use-after-free bugs. No data races between threads. No null pointers.
-* **Initialization:** You cannot read a variable by mistake before setting its value. The compiler stops you.
+* **Initialization:** we cannot read a variable by mistake before setting its value. The compiler stops you.
 * **Math Errors:** In debug mode, if an integer overflows, the program stops safely. It does not create hidden data errors.
 * **Complete Logic:** As we saw with the PCIe speed example, `match` blocks must cover every choice. If you add a new option, the compiler tells you exactly where to fix your code.
 * **Error Checking:** If a function returns a `Result` error code, you must handle it. If you ignore it, the compiler gives you a warning or an error. You cannot drop errors silently.
