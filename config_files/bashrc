@@ -408,3 +408,6 @@ alias ip10="sudo ip a a 10.10.10.10/24 dev enp3s0"
 eval "$(zoxide init bash)"
 #alias z="zoxide"
 export PATH="$HOME/.npm-global/bin:$PATH"
+
+# Open Man pages with color scheme for syntax highlighting ( make sure `bat` is installed)
+export MANPAGER="sh -c 'col -bx | bat -l c -p'"
