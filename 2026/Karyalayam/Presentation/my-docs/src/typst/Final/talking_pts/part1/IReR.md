@@ -1423,11 +1423,16 @@ The main takeaway here is clear: Rust has moved past the experimental phase. It 
 
 In the second part of the presentation we will talk about eBPF programming using Rust.
 
-Before that we will quickly review of how eBPF works before we look at the Rust tools.
-This will not be covering what eBPF is and what types of tooling is used to generate bytecode and load
-the programs for tracing and observability as they have been covered in earlier presentations.
+First we will quickly go through what eBPF is we will not be covering what eBPF is and what toolins is ues
+to generate bytecode and load the program for tracing and observability. As these parts have been covered
+in earlier sessions. 
+
+And Since the idea of this presentation is to see how we can use Rust to write eBPF programs, 
+We will only highlight the libbpf process for understanding and compare with Rust approach.
 
 ---
+
+-=-=-=-=-=-=
 
 ### Slide 29: What is eBPF? (Speaker Notes)
 
@@ -1435,80 +1440,117 @@ the programs for tracing and observability as they have been covered in earlier 
 
 **[The Core Model]**
 
-- In simple terms, eBPF lets us run safe code inside the Linux kernel. We do not need to modify the
-  kernel source code. We do not need to load a traditional kernel module. And we do not need to reboot
-  the system.
+Most of you have probably used eBPF already through BCC, bpftrace, or libbpf, 
+so I will not spend much time introducing eBPF itself.
 
-- The code connects to specific event hooks inside the kernel and runs instantly when those events
-  happen.
+The emphasize here is the execution model, because it affects how we write eBPF programs in Rust.
 
-**[The Four-Step Lifecycle]**
-Every eBPF program follows a strict four-step process:
+The key idea is  eBPF gives us a controlled way to execute custom code inside the kernel without the risks normally associated with kernel modules.
 
-1. **Write:** We write our program in a high-level language like **C** or Rust. Then we compile it into
-   standard eBPF bytecode.
-2. **Verify:** We load the bytecode into the kernel. The kernel verifier checks the code completely. It
-   checks for safe loops, valid memory limits, and correct types.
-3. **JIT (Just-In-Time):** If the code is safe, the kernel translates the bytecode into native machine
-   code. There is no interpreter slowdown. The code runs at native hardware speed.
-4. **Attach:** We connect the code to a hook point. When that hardware or software event occurs, our code
-   runs.
+The important component here is the verifier. The eBPF program must prove its safety before they are
+allowed to run. 
+Verifier checks things like bounded execution, valid memory access, and type correctness.
 
-**[The Verifier Guarantee]**
-- The verifier does not guess safety. It uses mathematical proof. If the verifier accepts the bytecode,
-  the program **cannot** crash the operating system, it **cannot** lock up in an infinite loop, and it
-  **cannot** read secret memory out of bounds.
+The lifecycle shown here is also useful to keep in mind.
 
-**[Common Hook Types]** The table shows the exact hooks our team uses for development:
+- We write source code, compile it into BPF bytecode, the kernel verifier analyzes it, 
+  the program is JIT-compiled on most modern systems, and finally attached to a hook.
 
-* We use **`kprobe`** to look at any internal kernel function.
-* We use **`tp_btf`** for typed tracepoints because they work well with modern compile-once
-  run-everywhere (CO-RE) systems.
-* We use **`xdp`** for network packet filtering. This runs directly on the network interface card driver
-  before the main network stack even sees the packet. This is what we use to block network attacks
-  quickly.
+On the right side are some of the common hook types.
+
+- Whether we write the program in C or Rust, we are still have to deal with same verifier, 
+  same BPF instruction set, and the same kernel hook infrastructure.
+
+- The kernel only sees the uploaded bytecode, 
+- Writing programs in Rust does not introduce new runtime or new kernel sub-system. 
+
+- This distinction is important when we compare C-based and Rust based eBPF developement in next slides. 
+
+So Rust changes the developer experience, not the eBPF execution model.
 
 ---
 ### Slide 30: eBPF Maps — The Data Bridge (Speaker Notes)
 
-**[How Maps Work]**
-- An eBPF program inside the kernel cannot perform standard Input/Output. It cannot write directly to
-  files or send network data on its own. Instead, it uses **eBPF maps** to talk to the outside world.
+Since eBPF programs cannot freely call into kernel services or perform arbitrary I/O, 
+maps become a fundamental part of the programming model.
 
-- Maps are pieces of shared memory. The user-space loader creates the maps first, before attaching the
-  eBPF program. After that, both the kernel code and the user-space program read and write data through
-  standard Linux file descriptors.
+- maps are the primary communication channel between the eBPF side and the userspace side.
 
-**[Common Map Types]** The table shows the maps we use most often:
+- You can think of them as the bridge connecting two worlds, the eBPF program running inside the kernel
+  and the application running in userspace.
 
-* We use **`HASH`** maps for looking up key-value pairs.
-* We use **`PERCPU_ARRAY`** for statistics. It creates a separate array for each CPU core, which means it
-  is lock-free and has very high performance.
-* We use **`LRU_HASH`** when we need to track network connections without running out of memory.
+- The loader program creates the maps first, then loads the eBPF program, and finally attaches the program to its hook point.
 
-**[Why We Choose Ring Buffer]** Let us focus on the **Ring Buffer** (`RINGBUF`). It was added in Linux
-5.8. For all our new projects, we should always choose `RINGBUF` instead of the older `PERF_EVENT_ARRAY`.
+- Once everything is running, both sides access the same map through kernel-managed interfaces.
 
-Here is why:
+- When designing an eBPF application, choosing the right map type is the first decision to be made. 
 
-* **Memory Efficiency:** It handles variable-length records. We do not need to use fixed-size structures,
-  so we do not waste memory bytes.
-* **Rust Integration:** It works perfectly with standard asynchronous tools like Tokio in Rust. Aya turns
-  the ring buffer into an `AsyncFd`, so your user-space program can read events efficiently without
-  locking up a CPU core.
-* **Easy Monitoring:** If the kernel generates events too fast and data is lost, `RINGBUF` tracks the
-  dropped events and shows the number directly to user space.
+- example: 
+    - HASH maps are the general-purpose choice when we need key-value lookups
+    - ARRAY maps are suitable when the index range is known and fixed.
+    - Historically many tracing applications used PERF_EVENT_ARRAY to send events to userspace.
+    - However, for new projects, the preferred choice is usually RINGBUF.
+    The ring buffer was introduced to solve several limitations of the older perf event mechanism such as 
+    * records can be variable sized. ( no need to reserve fixed structure size for every event)
+    * memory management is simpler ( ringbuffer uses single shared memory region with better cache
+      behaviour and lower overhead )
+    * ring buffer can be monitored using standard file descriptor mechanisms such as epoll.
+      This becomes useful in Rust because frameworks like Aya which integrate naturally with Tokio and AsyncFd.
 
-Look at the code example at the bottom. This is how we write a ring buffer in Aya. We use the `#[map]`
-attribute and define a static variable with a size—here, 4 Megabytes. It is clean, explicit, and easy to
-read.
+If you view eBPF programs as microservices running inside the isolated, verified container of the kernel,
+BPF Maps are high-performance IPC (Inter-Process Communication) framework.
+// Because eBPF maps are built directly out of native kernel memory structures, eBPF programs can read and
+// write to them using super-fast helper functions (bpf_map_lookup_elem, bpf_map_update_elem). The
+// communication happens at the L1/L2 cache level of the CPU, making it arguably the fastest IPC mechanism
+// available on a Linux system.
+
+
+//   **[How Maps Work]**
+//   - An eBPF program inside the kernel cannot perform standard Input/Output. It cannot write directly to
+//     files or send network data on its own. Instead, it uses **eBPF maps** to talk to the outside world.
+//
+//   - Maps are pieces of shared memory. The user-space loader creates the maps first, before attaching the
+//     eBPF program. After that, both the kernel code and the user-space program read and write data through
+//     standard Linux file descriptors.
+//
+//   **[Common Map Types]** The table shows the maps we use most often:
+//
+//   * We use **`HASH`** maps for looking up key-value pairs.
+//   * We use **`PERCPU_ARRAY`** for statistics. It creates a separate array for each CPU core, which means it
+//     is lock-free and has very high performance.
+//   * We use **`LRU_HASH`** when we need to track network connections without running out of memory.
+//
+//   **[Why We Choose Ring Buffer]** Let us focus on the **Ring Buffer** (`RINGBUF`). It was added in Linux
+//   5.8. For all our new projects, we should always choose `RINGBUF` instead of the older `PERF_EVENT_ARRAY`.
+//
+//   Here is why:
+//
+//   * **Memory Efficiency:** It handles variable-length records. We do not need to use fixed-size structures,
+//     so we do not waste memory bytes.
+//   * **Rust Integration:** It works perfectly with standard asynchronous tools like Tokio in Rust. Aya turns
+//     the ring buffer into an `AsyncFd`, so your user-space program can read events efficiently without
+//     locking up a CPU core.
+//   * **Easy Monitoring:** If the kernel generates events too fast and data is lost, `RINGBUF` tracks the
+//     dropped events and shows the number directly to user space.
+//
+//   Look at the code example at the bottom. This is how we write a ring buffer in Aya. We use the `#[map]`
+//   attribute and define a static variable with a size—here, 4 Megabytes. It is clean, explicit, and easy to
+//   read.
 
 ---
+
 ### Slide 32: eBPF Framework Landscape (Speaker Notes)
 
+Before move on, how to develop and deploy eBPF applications: 
+
+The  tooling ecosystem has evolved significantly over the last few years.
+Starting as a primarily tracing and debugging tools it has gradually matured into 
+production-ready application frameworks.
+
+### Slide 33: eBPF Framework Landscape (Speaker Notes)
 
 **[Introduction]**
-- Let us look at how eBPF tools have changed over time. There are three main generations of eBPF
+- When we look at how eBPF tools have changed over time. There are three main generations of eBPF
   development tools.
 
 **[Generation 1: BCC and bpftrace]**
@@ -1523,9 +1565,9 @@ read.
 
 **[Generation 2: libbpf + CO-RE]**
 - Generation 2 introduced `libbpf` and CO-RE, which stands for Compile Once, Run Everywhere. With this
-  method, you compile the eBPF code ahead of time on your development laptop.
+  method, we compile the eBPF code ahead of time on your development laptop.
 
-- The compiled ELF file includes BTF type information. When you load the program, `libbpf` reads the
+- The compiled ELF file includes BTF type information. When we load the program, `libbpf` reads the
   running kernel's BTF data and adjusts the memory offsets automatically. This allows you to ship a
   very small pre-compiled object file and a small shared library (`.so`). You no longer need a compiler
   on your embedded target.
@@ -1544,22 +1586,19 @@ Our focus is on Aya because it gives us a single, safe, unified toolchain using 
 bottom.
 
 ---
-### Slide 33: What Popular Projects Use — And Why It Matters for Your Team (Speaker Notes)
+### Slide 34: What Popular Projects Use — And Why It Matters for Your Team (Speaker Notes)
 
 **[The Big Industry Trend]**
-- Let us look at how the largest software companies use eBPF today. This will help us understand why
-  choosing the right framework is important for our own team.
+- When we look at how the largest software companies use eBPF today. It  help us understand why
+  choosing the right framework is important:
 
 **[Cilium: The Industry Standard]**
-- Cilium is the most popular project for production eBPF in large data centers. It handles network
-  traffic and security at a massive scale.
+- Cilium is the most popular project for production eBPF in large data centers. 
+  It handles network traffic and security 
 
-- Cilium uses **C** for its kernel code, but it uses Go for its user-space loader. Crucially, Cilium does
-  **not** use the traditional **C** `libbpf.so` library at runtime. Instead, they built their own pure Go
-  library (`cilium/ebpf`) to load the bytecode and manage maps.
-
-- In 2025, engineers even proved that an eBPF kernel program written in Rust using Aya can work perfectly
-  with Cilium’s Go loader.
+- Cilium uses **C** for its kernel code, but it uses Go for its user-space loader. 
+  Cilium does **not** use the traditional **C** `libbpf.so` library at runtime. 
+  Instead, they built their own pure Go  library (`cilium/ebpf`) to load the bytecode and manage maps.
 
 - The main lesson for our team is this: the industry is moving away from shared **C** libraries like
   `libbpf.so`. Modern systems prefer language-native loaders. Cilium chose Go for this purpose. For our
@@ -1568,21 +1607,24 @@ bottom.
 **[Aya in Real-World Production]** The table shows other major infrastructure projects that use the Rust
 and Aya stack today:
 
-* **Red Hat bpfman:** This tool manages the lifecycle of eBPF programs on a system, acting like `systemd`
-  but for BPF code. It is built completely with Rust and Aya.
+* **Red Hat bpfman:**  A tool that manages the lifecycle of eBPF programs on a system, acting like `systemd`  but for BPF code. It is built completely with Rust and Aya.
+
 * **Deepfence ebpfguard:** This tool checks security policies inside the kernel using Linux Security
   Modules (LSM). By using Aya, they wrote the entire system in Rust with no **C** code required.
+
 * **K8s Blixt:** A high-performance network load balancer that runs its fast data path in Rust using XDP.
 
-**[Why These Projects Chose Aya]** All of these modern projects chose Aya for the exact same reasons:
 
-1. **Unified Safety:** They wanted type safety that spans across both the kernel code and the user-space
-code.
-2. **Simple Deployment:** They wanted a single binary file that they can deploy easily, without worrying
-about external runtime **C** library dependencies.
-
-Older tools like Tracee and Falco still use the traditional **C** and `libbpf` design. But new infrastructure
-projects are choosing Rust and Aya for safer and cleaner operations.
+//    **[Why These Projects Chose Aya]** All of these modern projects chose Aya for the exact same reasons:
+//
+//    1. **Unified Safety:** They wanted type safety that spans across both the kernel code and the user-space
+//    code.
+//    2. **Simple Deployment:** They wanted a single binary file that they can deploy easily, without worrying
+//    about external runtime **C** library dependencies.
+//
+//    Older tools like Tracee and Falco still use the traditional **C** and `libbpf` design. But new infrastructure
+//    projects are choosing Rust and Aya for safer and cleaner operations.
+//
 
 ---
 
@@ -1591,11 +1633,11 @@ projects are choosing Rust and Aya for safer and cleaner operations.
 **[Transition]**
 Let us look closer at the modern eBPF workflow. We will focus on CO-RE, which means Compile Once, Run Everywhere.
 
-This part is more specific to our current approach to eBPF
+This part is more specific to our current approach to eBPF programming with Aya.
 
 ---
 
-### Slide 35: Why CO-RE Matters for BSP Teams (Speaker Notes)
+### Slide 35: Why CO-RE  ( Matters for BSP Teams) (Speaker Notes)
 
 **[The Problem: Different Kernel Versions]**
 Typically our development spans different HW designs running OWRT, Yocto, Android. These devices run
@@ -1629,10 +1671,14 @@ exactly.
 **[Target Requirements]** To use this feature, the target kernel must be compiled with the option
 `CONFIG_DEBUG_INFO_BTF=y`.
 
-Today, this option is enabled by default in all standard Linux distributions and all Android Generic
-Kernel Images (GKI) starting from Android 12. For Android BSP deployment, this means one single compiled
-eBPF file runs perfectly on all devices, no matter the phone manufacturer or kernel changes. You do not
-need multiple sets of kernel headers, and you do not need to recompile code on the device.
+eBPF programs written with libbpf support  CO-RE. 
+Aya also supports CORE but its does not rely on libbpf for CO-RE support. 
+
+
+// Today, this option is enabled by default in all standard Linux distributions and all Android Generic
+// Kernel Images (GKI) starting from Android 12. For Android BSP deployment, this means one single compiled
+// eBPF file runs perfectly on all devices, no matter the phone manufacturer or kernel changes. You do not
+// need multiple sets of kernel headers, and you do not need to recompile code on the device.
 
 --- 
 
@@ -1643,7 +1689,6 @@ Here are the speaker notes for this slide, using simple, direct English tailored
 ---
 
 ### Slide 36: 6.2: libbpf Workflow — The Five Stages (Speaker Notes)
-
 
 **[The Traditional 5-Stage Process]**
 
@@ -1724,7 +1769,6 @@ Both your kernel eBPF program and your user-space loader import this exact same 
 This is one of the biggest advantages of using Aya. It gives you true type safety across the kernel and user-space boundary.
 
 ---
-
 ### Slide 39: 8: The Bytecode Generation Question (Speaker Notes)
 
 
@@ -1765,7 +1809,55 @@ This is one of the biggest advantages of using Aya. It gives you true type safet
   system calls, making it clean, fast, and completely independent of external **C** libraries.
 
 ---
-### Slide 40: 9.0: Rust Approaches — libbpf-rs and Aya (Speaker Notes)
+
+
+### Slide 40: 8: execution models 
+
+This diagram compares a traditional libbpf-based workflow with an Aya-based Rust workflow.
+
+- Rust changes the developer experience, not the eBPF execution model.
+
+- If we look at the right side of the diagram, the "load-time" behavior is essentially the same.
+
+- Both approaches rely on CO-RE.
+
+- Both consume BTF information from the running kernel.
+
+- Both perform relocations at load time.
+
+- Both generate adjusted BPF bytecode.
+
+- Both ultimately go through exactly the same kernel verifier.
+
+
+From the kernel's perspective, there is no distinction between a program generated from C and one generated from Rust.
+
+- The verifier only sees BPF instructions.
+
+
+The interesting differences are on the build and userspace side.
+
+- In the libbpf workflow, the eBPF program is typically written in C and compiled using Clang.
+- The userspace loader is built around libbpf APIs.
+- In the Aya workflow, the eBPF program is written in Rust and compiled using the Rust toolchain together with the BPF linker.
+- The userspace loader is also written in Rust using Aya libraries.
+
+
+This gives us a more consistent development model.
+
+- The same language.
+- The same package manager.
+- The same dependency management.
+
+
+So if you already understand libbpf and CO-RE, you already understand most of Aya's runtime architecture.
+
+The main thing that changes is the developer-facing tooling.
+
+The takeaway from this diagram is that Aya adopts the proven deployment model established by libbpf and CO-RE, while replacing much of the development experience with Rust-native tooling.
+
+---
+### Slide 41: 9.0: Rust Approaches — libbpf-rs and Aya (Speaker Notes)
 
 **(Visual: Section 9 Title Slide)**
 
@@ -1776,7 +1868,7 @@ Let us look at the differences between a tool called `libbpf-rs` and the framewo
 
 ---
 
-### Slide 41: 9.1: Two Distinct Strategies (Speaker Notes)
+### Slide 42: 9.1: Two Distinct Strategies (Speaker Notes)
 
 **[Strategy 1: libbpf-rs]**
 The first option is `libbpf-rs`. This tool acts as a bridge or a wrapper over the traditional **C** code.
@@ -1825,7 +1917,7 @@ We will see its internal architecture and how its different parts map to the old
 ### Slide 43: 10.1: Architecture and Component Map (Speaker Notes)
 
 Look at the architecture map on the slide. Aya splits its components into two clear halves: user space at
-the top, and kernel space at the bottom.
+the top, and kernel space on the right.
 
 Let us review the user-space components first:
 
@@ -1839,7 +1931,7 @@ Let us review the user-space components first:
   removes our need for the `libelf.so` library.
 * **`aya-log`** receives real-time print messages sent from the kernel.
 
-Now look at the kernel-space components at the bottom:
+Now look at the kernel-space components at the right:
 
 * **Your BPF program** uses `#![no_std]` because it runs inside the kernel.
 * **`aya-ebpf`** provides the core code runtime for the kernel side, including macros like `#[xdp]` and
@@ -2014,17 +2106,17 @@ You do not need separate build steps, automation scripts, or Makefiles. A single
 builds everything.
 
 --- 
-### Slide 49: 13.0: How Rust Simplifies eBPF (Speaker Notes)
-
-Now that we have seen the complex setup and manual cleanup required by the traditional **C** toolchain, let us
-look at how Aya utilizes Rust's native language features to eliminate these pain points.
-
-This slide breaks down six core advantages that make Aya safer, cleaner, and much more reliable for
-production environments.
+// ### Slide 49: 13.0: How Rust Simplifies eBPF (Speaker Notes)
+//
+//  Now that we have seen the complex setup and manual cleanup required by the traditional **C** toolchain, let us
+//  look at how Aya utilizes Rust's native language features to eliminate these pain points.
+//
+//  This slide breaks down six core advantages that make Aya safer, cleaner, and much more reliable for
+//  production environments.
 
 ---
 
-### Slide 50: 13.1: Six Safety and Ergonomic Advantages of Aya (Speaker Notes)
+### Slide 49: 13.1: Rust features that make eBPF programming safe and cleaner (Speaker Notes)
 
 **[1. Shared Common Crate]** First, as we touched on earlier, Aya eliminates the boundary risk between
 kernel space and user space. By defining a structure like `DmaEvent` once inside a shared `no_std` common

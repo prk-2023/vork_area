@@ -1277,24 +1277,26 @@ cargo test        # unit tests
 
 == What is eBPF: 
 #cols[
-  *The model in one sentence*
+  *The eBPF model * 
 
-  eBPF lets you load user-supplied programs into the kernel *without a kernel patch, without a module, and without rebooting*, the kernel verifier guarantees safety, the programs are attached to *hook points* allowing them to execute efficiently when those events occur.
+  *Note* : Rust changes the developer experience, not the eBPF execution model.
 
-  *The four-step contract*
+  Lets you load user supplied programs into the kernel *without a kernel patch, without a module, and without rebooting*, the kernel verifier guarantees safety, the programs are attached to *hook points* allowing them to execute efficiently when those events occur.
 
-  1. *Write* — BPF bytecode (from C or Rust source)
-  2. *Verify* — kernel verifier: bounded loops, no OOB, type-checked
-  3. *JIT* — native machine code; zero interpreter overhead after load
-  4. *Attach* — hook point (kprobe, tracepoint, XDP, LSM, …) fires on event
+  *The four step lifecycle*
+
+  1. *Write* : BPF bytecode (from C or Rust source)
+  2. *Verify* : kernel verifier: bounded loops, no OOB, type-checked
+  3. *JIT* : native machine code; zero interpreter overhead after load
+  4. *Attach* : hook point (kprobe, tracepoint, XDP, LSM, …) fires on event
 
   #callout[
-    If the verifier accepts the program, it *cannot* crash the kernel, infinite-loop, or access out-of-bounds memory. This is a formal proof, not a heuristic.
+    If the verifier accepts the program, it *cannot* crash the kernel, infinite-loop, or access out-of-bounds memory. 
   ]
 ][
   #image("./imgs/eBPF-fw.png",height:45%)
  
-  *Hook types your team uses*
+  *Hook types that are used*
 
   #table(
     columns: (auto, 1fr),
@@ -1302,7 +1304,7 @@ cargo test        # unit tests
     inset: (y: 5pt),
     [`kprobe` / `kretprobe`], [any kernel function entry/return],
     [`tracepoint`], [stable kernel trace points],
-    [`tp_btf`], [typed tracepoints — CO-RE friendly],
+    // [`tp_btf`], [typed tracepoints — CO-RE friendly],
     [`perf_event`], [hardware PMU counters],
     [`xdp`], [NIC fast path — pre network stack],
     [`lsm`], [Linux Security Module hooks],
@@ -1311,7 +1313,7 @@ cargo test        # unit tests
   )
 ]
 
-== eBPF maps — the data bridge
+== eBPF maps ( the data bridge )
 
 #cols[
   *Maps = the only I/O channel for BPF programs*
@@ -1333,18 +1335,20 @@ cargo test        # unit tests
     [`ARRAY`], [fixed-size indexed data],
   )
 ][
-  *Ring buffer — the preferred choice*
+  *Ring buffer : the preferred choice*
 
   #ref-badge[Introduced: Linux 5.8 — BPF_MAP_TYPE_RINGBUF]
 
-  - Variable-length records — no fixed-size overhead
-  - Single contiguous allocation — cache-friendly
-  - `epoll` / `AsyncFd` compatible — Tokio-native in Aya
+  - Variable-length records : no fixed-size overhead
+  - Single contiguous allocation : cache-friendly
+  - `epoll` / `AsyncFd` compatible : Tokio-native in Aya
   - Dropped-event counter exposed to userspace for monitoring
   - *In Aya*: `#[map] static EVENTS: RingBuf = RingBuf::with_byte_size(4 * 1024 * 1024, 0);`
 
   #callout[
-    Prefer `RINGBUF` over `PERF_EVENT_ARRAY` for all new work — lower overhead, simpler consumer, no per-CPU complexity.
+    - If eBPF programs are microservices running in the kernel, maps are their IPC mechanism.
+    //- Because eBPF maps are built directly out of native kernel memory structures, eBPF programs can read and write to them using super-fast helper functions (bpf_map_lookup_elem, bpf_map_update_elem). The communication happens at the L1/L2 cache level of the CPU, making it arguably the fastest IPC mechanism available on a Linux system.
+    //Prefer `RINGBUF` over `PERF_EVENT_ARRAY` for all new work : lower overhead, simpler consumer, no per-CPU complexity.
   ]
 ]
 
@@ -1371,6 +1375,9 @@ cargo test        # unit tests
   #callout(color: warn-amber)[
     BCC/bpftrace are *development tools*, not deployment solutions. They require the full build toolchain on the production target.
   ]
+  #callout(color: safe-green)[
+    - The value proposition of Aya is not just Rust. It is the ability to build, test, package, and maintain eBPF applications across many embedded products.
+  ]
 ][
   *Generation 2 — libbpf + CO-RE*
   #ref-badge("libbpf") #ref-badge("CO-RE") #ref-badge("BTF")
@@ -1389,7 +1396,7 @@ cargo test        # unit tests
   - libbpf-rs: Rust *bindings to libbpf* (not a reimplementation)
 ]
 
-== What popular projects use — and why it matters for your team
+== What popular projects use 
 
 #cols[
   *Cilium — the reference for production eBPF at scale*
@@ -1400,9 +1407,9 @@ cargo test        # unit tests
   - Tetragon (Cilium's runtime security tool): same stack — eBPF C + Go loader
   - eBPF Summit 2025 Hackathon: a proof-of-concept combining Aya (BPF kernel code in Rust) with Cilium's Go loader was a winning entry — showing the two worlds can interoperate
 
-  *Key take-away for your team:* the industry trend is toward *language-native loaders that avoid libbpf.so* at runtime. Cilium chose Go; Aya is the Rust equivalent.
+  *Key takeaway:* the industry trend is toward *language-native loaders that avoid libbpf.so* at runtime. Cilium chose Go; Aya is the Rust equivalent.
 ][
-  *Other production users that inform the choice*
+  *Other production users *
 
   #table(
     columns: (auto, auto, 1fr),
@@ -1416,9 +1423,9 @@ cargo test        # unit tests
     [Falco], [C + libbpf], [syscall monitoring; traditional stack],
   )
 
-  #callout(color: ebpf-teal)[
-    The three projects using Aya in production — bpfman, ebpfguard, Blixt — all share the same motivation: *type safety across the kernel/userspace boundary* and *single-binary deployment without runtime C library dependencies*.
-  ]
+  // #callout(color: ebpf-teal)[
+  //   The three projects using Aya in production — bpfman, ebpfguard, Blixt — all share the same motivation: *type safety across the kernel/userspace boundary* and *single-binary deployment without runtime C library dependencies*.
+  // ]
 ]
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1426,12 +1433,13 @@ cargo test        # unit tests
 // ─────────────────────────────────────────────────────────────────────────────
 = libbpf + CO-RE — The Reference Workflow
 
-== Why CO-RE matters for BSP teams
+== Why CO-RE 
 
 #cols[
   *The kernel fragmentation problem*
 
-  Your BSP ships to multiple OEMs, each running different kernel versions — 5.15 LTS, 6.1 LTS, 6.6 LTS, plus OEM patches. Internal struct layouts differ between versions:
+  Typical development spans different HW designs running different kernel version on different distrs ( OWRT, Yocto, Android ), 5.15 LTS, 6.1 LTS, 6.6 LTS, plus OEM patches. 
+  Internal struct layouts differ between versions:
 
   ```
   Kernel 5.15:  struct task_struct { …pid at offset 0x2C8… }
@@ -1463,12 +1471,12 @@ cargo test        # unit tests
 
   *Requirement:* `CONFIG_DEBUG_INFO_BTF=y` in the target kernel. This is standard in all GKI kernels (Android 12+) and most recent distro kernels.
 
-  #callout[
-    *For Android BSP distribution*: one compiled binary runs on all OEM GKI variants. No per-OEM kernel header sets. No recompilation on the device. This is the decisive reason CO-RE was adopted.
-  ]
+  // #callout[
+  //   *For Android BSP distribution*: one compiled binary runs on all OEM GKI variants. No per-OEM kernel header sets. No recompilation on the device. This is the decisive reason CO-RE was adopted.
+  // ]
 ]
 
-== libbpf workflow — the five stages
+== libbpf workflow 
 
 #grid(
   columns: (1fr, 0.07fr, 1fr, 0.07fr, 1fr, 0.07fr, 1fr, 0.07fr, 1fr),
@@ -1510,8 +1518,8 @@ cargo test        # unit tests
   *Dependencies required on the target*
 
   - `libbpf.so` (or statically linked `libbpf.a`)
-  - `libelf.so` — required by libbpf
-  - `libz.so` — required by libelf
+  - `libelf.so` : required by libbpf
+  - `libz.so` : required by libelf
   - The pre-compiled `program.bpf.o` file *or* embedded via skeleton
 
   *Teardown discipline (C)*
@@ -1524,7 +1532,7 @@ cargo test        # unit tests
   ```
 
   #callout(color: warn-amber)[
-    *The target-side library dependency chain* — libbpf → libelf → libz — is the friction point for embedded Linux, Android, and custom BSPs where controlling the runtime library set is important.
+    *The target-side library dependency chain* → libbpf → libelf → libz : is the friction point for embedded Linux, Android, and custom BSPs where controlling the runtime library set is important.
   ]
 ]
 
@@ -1546,7 +1554,7 @@ cargo test        # unit tests
 
   *`no_std` alignment*
 
-  eBPF programs run with no kernel library, no allocator, no OS primitives. Rust's `#![no_std]` mode is the natural target — `aya-ebpf` provides the BPF-side runtime (`bpf_helpers`, map types, program macros) without any standard library dependency.
+  eBPF programs run with no kernel library, no allocator, no OS primitives. Rust's `#![no_std]` mode is the natural target : `aya-ebpf` provides the BPF-side runtime (`bpf_helpers`, map types, program macros) without any standard library dependency.
 ][
   *Type safety across the kernel boundary*
 
@@ -1565,7 +1573,7 @@ cargo test        # unit tests
   *Aya's solution*: one `#[no_std]` *common crate*, compiled for both targets. The struct is defined *once*. Layout disagreement is a *compile error*, not a runtime bug.
 
   #callout(color: rust-red)[
-    This is the highest-value safety property of Rust for eBPF — not just memory safety in the BPF program, but *type-safe communication across the kernel/userspace boundary*.
+    This is the highest-value safety property of Rust for eBPF : not just memory safety in the BPF program, but *type-safe communication across the kernel/userspace boundary*.
   ]
 ]
 
@@ -1617,10 +1625,30 @@ cargo test        # unit tests
   ]
 ]
 
+== execution models 
+#cols[
+  - Rust changes the developer experience, not the eBPF execution model.
+    - Both approaches rely on CO-RE.
+    - Both consume BTF information from the running kernel.
+    - Both perform relocations at load time.
+    - Both generate adjusted BPF bytecode.
+    - Both go through exactly the same kernel verifier.
+
+  - kernel's perspective: No distinction between a program generated from C and Rust.
+
+  - Aya is not a new eBPF architecture; it's a new way to build against the existing eBPF architecture.
+
+][
+  #callout[
+    #image("./imgs/libbpf.png", height: 36%) #image("./imgs/aya.png", height: 36%)
+  ]
+]
+
+
 // ─────────────────────────────────────────────────────────────────────────────
 //  5. RUST APPROACHES: libbpf-rs vs Aya
 // ─────────────────────────────────────────────────────────────────────────────
-= Rust Approaches — libbpf-rs and Aya
+= Rust Approaches : libbpf-rs and Aya
 
 == Two distinct strategies
 
@@ -1755,12 +1783,9 @@ cargo test        # unit tests
     [`common crate`], [manually-matched C header in both files],
   )
 
-  #callout(color: ebpf-teal)[
-    *Zero C runtime dependencies on the target.* The entire stack is Rust + one `bpf()` syscall. `aya-obj` implements its own ELF and BTF parser — no `libelf.so` needed.
-  ]
 ]
 
-== Aya for embedded and Android — the musl advantage
+== Aya for embedded and Android : the musl advantage
 
 #cols[
   *The deployment problem on embedded / Android targets*
@@ -1774,7 +1799,7 @@ cargo test        # unit tests
   ```
 
   On Android or a minimal embedded rootfs:
-  - `libelf` is often absent — it's a development library
+  - `libelf` is often absent : it's a development library
   - `libbpf` version may not match what you compiled against
   - Android's linker namespace rules may prevent loading unrecognised shared libraries
   - A `system_ext` partition APK distributing a native `.so` chain is a maintenance burden
@@ -2004,11 +2029,11 @@ cargo test        # unit tests
   ),
 )
 
-== BPF program side — key patterns
+== BPF program side : key patterns
 
 #cols[
 
-  #text(size: 0.65em, weight: "bold", fill: rust-red, "C / libbpf — BPF program ")
+  #text(size: 0.65em, weight: "bold", fill: rust-red, "C / libbpf : BPF program ")
   #codebox(
 ```c
 
@@ -2048,7 +2073,7 @@ pub fn dma_map_sg_enter(ctx: ProbeContext) -> u32 {
 ```
 )]
 
-== Userspace side — load, attach, consume
+== Userspace Loader : load, attach, consume
 
 #cols[
   #text(size: 0.65em, weight: "bold", fill: rust-red, "C / libbpf — userspace loader")
