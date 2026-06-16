@@ -106,7 +106,7 @@
   ]
 ]
 
-== The cost of the status quo — in numbers
+== The cost of the status quo ( CVE's statistics )
 #cols(
   [
   *Industry-wide memory safety statistics*
@@ -150,8 +150,9 @@ ratio: (0.8fr, 1.2fr),
 
 // Three dashes (---) create a new slide while keeping the same title
 //== Fix for the status quo:
---- 
- Fix for the status quo:
+== How Rust addresses the CVE Pattern
+
+#text(size: 22pt)[_Fix for the CVE status quo_ :]
 
   // Using our custom callout box with the accent bar
   #callout[
@@ -732,56 +733,61 @@ Lifetimes are the compiler's mechanism for proving that *every reference is vali
 //  ----------------------------------
 //  5. THE TYPE SYSTEM AS A SECURITY TOOL
 //  ----------------------------------
-= The Type System as a Security Tool
+// = The Type System as a Security Tool
 
-== `Send` and `Sync` — thread safety in the type
+// == `Send` and `Sync` — thread safety in the type
+//
+// #cols[
+//   *Two marker traits, zero runtime cost*
+//
+//   - `Send`: a type can be safely *moved* to another thread
+//   - `Sync`: a type can be safely *shared* between threads via `&T`
+//   - Both are compile-time properties — no vtable, no runtime check
+//
+//   *Automatic, conservative derivation*
+//
+//   - `Rc<T>` — *not* `Send` (non-atomic refcount). The compiler refuses to let it cross a thread boundary.
+//   - `Arc<T>` — `Send` + `Sync` (atomic refcount). Safe to share.
+//   - `Cell<T>` — *not* `Sync` (interior mutability without lock).
+//   - `Mutex<T>` — `Sync` because `lock()` serialises access.
+//
+//   #callout[
+//     Any type you write is automatically *not* `Send` + `Sync` unless all its fields are. This means the *safe default is conservative* — you opt in to thread sharing, you don't opt out of races.
+//   ]
+// ][
+//   *Why this matters *
+//
+//   ```rust
+//   // Per-CPU data structure — must not cross CPU boundary
+//   struct PerCpuDmaStats {
+//       count: u64,
+//       total_ns: u64,
+//   }
+//   // PerCpuDmaStats contains no Sync interior mutability
+//   // → it is NOT Sync → compiler refuses global shared access
+//
+//   // To share across CPUs: wrap in the correct primitive
+//   use std::sync::Arc;
+//   use kernel::sync::SpinLock;
+//
+//   static SHARED: Arc<SpinLock<PerCpuDmaStats>> = …;
+//
+//   // SpinLock<T> is Sync — its lock() method serialises.
+//   // You cannot access the data without the guard.
+//   // The guard is the only path to the inner T.
+//   ```
+//
+//   In C: `/* must hold dma_stats_lock before accessing */` — a comment. In Rust: a compile error if the lock is not held — because the data is not reachable without it.
+// ]
 
-#cols[
-  *Two marker traits, zero runtime cost*
+=  Strict Types and Explicit Boundaries
 
-  - `Send`: a type can be safely *moved* to another thread
-  - `Sync`: a type can be safely *shared* between threads via `&T`
-  - Both are compile-time properties — no vtable, no runtime check
-
-  *Automatic, conservative derivation*
-
-  - `Rc<T>` — *not* `Send` (non-atomic refcount). The compiler refuses to let it cross a thread boundary.
-  - `Arc<T>` — `Send` + `Sync` (atomic refcount). Safe to share.
-  - `Cell<T>` — *not* `Sync` (interior mutability without lock).
-  - `Mutex<T>` — `Sync` because `lock()` serialises access.
-
-  #callout[
-    Any type you write is automatically *not* `Send` + `Sync` unless all its fields are. This means the *safe default is conservative* — you opt in to thread sharing, you don't opt out of races.
-  ]
-][
-  *Why this matters *
-
-  ```rust
-  // Per-CPU data structure — must not cross CPU boundary
-  struct PerCpuDmaStats {
-      count: u64,
-      total_ns: u64,
-  }
-  // PerCpuDmaStats contains no Sync interior mutability
-  // → it is NOT Sync → compiler refuses global shared access
-
-  // To share across CPUs: wrap in the correct primitive
-  use std::sync::Arc;
-  use kernel::sync::SpinLock;
-
-  static SHARED: Arc<SpinLock<PerCpuDmaStats>> = …;
-
-  // SpinLock<T> is Sync — its lock() method serialises.
-  // You cannot access the data without the guard.
-  // The guard is the only path to the inner T.
-  ```
-
-  In C: `/* must hold dma_stats_lock before accessing */` — a comment. In Rust: a compile error if the lock is not held — because the data is not reachable without it.
-]
+#text(size: 0.8em, fill: black.lighten(45%))[· Option \ · Result \ · match \ · unsafe block] 
 
 == `Option<T>` — null pointer elimination
 
-Null pointer dereferences account for a significant share of kernel crashes. Rust's type system eliminates the possibility by making "might be absent" explicit in the type.
+- Null pointer dereferences account for a significant share of kernel crashes. 
+- Rust's type system eliminates the possibility by making "might be absent" explicit in the type.
 
 #vs(
 ```c
@@ -852,17 +858,18 @@ let base = match res {
   };
   ```
 
-  - No exceptions — no hidden control flow
-  - No `longjmp` — no stack unwinding surprise
-  - The error path is *explicit, local, and grep-able*
+  // - No exceptions — no hidden control flow
+  // - No `longjmp` — no stack unwinding surprise
+  // - The error path is *explicit, local, and grep-able*
   - Every early return is a `?` — auditable in code review
 
   #callout(color: safe-green)[
-    The Linux kernel style guide recommends checking every return value. Rust makes non-checking a *compiler warning by default*.
+    - The Linux kernel style guide recommends checking every return value. (`checkpatch.pl` script warn for unchecked return values.)
+    - Rust makes non-checking a *compiler warning by default*.
   ]
 ]
 
-== Exhaustive `match` — no silent enum gaps
+== Exhaustive `match` — no enum gaps
 
 #cols[
   *The C `switch` silent-default problem*
@@ -1092,7 +1099,7 @@ let base = match res {
 //  -------------------
 //  7. Compiler Checks:
 //  -------------------
-= Compiler Checks : Beyond Memory safety:
+= Compiler Checks : Memory safety:
 
 == What the Rust compiler verifies at every build
 
@@ -1171,15 +1178,14 @@ let base = match res {
 ][
   *The ecosystem signal: Rust is reshaping every layer*
 
-  - *These slides* — written in *Typst*, which is itself written in Rust
-  - *ripgrep* (`rg`) — faster `grep`, written in Rust #ref-badge[github.com/BurntSushi/ripgrep]
-  - *fd* — faster `find`
-  - *Ruff* — Python linter, 10–100× faster than pylint #ref-badge[astral.sh/ruff]
-  - *uv* — Python package manager, replaces pip
-  - *swc* — JS/TS compiler, 70× faster than Babel
-  - *Cloudflare Pingora* — HTTP proxy serving 1 trillion requests/day #ref-badge[Cloudflare Blog 2022]
-  - *AWS Firecracker* — microVM hypervisor powering Lambda + Fargate #ref-badge[NSDI 2020]
-  - *Android 16* — kernel 6.12, `ashmem` allocator in Rust — production on millions of devices
+  - *These slides* : written in *Typst* a typesetting system, which is itself written in Rust.
+  - *ripgrep* (`rg`) : faster `grep`, written in Rust #ref-badge[github.com/BurntSushi/ripgrep]
+  - *fd* : faster `find`
+  - *Ruff* : Python linter, 10–100× faster than pylint #ref-badge[astral.sh/ruff]
+  - *uv* : Python package manager, replaces pip
+  - *Cloudflare Pingora* : HTTP proxy serving 1 trillion requests/day #ref-badge[Cloudflare Blog 2022]
+  - *AWS Firecracker* : microVM hypervisor powering Lambda + Fargate #ref-badge[NSDI 2020]
+  - *Android 16* : kernel 6.12, `ashmem` allocator in Rust — production on millions of devices
 
   #callout(color: safe-green)[
     The meta-point for this audience: *the tool generating these slides is written in Rust*. The language has escaped "systems niche" and is reshaping the entire software toolchain stack.
