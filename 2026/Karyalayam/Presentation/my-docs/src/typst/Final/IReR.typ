@@ -1636,7 +1636,7 @@ cargo test        # unit tests
 
   - kernel's perspective: No distinction between a program generated from C and Rust.
 
-  - Aya is not a new eBPF architecture; it's a new way to build against the existing eBPF architecture.
+  - *Aya is not a new eBPF architecture*; it's a new way to build against the existing eBPF architecture.
 
 ][
   #callout[
@@ -1960,9 +1960,9 @@ cargo test        # unit tests
   block(fill: rust-red.lighten(92%), stroke: 0.5pt + rust-red.lighten(50%),
     radius: 5pt, inset: 10pt,
     stack(dir: ttb, spacing: 5pt,
-      text(weight: "bold", size: 0.75em, fill: rust-red,
+      text(weight: "bold", size: 0.90em, fill: rust-red,
         "1. Shared common crate — type-safe boundary"),
-      text(size: 0.67em)[
+      text(size: 0.81em)[
         `DmaEvent` defined once in `common/src/lib.rs` with `#[repr(C)]`. Compiled for `bpfel-unknown-none` (no_std) and host (std). Struct layout mismatch is a *compile error*, not a silent wrong result. The same `comm: [u8; 16]` field is correctly sized and aligned on both sides — always.
       ],
     )
@@ -1972,9 +1972,9 @@ cargo test        # unit tests
   block(fill: rust-red.lighten(92%), stroke: 0.5pt + rust-red.lighten(50%),
     radius: 5pt, inset: 10pt,
     stack(dir: ttb, spacing: 5pt,
-      text(weight: "bold", size: 0.75em, fill: rust-red,
+      text(weight: "bold", size: 0.90em, fill: rust-red,
         "2. RAII attachment handles — guaranteed teardown"),
-      text(size: 0.67em)[
+      text(size: 0.81em)[
         `prog.attach(…)?` returns a typed handle implementing `Drop`. When the handle goes out of scope — on any exit path, including `?` propagation or panic — the BPF link fd is closed and the program detached. No `skel__detach()` to forget. No leaked attachment if the consumer loop exits early.
       ],
     )
@@ -1984,9 +1984,9 @@ cargo test        # unit tests
   block(fill: ebpf-teal.lighten(92%), stroke: 0.5pt + ebpf-teal.lighten(50%),
     radius: 5pt, inset: 10pt,
     stack(dir: ttb, spacing: 5pt,
-      text(weight: "bold", size: 0.75em, fill: ebpf-teal,
+      text(weight: "bold", size: 0.90em, fill: ebpf-teal,
         "3. Result<T,E> + ? — no silent load failures"),
-      text(size: 0.67em)[
+      text(size: 0.81em)[
         Every Aya call returns `Result<T, Error>`. `Ebpf::load(bytes)?` will not silently continue if the BPF ELF is malformed or the kernel rejects the program. The `?` operator propagates the error immediately with source location. In C: `skel__load(skel)` returns `int` — easy to ignore.
       ],
     )
@@ -1996,9 +1996,9 @@ cargo test        # unit tests
   block(fill: ebpf-teal.lighten(92%), stroke: 0.5pt + ebpf-teal.lighten(50%),
     radius: 5pt, inset: 10pt,
     stack(dir: ttb, spacing: 5pt,
-      text(weight: "bold", size: 0.75em, fill: ebpf-teal,
+      text(weight: "bold", size: 0.90em, fill: ebpf-teal,
         "4. Async ring buffer — epoll without callbacks"),
-      text(size: 0.67em)[
+      text(size: 0.81em)[
         `AsyncFd<RingBuf>` integrates with Tokio's event loop natively. The consumer `loop { select! { guard = async_fd.readable() => { … } } }` is structured flow — not a C callback (`ring_buffer__poll` + `handle_event` function pointer). State between events is naturally owned by the async task. No global callback context pointer needed.
       ],
     )
@@ -2008,9 +2008,9 @@ cargo test        # unit tests
   block(fill: safe-green.lighten(92%), stroke: 0.5pt + safe-green.lighten(50%),
     radius: 5pt, inset: 10pt,
     stack(dir: ttb, spacing: 5pt,
-      text(weight: "bold", size: 0.75em, fill: safe-green,
+      text(weight: "bold", size: 0.90em, fill: safe-green,
         "5. Typed program kinds — no runtime mismatches"),
-      text(size: 0.67em)[
+      text(size: 0.81em)[
         `bpf.program_mut("name")?.try_into::<KProbe>()` — the downcast is explicit and returns `Err` if the program type does not match. Calling `attach()` on a `KProbe` handle only accepts kprobe-valid arguments. In C: `bpf_program__attach()` is untyped; wrong hook arguments silently fail or attach to the wrong point.
       ],
     )
@@ -2020,9 +2020,9 @@ cargo test        # unit tests
   block(fill: safe-green.lighten(92%), stroke: 0.5pt + safe-green.lighten(50%),
     radius: 5pt, inset: 10pt,
     stack(dir: ttb, spacing: 5pt,
-      text(weight: "bold", size: 0.75em, fill: safe-green,
+      text(weight: "bold", size: 0.90em, fill: safe-green,
         "6. aya-log — structured logging from BPF programs"),
-      text(size: 0.67em)[
+      text(size: 0.81em)[
         `info!(&ctx, "dma_map_sg: pid={} nents={}", pid, nents)` inside the BPF program writes to a dedicated ring buffer. The userspace `EbpfLogger::init(&mut bpf)` subscribes and routes to `env_logger` / `log` — the same logging infrastructure as the rest of the Rust application. No `bpf_printk()` parsing. No separate trace_pipe reader.
       ],
     )
