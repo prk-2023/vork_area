@@ -3,29 +3,31 @@
 
 Good afternoon. Today's topic is **Introduction to Rust and eBPF programming with Rust**.
 
-Before we begin, one important framing point.
+Before we begin, an important framing point:
 
 - In Modern computing infrastructure :
-    operating systems, drivers, firmware, networking stacks  are mostly built on **C**. 
-    Which is an outcome of 50+ years of successful engineering, and this talk is not an argument against it.
+
+    operating systems, drivers, firmware, networking stacks are mostly built using **C** language.
+    Which is an outcome of 50+ years of successful engineering. 
+    So today;s presentation is not an argument against it.
 
 - Rather I want to share how the systems programming landscape is evolving, and why Rust has caught the
   attention of OS vendors, silicon companies, cloud providers, and mainly the **Linux kernel community**
   itself.
 
-- The reason this became interesting to me personally: Rust moved from experimental to **officially
-  maintained** in the Linux kernel at the 2025 maintainer summit in Tokyo. That is the moment it shifted
-  from a curiosity to something worth understanding deeply.
+- The reason this became interesting is starting this year Rust moved from experimental to **officially
+  maintained**  status in the Linux kernel.  
+  That is shifts  curiosity, to something worth understanding deeply.
 
-- If you might have watched or read about Rust there are tons of them on youtube you would quickly realise
-  there are about 3 different perspectives, those who love rust, those who hate rust and rest skeptical
-  about it. ( as of the new released kernel version 7.1 there are already 350 rust source files in the
-  kernel infrastructure ). But we will not be talking about Rust for Linux kernel, as its a deserves a
+- With the latest kernel release 7.1: there are about 150 thousand lines or rust code.
+
+- In todays talk we will not be talking about Rust for Linux kernel, as its a deserves a
   separate presentation, and honestly I still have not played or worked with it. 
 
-- With this dual language support in the Kernel, understanding the key concepts of rust will be of help. 
-  In these presentation we will look at some of the key features and try to understand the language 
-  philosophy of Rust.
+- With this dual language support in the Kernel, understanding the key concepts of rust will be useful.
+
+  In these presentation we will look at some of the key Rust features and try to understand the language 
+  philosophy.
 
 // Offcourse with two languages we have additional trouble, how to maintain and what is the roadmap, if my
 // implementation is in sync with other language, can I benefit from this, can it help fix known issues.
@@ -49,11 +51,11 @@ A quick disclaimer before we go further.
   one that attempts  to solve specific, well-known problems.
 
 - Discussions about programming languages — especially in the Linux kernel community — can get very
-  opinionated, because engineers build strong trust in tools that have worked for them. I ask that we
-  approach this as a technical evaluation.
+  opinionated, because engineers build strong trust in tools that have worked for them. 
+  I request we  approach this as a technical evaluation.
 
-I will do my best to answer questions. As covering entire domain of a programming language is difficult, and 
-If I do not know, I will say so. 
+I will do my best to answer questions. 
+Covering entire domain of a programming language is difficult, and If I do not know, I will say so. 
 
 ---
 
@@ -61,15 +63,17 @@ If I do not know, I will say so.
 
 We divide today's talk into two sections.
 
+In
 **Part 1 — Rust as a systems language:** core design philosophy, memory model, compile-time safety
 guarantees, and how these properties relate to low-level development.
 
 **Part 2 — eBPF with Rust:** this is the part most relevant to your daily work. We look at Aya, a pure-Rust
-eBPF framework, compare it to the libbpf workflow your team already knows, and go through a working example.
+eBPF framework, compare it to the libbpf workflow and go through a working example.
 
-With time constraint and our technical sharing sessions have already covers eBPF, libbpf and CO-RE, 
-I will keep the eBPF fundamentals brief and spend most of our time on **how Rust changes the development 
-experience for the programs that we are already writing**.
+Earlier technical sharing session have already covered about what eBPF and the tooling for it. 
+
+I will keep the eBPF fundamentals brief and spend most of our time on 
+**how Rust changes the development experience for writing eBPF programs*.
 
 ---
 
@@ -80,8 +84,9 @@ experience for the programs that we are already writing**.
 Before getting into language features, let us first ask the right question: can Rust actually be used for
 systems programming, or is it a general-purpose language that happens to be fast?
 
-There is a real misconception here. Rust is frequently described as a general-purpose language, but its
-design constraints map precisely to what systems work requires. Let us verify that.
+There is a real misconception here. 
+Rust is frequently described as a general-purpose language, but its design constraints map precisely to 
+systems programming requirements. 
 
 ---
 
@@ -92,43 +97,49 @@ design constraints map precisely to what systems work requires. Let us verify th
 For any language to be  qualify as a systems programming language, it must satisfy three hard requirements:
 
 1. **Direct hardware access** : 
-    The language should provide a Direct HW such as accessing MMIO registers, DMA, interrupt controllers,
-    precise memory layout control that is it should give a direct interface with silicon with out any high
-    legel abstraction. 
+    The language should provide a Direct HW accessing such as reading and writing to MMIO registers, DMA, 
+    interrupt controllers, precise memory layout control, and importantly should give a direct interface 
+    with silicon with out any high level abstraction. 
+
     // The compiled coded must be as efficient as manual low-level implementation.
+
 2. **No managed runtime** : 
-    The language should use any garbage collector, or VM, or OS safety net underneath. 
+    The language should now use any garbage collector, or VM, or any other safety net underneath. 
     The language must be  safe to run in an ISR, or in early boot codes that run before the MMU is enabled,
     or on systems with very low resources such as 16 KB of RAM.
 
 3. **Load-bearing correctness** : ( when a bug occurs the effect should be contained )
     If there is a bug in systems they generally dont crash on one user session. Rather it will 
-    crashes the whole system corrupts flash, or silently miss delivers data to hardware.
+    crashes the whole system, corrupts flash, or silently miss delivers data to hardware.
 
-**How Rust maps to these:**
+**How Rust maps to these:** requirements
 
-A common question or misconception about Rust is because if focuses heavily on safety, it must hide the HW
+A common question or misconception about Rust: because if focuses heavily on safety, it must hide the HW
 or abstract away raw pointers. But in reality Rust compiles directly to native machine code via LLVM and
 provides explicit Zero-overhead primitives for bare-metal systems to work. 
 
 
-- `no_std` attribute instructs the compiler to strips the standard library completely, leaving only core language primitives. This is how Rust targets bare-metal, bootloaders, and kernel subsystems.
+- `no_std` attribute instructs the compiler to strips the standard library completely, leaving only core language primitives. 
+  This is how Rust targets bare-metal, bootloaders, and kernel subsystems.
 
-- `unsafe { }` is the explicit escape hatch for hardware interaction — raw pointer dereference, MMIO writes,
-  inline assembly. It is to note  that `unsafe` does not disable the compiler; it marks the boundary where the developer is taking direct responsibility.
-  These marking makes critical code base grepable. 
+- `unsafe { }` is the explicit escape hatch for hardware interaction allowing raw pointer dereference, 
+   MMIO writes,  inline assembly. 
+
+  It is to note  that `unsafe` does not disable the compiler; 
+  it marks the boundary where the developer is taking direct responsibility.
+
+  These marking makes critical code base grep-able. 
   // Basically it tells the compiler " I know the harware layout here and stop checking this specific block"
 
-- `asm!` macro provides first-class inline assembly. The syntax is cleaner than GCC's `__asm__ __volatile__`
-  constraints, and because it comes  as a part of Rust `core` — not `std` library — it is fully available
-  in `no_std` environments.
+- `asm!` macro provides first-class inline assembly. The syntax is cleaner than GCC's. 
+   The asm! macro comes as a part of core Rust (`core`) which makes it is fully available n `no_std` environments.
 
 // Inline Assembly (asm!) Rust has first-class support for architecture-specific instructions. 
 //  Say we need to execute a cache invalidation pipeline, barrier instructions, or change CPU privilege 
 //  levels, we drop into inline assembly exactly like we do in C.
 
 - `#[repr(C)]` this attribute forces the compiler to generate exact C-compatible memory layout, padding and
-  alignment. Zero-overhead FFI with existing C libraries and kernel structures.
+  alignment. Giving Zero-overhead FFI with existing C libraries and kernel structures.
 
 In **The comparison table:**  we can see C  language gives absolute control with no built-in safety. C++
 adds RAII but leaves ownership tracking manual across complex multithreaded codebases.
@@ -136,8 +147,8 @@ adds RAII but leaves ownership tracking manual across complex multithreaded code
 Rust is the first language that gives memory and concurrency safety **without a garbage collector**, with a
 formally verified type system. 
 
-The trade-off is a steep learning curve — the compiler does not negotiate. This very same tradeoff works in
-favour when the code base increases or with project that need to maintain over a longer time frame. 
+The trade-off is Rust presents a steep learning curve — the compiler does not negotiate. 
+This very same tradeoff works in favour when the code base increases or with project that require maintenance over long. 
 
 ---
 
@@ -145,7 +156,7 @@ favour when the code base increases or with project that need to maintain over a
 
 `[QUICK — this audience knows the problem, do not dwell]`
 
-// CVE's ( Common vulnerabilities and exposures)
+// CVE's ( Common vulnerabilities and exposures bugs)
 
 These numbers relating to CVE's is  why the industry is paying attention.
 
@@ -156,8 +167,9 @@ These numbers relating to CVE's is  why the industry is paying attention.
   experienced developers.
 
 - The reason is not poor engineering. It is that C intentionally gives unrestricted memory control, and at
-  millions of lines of code across multiple teams and vendors, relying on discipline alone is statistically
-  difficult. The NSA's 2023 guidance reflecting this is the industry acknowledging it formally.
+  millions of lines of code across multiple teams and vendors, relying on discipline alone is difficult. 
+  
+  // The NSA's 2023 guidance reflecting this is the industry acknowledging it formally.
 
 This is the problem Rust was designed to address at the compiler level.
 
@@ -166,15 +178,17 @@ This is the problem Rust was designed to address at the compiler level.
 
 `[QUICK]`
 
-- Rust's approach is to prevent entire classes of bugs before the code runs — not by catching them at
-  runtime with sanitizers, but by making them as **compile-time errors**. 
-  This also works with with team  working on a project as the same constrains are applied to all members.
+The only way to eliminate a class of bugs is to make them un-representable in the type system.
+
+- Rust's approach: Is to prevent these entire classes of bugs before the code runs and not by catching them
+  at runtime,  by making them as **compile-time errors**. 
+
+  //This also works with with team working on a project as the same constrains are applied to all members.
 
 - In safe Rust (excluding explicit `unsafe` blocks): use-after-free, double free, iterator invalidation,
-  and most data races are not runtime failures — they are rejected at build time. Without a GC, without
-  hidden runtime overhead.
+  and most data races are not runtime failures rather they are rejected at build time. 
 
-- This is Rust's core proposition for systems work: moving correctness checks from runtime debugging into
+- => So Rust's core proposition for systems work is moving correctness checks from runtime debugging into
   compile-time enforcement.
 
 ---
@@ -403,7 +417,10 @@ impossible to get wrong.
 **The C reality:**
 
 In the C example 
-Allocate `res_a` — if `res_b` fails, free `res_a`. If `res_c` fails, free both `res_b` and `res_a`, in the correct reverse order. In a real kernel driver this leads to cascades of `goto err_free_res_b`, `goto err_free_res_a` labels. The Linux kernel source tree has thousands of these. Every new error branch added requires manually auditing every exit path.
+Allocate `res_a` — if `res_b` fails, free `res_a`. If `res_c` fails, free both `res_b` and `res_a`, in the
+correct reverse order. In a real kernel driver this leads to cascades of `goto err_free_res_b`, `goto
+err_free_res_a` labels. The Linux kernel source tree has thousands of these. Every new error branch added
+requires manually auditing every exit path.
 
 **The Rust approach:**
 
@@ -432,7 +449,8 @@ This is how Rust handled temporary access of data.
 
 `[FULL — connects directly to multi-core embedded work]`
 
-Borrowing is Rust's system for temporary access without transferring ownership. It formalizes the aliasing rules that C developers know informally but cannot enforce.
+Borrowing is Rust's system for temporary access without transferring ownership. It formalizes the aliasing
+rules that C developers know informally but cannot enforce.
 
 Borrowing provides temporary access to data without transferring ownership.
 It formalizes the aliasing rules that C developers follow informally but cannot structurally enforce.
@@ -469,14 +487,16 @@ proven to have no data races.
 `[QUICK for this audience — they understand pointer validity]`
 
 Lifetimes are the compiler's mechanism for proving that every reference is valid for its entire use. 
-Lifetime are annotations in the code that assist the compiler and they have zero runtime representation, means these annotations are erased before code generation.
+Lifetime are annotations in the code that assist the compiler and they have zero runtime representation,
+means these annotations are erased before code generation.
 
 In the code example:  We instantiate a local string variable inside `get_name()` which gets dropped after
 the function scope. This is classic dangling pointer.
 The Rust compiler analyzes this, catches the violation, and throws a compile error.
 
 To fix this when relationships are complex, we use explicit lifetime annotations,to assist the compiler.
-In code example “The reference returned by `first_word` function is structurally tied to the lifespan of the input string s.” 
+In code example “The reference returned by `first_word` function is structurally tied to the lifespan of the
+input string s.” 
 The compiler then verifies this rule at every single call site.
 
 In Kernels Context: 
@@ -523,7 +543,8 @@ Null pointer dereferences are a constant source of kernel oopses, especially in 
 Rust type system eliminates the possibility by making "might be absent" explicit in the type.
 
 
-In C, a pointer is a raw memory address — it can point to a valid structure or to `0x0`. The compiler cannot distinguish, and the developer must remember to check.
+In C, a pointer is a raw memory address — it can point to a valid structure or to `0x0`. The compiler cannot
+distinguish, and the developer must remember to check.
 
 **The C risk:** 
 In the C code example: 
@@ -550,7 +571,8 @@ example.
 
 
 **Zero runtime cost:** 
-- `Option<&T>` has identical machine representation to a C nullable pointer : in one word, where `0x0` represents `None` and any non-zero address represents `Some`. 
+- `Option<&T>` has identical machine representation to a C nullable pointer : in one word, where `0x0`
+  represents `None` and any non-zero address represents `Some`. 
 
 - Null point dereference is handled with out any runtime overhead. 
 
@@ -560,7 +582,8 @@ example.
 
 `[FULL]`
 
-In C, error signaling is an implicit protocol — functions return `int` where negative means failure. The language allows you to ignore that integer entirely.
+In C, error signaling is an implicit protocol — functions return `int` where negative means failure. The
+language allows you to ignore that integer entirely.
 
 **The C pattern:** 
 In the c code example: calling 
@@ -659,10 +682,10 @@ In Rust, this one command surfaces every location in the codebase where manual m
 
 ---
 
-### Slide 24 · Memory safety: 
+### Slide 23 · Memory safety: 
 
 ---
-### Slide 25 · What the Rust Compiler Verifies at Every Build
+### Slide 24 · What the Rust Compiler Verifies at Every Build
 
 `[QUICK — summary slide]`
 
@@ -686,10 +709,10 @@ Every engineer on the team must comply — the build refuses otherwise.
 
 ---
 
-### Slide 26 · Rust Ecosystem and Tooling
+### Slide 25 · Rust Ecosystem and Tooling
 --- 
 
-### Slide 27 · Tools that come with the language:
+### Slide 26 · Tools that come with the language:
 
 `[QUICK]`
 
@@ -708,7 +731,7 @@ Because everyone uses the same tools, onboarding and code sharing are straightfo
 Real-world signal of maturity: AWS Firecracker, Cloudflare Pingora (1 trillion requests/day), Android 16's memory allocator, and — most relevant here — the Linux kernel's `rust/` tree.
 
 ---
-### Slide 28: Getting started with Rust 
+### Slide 27: Getting started with Rust 
 
 The slide shows how to install rust, its components, and how to create rust projects. 
 For kernel development this above flow differs. 
@@ -721,41 +744,38 @@ For kernel development this above flow differs.
 
 ---
 
-### Slide 29 · eBPF Quick Refresher
+### Slide 28 · eBPF Quick Refresher
 
 --- 
-### Slide 30 ·  What is eBPF:
+### Slide 29 ·  What is eBPF:
 
 `[QUICK — one slide, two minutes]`
 
-As this topic is already explained in previous presentations in depth and many of us here have used or
-using eBPF at work through BCC, bpftrace, and libbpf. 
-And as this execution model already familiar. I will not re-explain it.
+Since we have covered eBPF in depth in Our earlier technical sharing sessions, and many of us already use 
+tools like BCC, bpftrace, and libbpf daily, I will skip re-explaining the core execution model in detail.
 
-One point worth holding onto for the comparison ahead:
+However, there is one crucial point to keep in mind for our comparison:
 
-**Rust does not change the eBPF execution model.**
+- Rust does not change the eBPF execution model.
 
-The BPF verifier, 
-the JIT, 
-the kernel hook infrastructure — all of this is unchanged. 
+    The BPF verifier, the JIT compiler, and the kernel hook infrastructure remain exactly the same. 
+    The kernel only consumes raw BPF bytecode. 
+    Whether that bytecode was generated using Clang from C, or by rustc from Rust, makes absolutely no 
+    difference to the verifier.
 
-The kernel only sees BPF bytecode. 
-Whether that bytecode was generated by Clang from C or `rustc` from Rust, makes no difference to the verifier.
 
-What Rust changes is the 
+What Rust does change is the developer experience of writing, debugging, and deploying those programs. 
+That is our focus for the rest of this talk.
 
-**developer experience** of writing, debugging, and deploying those programs. 
+Before we dive into the comparison, let's do a quick, high-level refresh of the eBPF framework and its core 
+components."
 
-That is what we are examining for the rest of this talk.
-
-Before that we quickly refresh the framework and its components:
 
 READ THE SLIDE CONTENTS AND PASS TO NEXT SLIDE 
 
 ---
 
-### Slide 31 · eBPF Maps: The Data Bridge
+### Slide 30 · eBPF Maps: The Data Bridge
 
 `[QUICK for this audience — they know maps cold]`
 
@@ -767,69 +787,107 @@ READ LEFT SLIDE CONTENTS
 One point relevant to the Rust section ahead: 
 
 The **ring buffer** (`RINGBUF`, Linux 5.8) integrates directly with Rust's async model. 
-Aya exposes it as `AsyncFd<RingBuf>`, which plugs natively into Tokio. 
-This is not just an ergonomics improvement — it is a **performance architecture change** we will come back to.
+
+Ring Buffers (RingBuf), are the gold standard for high-throughput data streaming from the kernel to userspace.
+- It Eliminates fixed-size payload constraints.
+- The buffer is allocated as a single, contiguous memory region shared between the kernel and user space. 
+  makes it highly cache-friendly.
+- Fully compatible with standard Linux asynchronous I/O (epoll). Inside Aya, this maps natively to AsyncFd 
+  allowing it to drive Tokio async loops.
+
 
 ---
 
-### Slide 27 · eBPF Framework Landscape: Three Generations
+### Slide 31 · eBPF Framework Landscape:
+
+---
+
+### Slide 32 · eBPF Framework Landscape: Three Generations
 
 `[QUICK — they lived through this evolution]`
 
-- **Generation 1 (BCC/bpftrace):** Full Clang/LLVM on the target at runtime. Development tool only — 100+ MB toolchain on a BSP is untenable.
-- **Generation 2 (libbpf + CO-RE):** Compile once, ship a small pre-compiled object and `libbpf.so`. The previous talk covered this.
-- **Generation 3 (language-native frameworks):** Aya (pure Rust), cilium/ebpf (pure Go), libbpf-rs (Rust bindings over libbpf). First-class language integration: type system, package managers, native async, single binary.
+- **Generation 1 (BCC/bpftrace):** Full Clang/LLVM on the target at runtime. Development tool only — 100+ MB
+  toolchain on a BSP is untenable.
 
-Our focus: **Aya** — the only framework that gives you one language, one toolchain, and zero C runtime dependencies from kernel code to userspace loader.
+- **Generation 2 (libbpf + CO-RE):** Compile once, ship a small pre-compiled object and `libbpf.so`. The
+  previous talk covered this.
+
+- **Generation 3 (language-native frameworks):** Aya (pure Rust), cilium/ebpf (pure Go), libbpf-rs (Rust
+  bindings over libbpf). First-class language integration: type system, package managers, native async,
+  single binary.
+
+Our focus: **Aya** — the only framework that gives you one language, one toolchain, and zero C runtime
+dependencies from kernel code to userspace loader.
 
 ---
 
-### Slide 28 · What Popular Projects Use
+### Slide 33 · What Popular Projects Use
 
 `[QUICK]`
 
-Cilium is the clearest industry signal. They chose Go for their userspace loader specifically to avoid `libbpf.so` at runtime — building `cilium/ebpf` as a pure Go replacement. The industry trend is away from shared C loader libraries toward language-native loaders.
+Cilium is the clearest industry signal. They chose Go for their userspace loader specifically to avoid
+`libbpf.so` at runtime, building `cilium/ebpf` as a pure Go replacement. 
+
+=> The industry trend is away from shared C loader libraries toward language-native loaders.
 
 **Aya is the Rust equivalent of that choice.**
 
-Production Aya deployments today: Red Hat bpfman (eBPF lifecycle manager), Deepfence ebpfguard (LSM policies in Rust), Kubernetes Blixt (XDP load balancer). All three share the same motivation: type safety across the kernel/userspace boundary and single-binary deployment.
+Production Aya deployments today: 
+Red Hat bpfman (eBPF lifecycle manager), 
+Deepfence ebpfguard (LSM policies in Rust), 
+Kubernetes Blixt (XDP load balancer). 
+
+All three share the same motivation: type safety across the kernel/userspace boundary and single-binary 
+deployment.
 
 ---
 
-### Slide 29 · libbpf + CO-RE: The Reference Workflow
+### Slide 34 · libbpf + CO-RE: The Reference Workflow
+
+In this part we will focus on CO-RE, which means Compile Once, Run Everywhere.
+This part is more specific to our current approach to eBPF programming with Aya.
+
+---
+### Slide 35 · Why Core:
 
 `[QUICK — they know this, use it to set up the contrast]`
 
-Your team already knows this workflow from the previous talk. I am showing it here to set up a direct comparison, not to teach it.
+Typically our development spans different HW designs running OWRT, Yocto, Android. 
+These devices run different Linux kernel versions, like 5.15, 6.1, or 6.6. 
+Each customer might also add their own kernel patches.
 
-The two friction points worth holding in mind for what comes next:
+Inside the Linux kernel source code, structures change between versions. As shows with task_struct->pid. 
 
-1. **Build complexity:** Clang → BPF object → bpftool skeleton → GCC/Clang userspace loader. Multiple separate tools, multiple stages.
-2. **Target dependencies:** `libbpf.so` → `libelf.so` → `libz.so`. This chain is the embedded deployment problem.
+Due to this eBPF programs had to be recompiled for every target. 
 
-And the teardown risk in C:
-```c
-ring_buffer__free(rb);    // must not forget
-skel__detach(skel);       // must not forget
-skel__destroy(skel);      // must not forget
-// No compiler warning if any of these are missing
-```
+CO-RE solves this problem completely:
 
----
+- The Basic Idea of Core is, the compiler creates a bytecode and adds a special "relocation records" insided
+a section called `.BTF` in the ELF file.  Which records which structure field the code wants to read. 
 
-### Slide 30 · Why CO-RE Matters for BSP Teams
+- At load time, it reads /sys/kernel/btf/vmlinux and fills these relocation records with correct values. 
 
-`[QUICK — they know CO-RE, just acknowledge and move]`
+- Both libbpf and Aya automatically adjusts the memory offsets in the bytecode to match the running kernel
+  exactly.
 
-You know this already. Your kernels ship at different versions to different OEMs. CO-RE's relocation mechanism — reading `/sys/kernel/btf/vmlinux` at load time and patching offsets — is what makes one binary portable across kernel versions.
+The difference is **Target dependencies:** 
+`libbpf.so` → `libelf.so` → `libz.so`. 
 
-The Aya-specific point: Aya implements CO-RE in **pure Rust** via `aya-obj`, its own BTF parser and relocation engine. This means no `libelf.so` and no `libz.so` on the target. The same CO-RE semantics, without the C library dependency chain.
-
-Requirement unchanged: `CONFIG_DEBUG_INFO_BTF=y` in the target kernel.
+This dependencies requirments is the embedded deployment problem. 
 
 ---
 
-### Slide 31 · Does Rust Fit eBPF?
+### Slide 36 · libpf workflow 
+
+`[QUICK — they know this, use it to set up the contrast]`
+
+This slide shows different stages involved in building ebpf programs with libbpf, 
+It also shows the dependencie requirement for building on host and deoplyment dependencies on the target 
+
+
+---
+
+### Slide 37/38 · Does Rust Fit eBPF?
 
 `[FULL — this is the core of the talk the team head requested]`
 
@@ -841,11 +899,15 @@ Both operate under the same fundamental constraint: **no undefined behavior is a
 - Rust's type system rejects programs it cannot prove safe.
 - Both enforce this before the code runs, not at runtime.
 
-Rust's `#![no_std]` mode is the natural fit for the eBPF kernel side — no standard library, no allocator, just core primitives. `aya-ebpf` provides the BPF helpers, map types, and program macros for this restricted environment.
+Rust's `#![no_std]` mode is the natural fit for the eBPF kernel side :
+no standard library, no allocator, just core primitives. 
+
+`aya-ebpf` provides the BPF helpers, map types, and program macros for this restricted environment.
 
 **The highest-value safety property:**
 
-The most expensive eBPF bug class in C is a silent struct layout divergence between the kernel program and the userspace loader. You have probably seen this:
+The most expensive eBPF bug class in C is a struct layout divergence between the kernel program and the 
+userspace loader. 
 
 ```c
 // BPF program (C):
@@ -856,15 +918,26 @@ struct event { u64 ts; u64 pid; }; // u64 ≠ u32
 // Reads wrong data. No compile error. No warning.
 ```
 
-The two definitions live in separate files. The C compiler has no mechanism to catch this. The ring buffer silently delivers misaligned data to userspace, and you spend hours with `bpf_printk` and gdb before finding the struct divergence.
+These two definitions live in separate files. 
+The C compiler has no mechanism to catch this. 
+In such case the ring buffer silently delivers misaligned data to userspace, and you spend hours with 
+`bpf_printk` and gdb before finding the struct divergence.
 
-**Aya's solution:** one `#![no_std]` **common crate**, compiled into both sides. The struct is defined once. Layout disagreement is a **compile error, not a runtime bug.**
 
-This is not just convenience — it is the most practically impactful safety guarantee for teams actively writing eBPF programs.
+=> **Aya's solution:** 
+
+one `#![no_std]` **common crate**, 
+compiled into both sides.
+
+The struct is defined once. 
+
+And if there are any Layout disagreement its a **compile error, not a runtime bug.**
+
+This is the most practically impactful safety guarantee for writing eBPF programs.
 
 ---
 
-### Slide 32 · Bytecode Generation: C vs. Rust Toolchain
+### Slide 39 · Bytecode Generation: C vs. Rust Toolchain
 
 `[FULL]`
 
@@ -878,7 +951,8 @@ program.bpf.c
     → gcc / clang (host)
     → program binary
 ```
-Requires: clang, LLVM, bpftool, libelf, libbpf. Even if your userspace is in Rust (`libbpf-rs`), you still need the full C toolchain for the BPF kernel code.
+Requires: clang, LLVM, bpftool, libelf, libbpf. Even if your userspace is in Rust (`libbpf-rs`), 
+you still need the full C toolchain for the BPF kernel code.
 
 **Aya/Rust toolchain:**
 ```
@@ -890,17 +964,21 @@ Requires: clang, LLVM, bpftool, libelf, libbpf. Even if your userspace is in Rus
     → cargo build (host)
     → single self-contained binary
 ```
-Requires: `rustc` (nightly) + `bpf-linker`. No clang, no bpftool, no libelf, no C toolchain. The BPF ELF is embedded in the userspace binary at build time — one artifact to ship.
+Requires: `rustc` (nightly) + `bpf-linker`. No clang, no bpftool, no libelf, no C toolchain. 
+The BPF ELF is embedded in the userspace binary at build time — one artifact to ship.
 
 ---
 
-### Slide 33 · Execution Model: What Actually Changes
+### Slide 40 · Execution Model: What Actually Changes
 
 `[FULL — important for skeptical engineers]`
 
-This is the slide for engineers who will immediately ask: "Is this just a different frontend, or does it change something fundamental?"
+// This is the slide for engineers who will immediately ask: 
+// "Is this just a different frontend, or does it change something fundamental?"
 
-Answer: **Rust changes the developer experience, not the kernel-side execution model.**
+From the flow chart we can see the execution model is same for libbpf or with Rust (aya)
+The key difference is 
+**Rust changes the developer experience, not the kernel-side execution model.**
 
 Look at the right side of the diagram. Both libbpf and Aya:
 - Implement CO-RE
@@ -909,17 +987,21 @@ Look at the right side of the diagram. Both libbpf and Aya:
 - Generate adjusted BPF bytecode
 - Submit through the same kernel verifier
 
-From the kernel's perspective, there is zero difference. The verifier sees BPF instructions. It does not know or care about the source language.
+From the kernel's perspective, there is zero difference. 
+The verifier sees BPF instructions. It does not know or care about the source language.
 
 The differences are on the build side and the userspace side:
+
 - libbpf: eBPF in C, compiled with Clang. Userspace loader in C wrapping libbpf APIs.
 - Aya: eBPF in Rust, compiled with rustc + bpf-linker. Userspace loader in Rust using Aya APIs.
 
-If you already understand libbpf and CO-RE, you already understand Aya's runtime architecture. The deployment model is the same. What changes is everything on the developer-facing side.
+If you already understand libbpf and CO-RE, you already understand Aya's runtime architecture. 
+The deployment model is the same. 
+What changes is everything on the developer-facing side.
 
 ---
 
-### Slide 34 · Rust Approaches: libbpf-rs vs Aya
+### Slide 41/42 · Rust Approaches: libbpf-rs vs Aya
 
 `[FULL]`
 
@@ -938,13 +1020,15 @@ When adopting Rust for eBPF, there are two distinct strategies:
 - Async-native: `AsyncFd<RingBuf>` integrates directly with Tokio
 - Deployable as a single statically-linked binary with musl
 
-**For embedded and Android targets:** Aya's musl static binary advantage eliminates the `libelf` / `libz` / `libbpf` version management problem entirely.
+**For embedded and Android targets:** Aya's musl static binary advantage eliminates the `libelf` / `libz` /
+`libbpf` version management problem entirely.
 
-This session focuses on Aya. For your team's embedded goals, the single-binary deployment with no C runtime dependencies is the highest practical value.
+This session focuses on Aya. For your team's embedded goals, the single-binary deployment with no C runtime
+dependencies is the highest practical value.
 
 ---
 
-### Slide 35 · Aya Framework Architecture
+### Slide 43/44 · Aya Framework Architecture
 
 `[FULL]`
 
@@ -961,15 +1045,18 @@ The Aya crate family maps directly to what you already use:
 | `aya-build` | `bpftool gen skeleton` + Makefile integration |
 | Common crate | Manually-matched C header in both files |
 
-**Zero C runtime dependencies on the target.** The entire stack is Rust + one `bpf()` syscall. No `libelf.so`, no `libz.so`, no `libbpf.so`.
+**Zero C runtime dependencies on the target.** 
+
+The entire stack is Rust + one `bpf()` syscall. No `libelf.so`, no `libz.so`, no `libbpf.so`.
 
 ---
 
-### Slide 36 · Aya for Embedded and Android: The musl Advantage
+### Slide 45 · Aya for Embedded and Android: The musl Advantage
 
 `[FULL — directly addresses embedded deployment pain]`
 
 A libbpf-based tool ships as a dynamically-linked binary requiring three libraries on the target:
+
 ```
 /usr/bin/my-tracer      → linked to:
 /usr/lib/libbpf.so.1    → must exist on target
@@ -978,12 +1065,15 @@ A libbpf-based tool ships as a dynamically-linked binary requiring three librari
 ```
 
 On a minimal embedded rootfs or Android:
+
 - `libelf` is usually absent — it is a development library, not a production one
 - `libbpf` version on the device may not match what you compiled against
 - Android's linker namespace rules can block unrecognized shared libraries
 - Cross-compiling for ARM64 or RISC-V requires maintaining cross-compiled versions of all three `.so` files
 
 **Aya + musl gives you one self-contained binary:**
+Below are steps to build the self-contained binary  
+
 ```bash
 rustup target add aarch64-unknown-linux-musl
 cargo install cross
@@ -996,11 +1086,58 @@ adb shell chmod +x /data/local/tmp/my-tracer
 adb shell /data/local/tmp/my-tracer
 ```
 
-One file. No library management. No version conflicts. Combined with CO-RE, this binary runs on any ARM64 Linux kernel with `CONFIG_DEBUG_INFO_BTF=y` — custom BSP, GKI Android, any OEM variant.
+One file. No library management. No version conflicts. Combined with CO-RE, this binary runs on any ARM64
+Linux kernel with `CONFIG_DEBUG_INFO_BTF=y`, on custom BSP, GKI Android, any OEM variant.
 
 ---
 
-### Slide 37 · How Rust Improves the eBPF Development Experience
+### Slide 46/47/48 : building with Aya template
+
+`[FULL]`
+The aya project supports template that can generate a eBPF project from template.  
+To work with aya-template requires some additional rust tools, toolchain support, bpf-linker, cargo-generate
+and aya-tool. 
+
+One-time environment setup:
+
+```bash
+# 1. Nightly Rust — required for the bpfel-unknown-none target
+rustup toolchain install nightly
+rustup component add rust-src --toolchain nightly
+
+# 2. bpf-linker — includes LLVM BPF backend, translates Rust output to BPF bytecode
+cargo install bpf-linker
+
+# 3. cargo-generate — creates new projects from templates
+cargo install cargo-generate
+
+# 4. Verify BPF target is available
+rustc --print target-list | grep bpf
+# Expected: bpfel-unknown-none, bpfeb-unknown-none
+```
+
+Scaffolding a new project:
+```bash
+cargo generate https://github.com/aya-rs/aya-template
+# Prompts for project name, e.g.: dma-latency-tracer
+# Generates: dma-latency-tracer-ebpf/, dma-latency-tracer-common/, dma-latency-tracer/
+```
+
+Build the entire project — one command:
+```bash
+cargo build --release
+# build.rs inside the userspace crate automatically:
+# 1. Compiles the eBPF crate with nightly + bpf-linker
+# 2. Embeds the BPF bytecode via include_bytes_aligned!
+# 3. Produces one self-contained binary
+```
+
+No xtask. No Makefile. No separate skeleton generation step.
+READ and explain the right side of ths SLIDE
+
+---
+
+### Slide 49/50 · How Rust Improves the eBPF Development Experience
 
 > **[PRESENTER NOTE — this is the slide the team head asked for. Spend the most time here.]**
 
@@ -1134,152 +1271,13 @@ EbpfLogger::init(&mut bpf)?;
 
 ---
 
-### Slide 38 · Project Setup: Prerequisites and Scaffold
+### Slide 51/52/53 Demo Hello XDP·
+
 
 `[FULL]`
 
-One-time environment setup:
 
-```bash
-# 1. Nightly Rust — required for the bpfel-unknown-none target
-rustup toolchain install nightly
-rustup component add rust-src --toolchain nightly
-
-# 2. bpf-linker — includes LLVM BPF backend, translates Rust output to BPF bytecode
-cargo install bpf-linker
-
-# 3. cargo-generate — creates new projects from templates
-cargo install cargo-generate
-
-# 4. Verify BPF target is available
-rustc --print target-list | grep bpf
-# Expected: bpfel-unknown-none, bpfeb-unknown-none
-```
-
-Scaffolding a new project:
-```bash
-cargo generate https://github.com/aya-rs/aya-template
-# Prompts for project name, e.g.: dma-latency-tracer
-# Generates: dma-latency-tracer-ebpf/, dma-latency-tracer-common/, dma-latency-tracer/
-```
-
-Build the entire project — one command:
-```bash
-cargo build --release
-# build.rs inside the userspace crate automatically:
-# 1. Compiles the eBPF crate with nightly + bpf-linker
-# 2. Embeds the BPF bytecode via include_bytes_aligned!
-# 3. Produces one self-contained binary
-```
-
-No xtask. No Makefile. No separate skeleton generation step.
-
----
-
-### Slide 39 · Project Layout: Three-Crate Workspace
-
-`[FULL]`
-
-```
-dma-latency-tracer/
-├── Cargo.toml              # Workspace root — ties all three crates together
-├── rust-toolchain.toml     # Pins nightly version — same compiler for the whole team
-│
-├── dma-latency-tracer-common/   # Shared types — compiled into BOTH sides
-│   └── src/lib.rs
-│       #![no_std]
-│       #[repr(C)]
-│       pub struct DmaEvent { pub ts_ns: u64, pub pid: u32, ... }
-│
-├── dma-latency-tracer-ebpf/     # Kernel-side BPF program
-│   ├── .cargo/config.toml
-│   │   target = "bpfel-unknown-none"     # little-endian BPF processor
-│   │   "-C", "link-arg=--btf"           # emit BTF for CO-RE
-│   │   build-std = ["core"]             # compile core from source (no prebuilt for BPF)
-│   └── src/main.rs
-│       #![no_std] #![no_main]
-│       #[kprobe] pub fn dma_map_sg(ctx: ProbeContext) -> u32 { ... }
-│
-└── dma-latency-tracer/          # Userspace loader (std, async, Tokio)
-    ├── build.rs                 # Compiles eBPF crate, embeds bytecode
-    └── src/main.rs
-        Ebpf::load(include_bytes_aligned!(...))
-```
-
-The `rust-toolchain.toml` file is important for team consistency — it pins the exact nightly version so every engineer compiles with identical toolchain settings.
-
----
-
-### Slide 40 · BPF Program Side: Key Patterns
-
-`[FULL]`
-
-| Pattern | C / libbpf | Rust / Aya |
-|---|---|---|
-| Entry point | `SEC("kprobe/dma_map_sg")` string macro | `#[kprobe]` attribute macro |
-| Context handling | `PT_REGS_PARM1(ctx)`, `BPF_KPROBE` macros | Typed `ProbeContext`, `XdpContext` structs |
-| Map interaction | `bpf_map_update_elem(&map, &k, &v, flags)` | `MAP.insert(&k, &v, flags)` |
-| Unsafe boundaries | All pointer access looks identical | Kernel memory reads explicitly in `unsafe { }` |
-
-**Entry points:** `SEC("kprobe/...")` strings are unchecked. A typo is a runtime attachment failure. `#[kprobe]` is checked by the compiler pipeline — invalid hook declarations fail at build time.
-
-**Context objects:** In C, extracting parameters from a kprobe requires architecture-specific macros like `PT_REGS_PARM1(ctx)` that depend on the CPU register layout. In Aya, `ProbeContext` and `XdpContext` expose typed methods — no architecture-specific register definitions.
-
-**Map operations:** C requires global helper function calls with raw pointer arguments. Aya maps are declared as static variables with `#[map]` and expose object-oriented methods — `MAP.insert()`, `MAP.get()`. Reads like userspace code.
-
-**Unsafe isolation:** In C, reading kernel memory and reading local stack variables look identical syntactically. In Aya, reading external kernel memory goes inside `unsafe { }`. During code review, the unsafe boundaries are immediately visible — exactly the grep-able audit surface we described earlier, now applied inside eBPF programs.
-
----
-
-### Slide 41 · Userspace Loader: Load, Attach, Consume
-
-`[FULL — the teardown section is the strongest point here]`
-
-Three phases, with a direct C vs. Rust comparison:
-
-**Phase 1 — Load:**
-- C: `prog_open()` → `prog_load()` — procedural skeleton calls with raw structs.
-- Rust: `Ebpf::load(BPF_BYTES)?` — single call. Bytes are embedded in the binary at build time. Type-safe downcast: `.try_into::<KProbe>()` fails immediately if the bytecode kind does not match.
-
-**Phase 2 — Attach:**
-- C: `prog__attach(skel)` returns an fd inside the skeleton object.
-- Rust: `prog.attach("dma_map_sg", 0)?` returns a typed `_link` handle. This handle's lifetime is tracked by the borrow checker. The program stays attached as long as `_link` is alive.
-
-**Phase 3 — Consume (the ring buffer):**
-
-C uses a synchronous blocking callback:
-```c
-rb = ring_buffer__new(fd, handle_event, NULL, NULL);
-while (1) {
-    ring_buffer__poll(rb, 100);  // blocks; burns CPU; NULL context
-}
-```
-
-Aya uses async event-driven consumption:
-```rust
-let afd = AsyncFd::new(ring_buf)?;
-loop {
-    let mut guard = afd.readable().await?;  // yields; zero CPU; kernel wakes on data
-    while let Some(item) = guard.get_inner_mut().next() {
-        let event: &DmaEvent = unsafe { &*(item.as_ptr() as *const DmaEvent) };
-        // event is typed — DmaEvent from the shared common crate
-    }
-}
-```
-
-The `await` yields the thread to the OS scheduler. The kernel file descriptor mechanism wakes it exactly when the ring buffer has data. No timeout loop. No CPU cycles burned polling. This is particularly relevant when your userspace consumer is running on a system you are also trying to measure — the observer's CPU cost affects the measurement.
-
-**Phase 4 — Teardown (the hidden benefit):**
-
-Look at the bottom of the C code. You must explicitly call `ring_buffer__free()`, `prog__detach()`, `prog__destroy()`. If your program returns early via an error before reaching these lines, resources leak. No compiler warning.
-
-In the Rust code, there is **zero cleanup code written**. `bpf`, `_link`, and `afd` all implement `Drop`. The moment the event loop ends — normal exit, early return via `?`, or panic — Rust guarantees all file descriptors are closed and all kernel hooks are detached. **Automatically. For free.**
-
----
-
-### Slide 42 · Hello XDP: Generated BPF Program
-
-`[FULL]`
+READ 16.1 Why XDP for a simple demo SLIDE 
 
 The Aya template generates a working XDP program. Walk through the structure:
 
@@ -1340,6 +1338,10 @@ Expected output — every log line is a packet processed by the kernel BPF progr
 One language. One toolchain. One binary.
 Type-safe across the kernel/userspace boundary.
 Deploy anywhere Linux + BTF exist.
+
+Questions 
+
+Thank You.
 
 ---
 
