@@ -1287,7 +1287,7 @@ cargo test        # unit tests
 
   *Note* : Rust changes the developer experience, not the eBPF execution model.
 
-  Lets you load user supplied programs into the kernel *without a kernel patch, without a module, and without rebooting*, the kernel verifier guarantees safety, the programs are attached to *hook points* allowing them to execute efficiently when those events occur.
+  *eBPF* facilitates loading user supplied programs into the kernel *without a kernel patch, without a module, and without rebooting*, the kernel verifier guarantees safety, the programs are attached to *hook points* allowing them to execute efficiently when those events occur.
 
   *The four step lifecycle*
 
@@ -1352,8 +1352,9 @@ cargo test        # unit tests
   - *In Aya*: `#[map] static EVENTS: RingBuf = RingBuf::with_byte_size(4 * 1024 * 1024, 0);`
 
   #callout[
-    - If eBPF programs are microservices running in the kernel, maps are their IPC mechanism.
-    //- Because eBPF maps are built directly out of native kernel memory structures, eBPF programs can read and write to them using super-fast helper functions (bpf_map_lookup_elem, bpf_map_update_elem). The communication happens at the L1/L2 cache level of the CPU, making it arguably the fastest IPC mechanism available on a Linux system.
+    // - If eBPF programs are microservices running in the kernel, maps are their IPC mechanism.
+    - Because eBPF maps are built directly out of native kernel memory structures, eBPF programs can read and write to them using super fast helper functions (bpf_map_lookup_elem, bpf_map_update_elem). 
+    //The communication happens at the L1/L2 cache level of the CPU, making it arguably the fastest IPC mechanism available on a Linux system.
     //Prefer `RINGBUF` over `PERF_EVENT_ARRAY` for all new work : lower overhead, simpler consumer, no per-CPU complexity.
   ]
 ]

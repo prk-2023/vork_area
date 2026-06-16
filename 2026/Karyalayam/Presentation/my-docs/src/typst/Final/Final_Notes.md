@@ -749,6 +749,10 @@ What Rust changes is the
 
 That is what we are examining for the rest of this talk.
 
+Before that we quickly refresh the framework and its components:
+
+READ THE SLIDE CONTENTS AND PASS TO NEXT SLIDE 
+
 ---
 
 ### Slide 31 · eBPF Maps: The Data Bridge
@@ -758,9 +762,11 @@ That is what we are examining for the rest of this talk.
 Maps are the primary communication channel between kernel eBPF code and userspace. 
 You know this well.
 
+READ LEFT SLIDE CONTENTS
+
 One point relevant to the Rust section ahead: 
 
-the **ring buffer** (`RINGBUF`, Linux 5.8) integrates directly with Rust's async model. 
+The **ring buffer** (`RINGBUF`, Linux 5.8) integrates directly with Rust's async model. 
 Aya exposes it as `AsyncFd<RingBuf>`, which plugs natively into Tokio. 
 This is not just an ergonomics improvement — it is a **performance architecture change** we will come back to.
 
