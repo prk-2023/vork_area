@@ -1348,7 +1348,7 @@ cargo test        # unit tests
   - Variable-length records : no fixed-size overhead
   - Single contiguous allocation : cache-friendly
   - `epoll` / `AsyncFd` compatible : Tokio-native in Aya
-  - Dropped-event counter exposed to userspace for monitoring
+  // - Dropped-event counter exposed to userspace for monitoring
   - *In Aya*: `#[map] static EVENTS: RingBuf = RingBuf::with_byte_size(4 * 1024 * 1024, 0);`
 
   #callout[
@@ -2480,23 +2480,23 @@ cargo test        # unit tests
 // ─────────────────────────────────────────────────────────────────────────────
 = Appendix <touying:hidden>
 
-== aya-tool — generating kernel type bindings
-
-```bash
-# Install aya-tool
-cargo install aya-tool
-
-# Generate Rust bindings for specific kernel structs
-# from the running kernel's BTF — equivalent of
-# bpftool btf dump file /sys/kernel/btf/vmlinux format c > vmlinux.h
-# but produces a Rust module:
-aya-tool generate task_struct > \
-    dma-latency-tracer-ebpf/src/vmlinux.rs
-
-# Use in BPF program:
-// mod vmlinux;
-// use vmlinux::task_struct;
-```
+// == aya-tool — generating kernel type bindings
+//
+// ```bash
+// # Install aya-tool
+// cargo install aya-tool
+//
+// # Generate Rust bindings for specific kernel structs
+// # from the running kernel's BTF — equivalent of
+// # bpftool btf dump file /sys/kernel/btf/vmlinux format c > vmlinux.h
+// # but produces a Rust module:
+// aya-tool generate task_struct > \
+//     dma-latency-tracer-ebpf/src/vmlinux.rs
+//
+// # Use in BPF program:
+// // mod vmlinux;
+// // use vmlinux::task_struct;
+// ```
 
 // == CO-RE in Aya — the relocation chain
 //
