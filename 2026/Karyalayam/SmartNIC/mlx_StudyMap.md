@@ -1,4 +1,4 @@
-# SmartNIC ( mlx 5 )
+        # SmartNIC ( mlx 5 )
 
 RDMA is the deepest architecture break from standard net on this NIC.
 
@@ -16,6 +16,8 @@ Standard networking path for every byte:
                                 → socket buffer copy 
                                     →  app 
 ```
+
+
 Every one of the above step copies and context switches costs CPU cycles and latency.
 At 100Gbps that overhead alone can saturate a CPU core before doing any other real work. 
 
@@ -29,8 +31,192 @@ RDMA proposition:
 
 **Queue Pairs (QPs) - the RDMA execution unit.
 
+In place of sockets for standard TCP/IP networking, the `RDMA` unit for work is a **`Queue Pair`**:
+`**a senf queue + receive queue**`, its always used together, backed by a Completion Queue (**CQ**) that
+reports when work is finished. 
+
+```mermaid 
+flowchart LR
+    %% Styles
+    classDef host fill:#eef0ff,stroke:#5b5bd6,stroke-width:2,color:#333;
+    classDef queue fill:#ffffff,stroke:#5b5bd6,stroke-width:1.5,color:#333;
+    classDef hostB fill:#e9f7f2,stroke:#2d9c7a,stroke-width:2,color:#333;
+    classDef queueB fill:#ffffff,stroke:#2d9c7a,stroke-width:1.5,color:#333;
+    classDef note fill:#f5f3ef,stroke:#999,color:#333;
+
+    subgraph A["Host A (app memory)"]
+        direction LR
+        SQ["**Send queue**<br/>Work request posted"]
+        CQ["**Completion Queue (CQ)**<br/>Notifies app"]
+    end
+
+    subgraph B["Host B (app memory)"]
+        direction LR
+        RQ["**Receive queue**<br/>HW writes directly"]
+    end
+
+    N["**No CPU, no kernel**<br/>stack on either side"]
+
+    SQ -- "RDMA (RoCE / InfiniBand / iWARP)" --> RQ
+
+    A --> N
+    B --> N
+
+    class A host;
+    class SQ,CQ queue;
+    class B hostB;
+    class RQ queueB;
+    class N note;
+```
+
+The above mermaid flow chart captures the core concept of **RDMA Queue Pairs** (QPs) and zero copy transfer.
+
+For a complete picture:
+
+- **Queue Pairs are Paired**: An `RDMA QP` consists of **`Send Queue (SQ)` and a `**Receive Queue (RQ)` on
+  **both** sides. 
+
+  - Host A has a `SQ` and `RQ`
+  - Host B also has a `SQ` and `RQ` 
+  - Host A and B also have a completion Queue, especially if send/receive semantics or completions with
+    immediate data are used. 
+
+- **RDMA Read/Write** vs **send/receive**:
+
+    - For RDMA write/read data transfers directly into/out of pre-registered memory regions without
+      requiring a Work Request in Host B's Receive queue. 
+    - For RDMA Send, a work Request must be posted to Host B's Receive Queue (RQ) ahead of time. 
+
+A complete flow diagram: (with two-way asynchronous notification )
+```mermaid 
+flowchart LR
+    %% Styles
+    classDef host fill:#eef0ff,stroke:#5b5bd6,stroke-width:2,color:#333;
+    classDef queue fill:#ffffff,stroke:#5b5bd6,stroke-width:1.5,color:#333;
+    classDef hostB fill:#e9f7f2,stroke:#2d9c7a,stroke-width:2,color:#333;
+    classDef queueB fill:#ffffff,stroke:#2d9c7a,stroke-width:1.5,color:#333;
+    classDef note fill:#f5f3ef,stroke:#999,stroke-dasharray: 5 5,color:#333;
+
+    subgraph HostA["Host A (Initiator)"]
+        direction TB
+        subgraph QPA["Queue Pair (QP A)"]
+            SQ_A["**Send Queue (SQ)**<br/>Post Work Requests"]
+            RQ_A["**Receive Queue (RQ)**"]
+        end
+        CQ_A["**Completion Queue (CQ A)**<br/>Notifies App A"]
+    end
+
+    subgraph HostB["Host B (Responder)"]
+        direction TB
+        subgraph QPB["Queue Pair (QP B)"]
+            SQ_B["**Send Queue (SQ)**"]
+            RQ_B["**Receive Queue (RQ)**<br/>Buffer for incoming Send"]
+        end
+        CQ_B["**Completion Queue (CQ B)**<br/>Notifies App B"]
+    end
+
+    N["**Kernel Bypass & Zero-Copy**<br/>NIC accesses registered app memory directly"]
+
+    %% Network Connections
+    SQ_A == "RDMA Write / Read<br/>(Direct Memory Access)" ==> HostB
+    SQ_A == "RDMA Send" ==> RQ_B
+
+    %% Internal associations
+    SQ_A -. Completion .-> CQ_A
+    RQ_B -. Completion .-> CQ_B
+
+    class HostA host;
+    class SQ_A,RQ_A,CQ_A queue;
+    class HostB hostB;
+    class SQ_B,RQ_B,CQ_B queueB;
+    class N note;
+```
+
+**What is inside Queue Pairs**:
+
+Each Queue Pair has:
+
+- **Send Queue (SQ)**: Work requests: "read this memory", "write to remote memory", "send this message",
+  each entry is a work queue element (**WQE**)
+
+- **Receive Queue (RQ)**: buffers pre-posted so incoming data has somewhere to land.
+
+- **Completion Queue(CQ)**: Where the app polls ( or gets interrupted ) to know a WQE finished.
+
+**Three transport modes matter**:
+
+- **RC (reliable connected)**: Like TCP's reliability guarantee, but HW enforced: Ordering, ACKs,
+  retransmission, all in silicon. Used for most storage/ML traffic. 
+
+- **UC (un-reliable connected)**: no retransmission lower overhead. 
+
+- **UD ( Unreliable Datagram )**: Connectionless, used for things like milticast. 
 
 
+**Memory Registration**: This is the other half:
+
+Before any RDMA operation, a memory region must be registered with the NIC, which pins it and returns keys
+(`lkey` for local access, `rkey` for a remote peer to reference ). 
+The NIC's Memory Translation Unit (from your original map(below)) is what makes "remote peer writes into my
+virtual address space" safe it translates and validates that access in HW, per operation, without a
+CPU-mediated page fault... unless ODP (On-Demand Paging) is in play, which lets registered memory be
+swappable and let the NIC fault it in.
+
+**This forces "lossless Ethernet"**: 
+
+- TCP survives packet loss because retransmission is cheap relative to total flow duration and the CPU is
+  already already in the loop managing state per-connection. i.e TCP uses CPU cycles to manage complex
+  retransmission windows; RDMA offloads this to NIC silicon, making packet loss recovery expensive.
+
+- In std RoCEv2 hardware transport historically uses *Go-Back-N* retransmission. If a single packet drops,
+  the entire transmission window is thrown out and retransmitted from that sequence number onward. In a
+  high-throughput cluster, a tiny drop rate causes throughput to collapse instantly.
+
+- RDMA's whole value proposition is removing the CPU from that loop  which means loss recovery in hardware
+  is either very limited (drop the whole connection) or very expensive (large retransmission windows
+  implemented in silicon). So instead, RoCE (RDMA over Converged Ethernet) leans on the network itself not
+  dropping packets:
+
+**Lossless Mechanisms (PFC, ECN, DCQCN)**
+
+  * **PFC (Priority Flow Control, 802.1Qbb)**: works are L2 by sending pause frames on specific Priority
+    queues (DSC/CoS mapped). It prevents queue overflows, but trades packet drops for link-level delay.
+    A switch can pause a specific traffic class on a link before its buffer overflows, instead of dropping.
+
+  * **ECN and DCQCN**: Serves as the proactive congestion manager before PFC reactively slams the breaks.
+    - Switch marks **CE (Congestion Experienced)** bit in IP header when queues build up.
+    - Receiver NIC detects CE and sends a CNP (Congestion Notification Packet) back to the sender NIC.
+    - Sender NIC’s hardware rate-limiter throttles the specific Queue Pair (QP).
+
+  * So **ECN (Explicit Congestion Notification)**: marks pkts approaching congestion rather than dropping
+    them.
+  * DCQCN — the end-to-end congestion control loop: NIC sees ECN marks on received packets → tells the
+    sender via CNP (Congestion Notification Packets) → sender's rate limiter throttles that flow, then
+    slowly ramps back up. This runs in the NIC's hardware/firmware, not in TCP's software congestion window.
+
+**RoCEv1 vs. RoCEv2** 
+
+- **RoCEv1**: `EtherType` `0x8915`. L2-only, requires hosts to be in the same Layer 2 broadcast domain. 
+  Practically obsolete in scale-out data-centers.
+
+- RoCEv2: Encapsulates RDMA over UDP/IP (UDP Port 4791). Uses the outer IP header for Layer 3 routing and
+  the outer UDP source port (computed as a hash of the QP) to allow switch ECMP (Equal-Cost Multi-Path) load
+  balancing.
+
+The catch: and this is a known operational headache, is that PFC operates per-priority-class on a link, so a
+slow receiver can cause head-of-line blocking or even PFC deadlocks cascading backward through a fabric.
+This is why RoCE deployments need carefully tuned lossless fabrics (DCB configuration end to end), unlike
+standard Ethernet where you just let TCP handle loss.
+
+One more distinction worth locking in: RoCEv1 is Ethernet-layer only (not routable), RoCEv2 wraps RDMA in
+UDP/IP (routable across L3, which is why it's what's actually deployed today).
+
+**Mental Model**: 
+
+- `RoCE architecture`: 
+        RDMA Transport Layer ( Go Go-Back-in HW )
+             + RoCEv2 Encapsulation ( UDP/IP for L3 Routing )
+             + PFC ( Lossless network Assurance )
 NOTE: 
 - Biggest mistake people make when learning SmartNIC is treating them as "Just a Fast NIC". A ConnectX-5
   is actually a programmable network processor with firmware, DMA engines, schedulers, packet parsers,
@@ -306,12 +492,15 @@ Notifies Driver.
 
 Negotiates:
 ```mermaid 
-- 100G 
-- 40G 
-- 25G 
-- 10G 
-- FEC 
-- Autoneg
+flowchart
+    A["100G"] 
+    B["40G"]
+    C["25G"]
+    D["10G"]
+    E["FEC"]
+    F["Autoneg"]
+classDef green fill:#4CAF50,stroke:#2E7D32,stroke-width:2px,color:#fff;
+class A,B,C,D,E,F green;
 ```
 Driver only requests changes.
 
@@ -457,9 +646,9 @@ flowchart
     C["Allocate memory key"]
     D["Modify flow"]
     E["Set MTU"]
-    D["Enable RSS"]
+    F["Enable RSS"]
 classDef green fill:#4CAF50,stroke:#2E7D32,stroke-width:2px,color:#fff;
-class A,B,C,D green;
+class A,B,C,D,E,F green;
 ```
 
 ### Data Path: 
