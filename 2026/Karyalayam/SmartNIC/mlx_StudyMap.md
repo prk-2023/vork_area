@@ -190,9 +190,7 @@ swappable and let the NIC fault it in.
 
   * So **ECN (Explicit Congestion Notification)**: marks pkts approaching congestion rather than dropping
     them.
-  * DCQCN — the end-to-end congestion control loop: NIC sees ECN marks on received packets → tells the
-    sender via CNP (Congestion Notification Packets) → sender's rate limiter throttles that flow, then
-    slowly ramps back up. This runs in the NIC's hardware/firmware, not in TCP's software congestion window.
+  * DCQCN (Data central quantized congestion Notification) the end-to-end congestion control loop: NIC sees ECN marks on received packets → tells the sender via CNP (Congestion Notification Packets) → sender's rate limiter throttles that flow, then slowly ramps back up. This runs in the NIC's hardware/firmware, not in TCP's software congestion window.
 
 **RoCEv1 vs. RoCEv2** 
 
@@ -217,6 +215,141 @@ UDP/IP (routable across L3, which is why it's what's actually deployed today).
         RDMA Transport Layer ( Go Go-Back-in HW )
              + RoCEv2 Encapsulation ( UDP/IP for L3 Routing )
              + PFC ( Lossless network Assurance )
+
+
+**RoCE**:
+
+RDMA over Converged Ethernet, this is a network protocol that enabled RDMA over standard Ethernet and IP
+network. ( this is the key component that allows servers and GPUs to directly read and write to each
+others memory without the involving the CPU or the OS kernel, it delivers sub-micro second latency and
+massive throughput crucial for modern AI training and HPC).
+
+Looking at the actual bytes on the wire will clarify why RoCEv2 exists at all.
+
+**Core Problem: IB Transport header didn't originally know about Ethernet or IP** 
+
+- RDMA's transport semantics (QP numbers, seq numbers, ACKs, opcodes) come from Infiniband. IB was its
+  own fabric with its own L2/L3. RoCE is taking that IB transport layer and carrying it over Ethernet
+  instead. 
+
+- The two RoCE versions differ in how much of the IB/Ethernet/IP stack sits underneath that transport hdr.
+
+- 
+```txt 
+RoCEv1 frame:
+
+    [  Ethernet hdr  ][  Ethertype 0x891  ][  IB transport (BTH) ][  Payload  ][  CRC ]
+    No IP layer: link-local only, not routable across L3.
+
+RoCEv2 frame:
+    [  Ethernet hdr  ]  [  IPv4/IPv6   ][     UDP (4791)     ][   Payload  ][  CRC ]
+                          |                       |
+                   ECN bits here              Src port varies 
+                ( routable, DCQCN marking )   per flow (ECMP hash)
+
+    Same IB transport header and QP semantics in both, only the underlay changed. 
+```
+```mermaid 
+flowchart LR
+    A["Ethernet Header<br/>14 bytes<br/>Dst MAC | Src MAC | EtherType"]
+    B["Optional VLAN Tag<br/>4 bytes<br/>802.1Q PCP/VID"]
+    C["IP Header<br/>20/40 bytes<br/>IPv4 or IPv6<br/>Protocol = UDP"]
+    D["UDP Header<br/>8 bytes<br/>Dst Port = 4791"]
+    E["RoCEv2 BTH<br/>12 bytes<br/>Opcode | P_Key | Dest QP | PSN"]
+    F["Optional RDMA Headers<br/>RETH / AETH / DETH / Atomic ETH"]
+    G["RDMA Payload<br/>Application Data"]
+    H["ICRC<br/>4 bytes"]
+    I["Ethernet FCS<br/>4 bytes"]
+
+    A --> B --> C --> D --> E --> F --> G --> H --> I
+```
+
+The Encapsulation looks as below:
+The RoCEv2 pkt is an ethernet/ip/udp wrapper carrying IB transport-layer semantics. 
+The Encapsulation looks as below: 
+
+```txt 
++------------------------------------------------+
+| Ethernet Header                                |
+|  Dst MAC | Src MAC | EtherType                 |
++------------------------------------------------+
+| IP Header                                      |
+|  Src IP | Dst IP | ECN bits                    |
++------------------------------------------------+
+| UDP Header                                     |
+|  Src Port | Dst Port = 4791                    |
++------------------------------------------------+
+| InfiniBand Transport Headers (RoCEv2)          |
+|  BTH + optional RETH/AETH/DETH/etc.             |
++------------------------------------------------+
+| RDMA Payload                                   |
+|  Data being transferred                        |
++------------------------------------------------+
+| ICRC                                           |
++------------------------------------------------+
+| Ethernet FCS                                   |
++------------------------------------------------+
+```
+the key difference with native IB is the network layer transport:
+
+| Native InfiniBand    | RoCEv2                    |
+| -------------------- | ------------------------- |
+| IB Link Layer        | Ethernet                  |
+| IB LID addressing    | IP addressing             |
+| IB routing           | IP routing                |
+| IB link packets      | UDP/IP packets            |
+| IB transport headers | Same IB transport headers |
+
+RDMA operations themselves are still based on IB protocols:
+- QP 
+- Work Requests/ Work completions 
+- BTH  ( base transport header )
+- RETH ( Remote extended transport header )
+- AETH ( Ack extended transport header )
+- PSN  ( packet seq number )
+- R_Key / Remote Virtual Address 
+
+**Routability**: 
+RoCEv1 rides straight on Ethertype `0x8915` No IP header at all. Which means it can not cross a router,
+works only within a single L2 broadcast domain. ( not useful for data center fabric spanning leaf-spine
+switches.)
+
+RoCEv2 wraps the exact same IB transport header inside a UDP/IP pkt, so std L3 routing and ECMP work on it
+like any other IP traffic. This is why essentially no one deploys v1 in production anymore. 
+
+**Why UDP and not raw IP?** 
+- UDP source port is used purely as flow entropy: RoCEv2 doesn't use ports for multiplexing services like
+  normal UDP does. It's varied per-QP/per-flow so that ECMP hashing across multiple equal-cost paths spreads
+  different RDMA flow across different links, the same way it would for any other L4 flow. 
+
+- Destination port is fixed at 4791 that's how a receiving NIC recognizes "this UDP packet is actually
+  RoCEv2," and hands it to the RDMA transport logic instead of a normal socket.
+
+Where DCQCN's ECN marking actually lives:
+
+Your earlier question about the congestion loop the ECN bits it depends on are literally the IP header's 
+ECN field. 
+RoCEv1 has no IP header, so it has no ECN field, so DCQCN as commonly deployed is a RoCEv2-only mechanism. 
+
+That's a hard architectural reason v2 won, not just a preference.
+
+Addressing model: GIDs. 
+RDMA doesn't address peers directly by IP; it uses a GID (Global Identifier), a holdover from InfiniBand's 
+addressing. The difference between v1 and v2 is what the GID is derived from: in
+v1 it's built from the MAC address (link-local); in v2 it's an IPv4-mapped or native IPv6 address. So when
+your application does address resolution (via rdma_resolve_addr in the verbs API), what's actually happening
+under the hood is: IP address → ARP/neighbor discovery → GID → which RoCE version's semantics apply.
+
+Note : because the QP/transport logic is identical in both, a CX-5 doing RoCEv2 isn't running fundamentally
+different silicon for the RDMA half, it's the same match/parse/steer hardware from your original map (packet
+parser, flow steering engine) now also recognizing UDP:4791 and handing that off to the RDMA transport
+engine instead of the normal Ethernet RX path.
+
+NIC's flow steering engine actually demuxes RoCEv2 traffic to QPs at hardware speed.
+
+
+---
+
 NOTE: 
 - Biggest mistake people make when learning SmartNIC is treating them as "Just a Fast NIC". A ConnectX-5
   is actually a programmable network processor with firmware, DMA engines, schedulers, packet parsers,
