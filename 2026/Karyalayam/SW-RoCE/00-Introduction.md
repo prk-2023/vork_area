@@ -2029,3 +2029,105 @@ In RDMA, many of those responsibilities move into the **NIC hardware** to elimin
 | Perform RDMA         | Work requests            | The NIC directly moves data using DMA with little or no CPU involvement.      |
 
 Viewed this way, the verbs API is essentially a sequence of configuring hardware resources. Once configured, the NIC can transfer data directly between application memory on two hosts at very high throughput and very low latency, which is the fundamental advantage of RDMA over conventional socket-based networking.
+
+
+---
+
+# example :
+
+```
+#include <stdio.h>
+#include <infiniband/verbs.h>
+#include <endian.h>
+
+#define ntohll(x) be64toh(x)
+
+int main() {
+
+   struct ibv_device **dev_list;
+   int num_devices = 0;
+
+   struct ibv_context *context;
+   struct ibv_device_attr dev_attr;
+   struct ibv_port_attr port_attr;
+
+   /* 1. Get the list of RDMA Devices */
+   dev_list = ibv_get_device_list(&num_devices);
+   if (!dev_list) {
+      perror("Failed to get RDMA devices list");
+      return 1;
+   }
+
+   printf("Found %d RDMA interface(s):\n", num_devices);
+   printf("----------------------------------------\n");
+   /* 2. Loop through and print all available devices */
+   for (int i = 0; dev_list[i] != NULL; i++) {
+      printf("Device %d: %s\n", i, ibv_get_device_name(dev_list[i]));
+      // Optional: You can also print the node type (e.g., CA, Switch, Router)
+      // printf("  Node Type: %s\n", ibv_node_type_str(dev_list[i]->node_type));
+   }
+
+   /* 2. Open the first available device */
+   context = ibv_open_device(dev_list[0]);
+   if (!context) {
+      fprintf(stderr,"Couldn't release context for %s\n", ibv_get_device_name(dev_list[0]));
+      return 1;
+   }
+   printf("RDMA device %s opened successfully.\n", ibv_get_device_name(dev_list[0]));
+
+   /* Query Global Device Attributes */
+   if (ibv_query_device(context, &dev_attr) == 0) {
+      printf("=== Device Attributes for %s ===\n", ibv_get_device_name(dev_list[0]));
+      printf("Node GUID          : 0x%016llx\n", (unsigned long long)ntohll(dev_attr.node_guid));
+      printf("Max Queue Pairs    : %d\n", dev_attr.max_qp);
+      printf("Max Comp. Queues   : %d\n", dev_attr.max_cq);
+      printf("Physical Port Count: %d\n\n", dev_attr.phys_port_cnt);
+
+      /* Query attributes for each individual port */
+      for (int i = 1; i <= dev_attr.phys_port_cnt; i++) {
+         if (ibv_query_port(context, i, &port_attr) == 0) {
+            printf("--- Port %d Attributes ---\n", i);
+            printf("  State        : %s\n", port_attr.state == IBV_PORT_ACTIVE ? "ACTIVE/UP" : "DOWN");
+            printf("  LID          : %d\n", port_attr.lid);
+            printf("  Link Layer   : %s\n", port_attr.link_layer == IBV_LINK_LAYER_ETHERNET ? "Ethernet (RoCE)" : "InfiniBand");
+         }
+      }
+   }
+
+   ibv_close_device(context);
+   /* 3. cleanup */
+   ibv_free_device_list(dev_list);
+
+   return 0;
+}
+
+// Makefile:
+// ```make
+// # Compiler
+// CC = gcc
+//
+// # Compiler flags:
+// # -Wall for general warnings
+// CFLAGS = -Wall
+//
+// # Linker flags: -libverbs is required for libibverbs applications
+// LDFLAGS = -libverbs
+//
+// # Binary name
+// TARGET = rdma_test
+//
+// # Source file
+// SRC = rdma_test.c
+//
+// all: $(TARGET)
+//
+// $(TARGET): $(SRC)
+//         $(CC) $(CFLAGS) $(SRC) -o $(TARGET) $(LDFLAGS)
+//
+// clean:
+//         rm -f $(TARGET)
+//
+// # Useful target to run with sudo since RDMA devices often require root privileges
+// run: $(TARGET)
+//         sudo ./$(TARGET)
+```

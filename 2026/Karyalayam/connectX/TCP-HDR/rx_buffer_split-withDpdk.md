@@ -1,5 +1,39 @@
+If your benchmark includes:
+
+✅ VFIO
+✅ OVS-DPDK
+✅ SR-IOV VFs passed to guests
+✅ vDPA (mlx5_vdpa)
+These are the typical boot parameters used for high-performance virtualization on Intel platforms.
+intel_iommu=on enables the Intel IOMMU (VT-d).
+iommu=pt configures pass-through mappings for devices that don't require translation, which can reduce 
+DMA overhead for devices that remain under host control while still allowing VFIO and device assignment.
+
+$ sudo grubby --update-kernel=ALL --args="intel_iommu=on iommu=pt"
+
+or recommended:
+
+$ sudo grubby --update-kernel=ALL --args="intel_iommu=on iommu=pt default_hugepagesz=2M hugepagesz=2M hugepages=1024"
+
+reboot and check /proc/cmdline 
+
+
+
 $ sudo sysctl -w vm.nr_hugepages=1024
 vm.nr_hugepages = 1024
+
+
+
+Check the CPU scaling driver if its intel_pstate ← most likely on your system
+you can check the governer 
+$ cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_available_governors
+performance powersave
+or 
+conservative ondemand userspace powersave performance schedutil
+
+Set the governor to performance:
+
+$ sudo cpupower frequency-set -g performance
 
 
 sudo dpdk-testpmd -l 0-3 -n 4 -- -i --port-topology=paired
