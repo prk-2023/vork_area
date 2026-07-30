@@ -8843,3 +8843,209 @@ NIC firmware
 ```
 
 That is where RDMA programming meets the Linux kernel and actual NVIDIA/Mellanox ConnectX hardware.
+
+
+
+
+------------------------------------------------------------------------------
+
+Followup for next week: ( delete this section once done )
+
+
+Yes, it is a lot of material — and you have already covered the **hard conceptual part**. The RDMA learning curve is steep because it crosses several domains at once:
+
+* **Operating systems** (memory management, DMA, pinning, NUMA)
+* **Networking** (Ethernet, UDP/IP, congestion control)
+* **Hardware architecture** (PCIe, NIC engines, DMA)
+* **Distributed systems** (remote memory access, synchronization)
+* **Programming APIs** (verbs, queues, completions)
+
+The good news is that the concepts build on each other. The path we followed is actually the right dependency order:
+
+```
+RDMA Overview
+      |
+      v
+RNIC architecture
+      |
+      v
+Queue Pairs
+      |
+      v
+QP State Machine
+      |
+      v
+Connection Management
+      |
+      v
+Protection Domains
+      |
+      v
+Memory Regions
+      |
+      v
+Memory Windows
+      |
+      v
+RDMA Verbs
+      |
+      v
+RoCE Wire Protocol
+      |
+      v
+Performance Engineering
+      |
+      v
+Linux RDMA Stack + Hardware Drivers
+```
+
+For next weekend, I would **not** try to cover everything again. I would suggest focusing on the parts that make you productive.
+
+A good roadmap would be:
+
+---
+
+## Session 1: Linux RDMA software stack
+
+Understand:
+
+```
+Application
+    |
+    |
+libibverbs
+    |
+    |
+rdma-core
+    |
+    |
+Kernel RDMA subsystem
+    |
+    |
+NIC driver (mlx5)
+    |
+    |
+ConnectX firmware
+```
+
+Questions answered:
+
+* What happens when `ibv_create_qp()` is called?
+* Where does the QP actually live?
+* What is handled by kernel vs firmware?
+* What does the NIC hardware maintain?
+
+This connects all the theory to Linux.
+
+---
+
+## Session 2: Write a minimal RDMA program
+
+Not a huge application. Just understand the lifecycle:
+
+```
+1. Open device
+
+2. Allocate PD
+
+3. Create CQ
+
+4. Create QP
+
+5. Register memory
+
+6. Exchange connection information
+
+7. Move QP:
+
+RESET
+ |
+INIT
+ |
+RTR
+ |
+RTS
+
+8. Post SEND/RECV
+
+9. Poll CQ
+```
+
+After writing even a small example, the concepts become much clearer.
+
+---
+
+## Session 3: Debugging and troubleshooting
+
+Very practical:
+
+Tools:
+
+```
+ibstat
+ibv_devinfo
+ibv_devinfo -v
+rdma link
+rdma resource
+perfquery
+ethtool
+tcpdump
+```
+
+Learn how to answer:
+
+* Why is my QP stuck?
+* Why does my WR fail?
+* Why do I get RNR retries?
+* Why is bandwidth low?
+* Why is latency high?
+
+---
+
+## Session 4: Performance tuning
+
+You already saw the overview. Later we can go deeper into:
+
+* BlueFlame / doorbell optimization
+* WQE layout
+* CQ moderation
+* Multi-QP scaling
+* SRQ (Shared Receive Queue)
+* XRC (Extended Reliable Connection)
+* Huge pages
+* Memory registration cache
+* GPUDirect RDMA
+
+---
+
+One suggestion: before going into the Linux stack, it is worth keeping one diagram in mind:
+
+```
+                 Application
+                      |
+                      |
+               RDMA Verbs API
+                      |
+                      |
+                 Queue Pair
+                      |
+                      |
+                 RNIC Hardware
+                      |
+        +-------------+-------------+
+        |                           |
+     DMA Engine              Packet Engine
+        |                           |
+        |                           |
+     Memory                  RoCE Network
+```
+
+Everything we discussed maps somewhere into this picture.
+
+For the next weekend, I would start with:
+
+**"Inside Linux RDMA: from ibv_post_send() call to NIC hardware execution."**
+
+That will tie together QP, MR, CQ, verbs, and RoCE into one complete flow.
+
+----------------------------------------------------------------------------------------
