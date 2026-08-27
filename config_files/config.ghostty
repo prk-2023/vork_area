@@ -1,0 +1,141 @@
+# ============================================================
+# Ghostty configuration
+# ============================================================
+
+# ------------------------------------------------------------
+# Font
+# ------------------------------------------------------------
+
+font-family = ComicShannsMono Nerd Font Mono
+font-family = JetBrains Mono
+font-family = Noto Color Emoji
+font-family = Symbols Nerd Font
+
+font-size = 12.6
+
+# Disable programming ligatures
+# Equivalent to:
+# config.harfbuzz_features = { "calt=0" }
+font-feature = -calt
+
+# Equivalent to line_height = 1.0
+# Ghostty uses a multiplier here.
+line-height = 1.0
+
+
+# ------------------------------------------------------------
+# Terminal
+# ------------------------------------------------------------
+
+scrollback-limit = 5000
+
+# WezTerm:
+# audible_bell = "Disabled"
+bell-features = no-audio
+
+# WezTerm:
+# initial_cols = 162
+# initial_rows = 45
+window-width = 162
+window-height = 45
+
+
+# ------------------------------------------------------------
+# Appearance
+# ------------------------------------------------------------
+
+# Night Owl
+background = #011627
+foreground = #d6deeb
+
+# You can alternatively use:
+# theme = Night Owl
+
+
+# ------------------------------------------------------------
+# Tabs
+# ------------------------------------------------------------
+
+# Put tab bar at bottom
+gtk-tabs-location = bottom
+
+# Hide tab bar when there is only one tab
+window-show-tab-bar = auto
+
+
+# ------------------------------------------------------------
+# Clipboard
+# ------------------------------------------------------------
+
+keybind = ctrl+shift+c=copy_to_clipboard
+keybind = ctrl+shift+v=paste_from_clipboard
+
+
+# ------------------------------------------------------------
+# Splits
+# ------------------------------------------------------------
+
+# Ctrl+Shift+) -> vertical split
+# WezTerm SplitVertical
+keybind = ctrl+shift+)=new_split:right
+
+# Ctrl+Shift+( -> horizontal split
+# WezTerm SplitHorizontal
+keybind = ctrl+shift+(=new_split:down
+
+
+# ------------------------------------------------------------
+# Pane navigation
+# ------------------------------------------------------------
+
+# Ctrl+, is your leader
+# Ctrl+, then h/j/k/l
+
+keybind = ctrl+,>h=goto_split:left
+keybind = ctrl+,>j=goto_split:bottom
+keybind = ctrl+,>k=goto_split:top
+keybind = ctrl+,>l=goto_split:right
+
+
+# ------------------------------------------------------------
+# Pane resizing
+# ------------------------------------------------------------
+
+keybind = ctrl+alt+h=resize_split:left,1
+keybind = ctrl+alt+j=resize_split:down,1
+keybind = ctrl+alt+k=resize_split:up,1
+keybind = ctrl+alt+l=resize_split:right,1
+
+
+# ------------------------------------------------------------
+# Zoom
+# ------------------------------------------------------------
+
+# Ctrl+Z
+keybind = ctrl+z=toggle_split_zoom
+
+
+# ------------------------------------------------------------
+# Font size
+# ------------------------------------------------------------
+
+keybind = ctrl+alt+=increase_font_size
+keybind = ctrl+alt+-=decrease_font_size
+keybind = ctrl+alt+0=reset_font_size
+
+
+# ------------------------------------------------------------
+# Tabs
+# ------------------------------------------------------------
+
+# Alt+1 ... Alt+9
+keybind = alt+1=goto_tab:1
+keybind = alt+2=goto_tab:2
+keybind = alt+3=goto_tab:3
+keybind = alt+4=goto_tab:4
+keybind = alt+5=goto_tab:5
+keybind = alt+6=goto_tab:6
+keybind = alt+7=goto_tab:7
+keybind = alt+8=goto_tab:8
+keybind = alt+9=goto_tab:9
+
