@@ -131,3 +131,66 @@ Host bitbucket.org-personal
 git clone git@gitlab.com-personal:username/repo.git
 
 ```
+
+---
+
+## Managing Multiple Git Identities (`.gitconfig`)
+
+When working with multiple accounts, servers, and email addresses, managing your Git author identity (`user.name` and `user.email`) manually for every repository becomes tedious. Git's **Conditional Includes** (`includeIf`) feature allows you to automate this based on your local directory structure.
+
+**1. Create Your Global Configuration File:** `~/.gitconfig`
+Set up a global fallback identity and conditional rules that load specific profile files depending on where a repository is located on your machine:
+
+```ini
+#Global fallback identity
+[user]
+    name = Default Name
+    email = default@example.com
+
+# Apply xyz configuration for repositories inside designated xyz folders
+[includeIf "gitdir:~/projects/xyz1/"]
+    path = ~/.gitconfig-xyz
+
+[includeIf "gitdir:~/projects/new-xyz/"]
+    path = ~/.gitconfig-xyz
+
+# Apply abc configuration for repositories inside the abc folder
+[includeIf "gitdir:~/projects/abc/"]
+    path = ~/.gitconfig-abc
+
+```
+
+*(Note: The trailing slash `/` in `gitdir:` is critical to ensure Git matches all subdirectories within those paths).*
+
+**2. Create the Specific Profile Files:**
+Create the individual configuration files in your home directory to define the correct credentials for each project scope.
+
+Create `~/.gitconfig-xyz`:
+
+```ini
+[user]
+    name = User One
+    email = user1@xyz.com
+
+```
+
+Create `~/.gitconfig-abc`:
+
+```ini
+[user]
+    name = User Two
+    email = user2@abc.com
+
+```
+
+**3. Verify Your Configuration:**
+Navigate into any repository within your designated project folders and run the following command to confirm Git is automatically applying the correct email address:
+
+```bash
+git config user.email
+
+```
+
+```
+
+```
