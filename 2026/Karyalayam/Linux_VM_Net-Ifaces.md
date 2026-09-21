@@ -253,6 +253,18 @@ veth0 <------> veth1
 ```
 
 Anything entering one side exits the other.
+The reason to add a pair of virtual interfaces (`veth` pair) because they act as virtual crossover cable
+connecting two network locations. 
+
+Run the following command to create pairs of interfaces (eg: veth0 and veth1 )
+`sudo ip link add veth0 type veth peer name veth1`
+`sudo ip link set dev veth0 up`
+`sudo ip link set dev veth1 up`
+`sudo ip link show type veth`
+
+
+Primary use case for veth pair is to bridge two isolated network environments such as container/namespace,
+or connecting bridges.
 
 Used by:
 
@@ -260,6 +272,9 @@ Used by:
 * Podman
 * Kubernetes
 * Linux network namespaces
+
+Deleting one interface will automatically delete its pear.
+`sudo ip link delete veth0`
 
 ---
 
