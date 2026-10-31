@@ -21,6 +21,7 @@ config.enable_scroll_bar = true
 config.audible_bell = "Disabled"
 config.initial_cols = 162
 config.initial_rows = 45
+config.adjust_window_size_when_changing_font_size = false
 -- Weight: `"Thin, ExtraLight,Light,DemiLight,Book,Regular,Medium,DemiBold,Bold,ExtraBold,Black,ExtraBlack"
 -- stretch:
 -- "UltraCondensed,ExtraCondensed, Condensed,SemiCondensed, Normal, SemiExpanded, Expanded,ExtraExpanded"`
@@ -73,6 +74,7 @@ config.font = wezterm.font("JetBrains Mono", { weight = 549, stretch = "Normal",
 wezterm.font("Iosevka SS14", {weight="Regular", stretch="Normal", style="Normal"})
 
 config.font = wezterm.font_with_fallback {
+    "ComicShannsMono Nerd Font Mono",
     'JetBrains Mono', -- Primary font
     'Noto Color Emoji', -- Fallback for emojis
     'Symbols Nerd Font', -- Fallback for Nerd Font symbols
@@ -100,7 +102,7 @@ front_end = "WebGpu" -- OpenGL , WebGpu, Software
 ----config.color_scheme = "Gruvbox dark, hard (base16)"
 -- config.color_scheme = 'Gruvbox dark, soft (base16)'
 -- config.color_scheme = "GruvboxDark"
-config.color_scheme = "GruvboxDarkHard"
+-- config.color_scheme = "GruvboxDarkHard"
 -- config.color_scheme = "Guezwhoz"
 -- config.color_scheme = 'dayfox'
 -- config.color_scheme = "Dotshare (terminal.sexy)"
@@ -124,6 +126,22 @@ config.color_scheme = "GruvboxDarkHard"
 -- config.color_scheme = "Greenscreen (dark) (terminal.sexy)"
 -- config.color_scheme = "Grey-green"
 -- config.color_scheme = "Mona Lisa (Gogh)"
+-- config.color_scheme = "Catppuccin Latte"
+-- config.color_scheme = 'Tokyo Night Day'
+-- config.color_scheme = "Everforest Dark (Gogh)"
+config.color_scheme = "Everforest Dark Hard (Gogh)"
+-- config.color_scheme = "Everforest Light Hard (Gogh)"
+
+-- 1. Define your curated list of high-visibility light themes
+local light_themes = {
+  { label = "Everforest Light Hard (Gogh)", id = "Everforest Light Hard (Gogh)" },
+  { label = "Everforest Dark Hard (Gogh)", id = "Everforest Dark Hard (Gogh)" },
+  { label = "Catppuccin Latte",      id = "Catppuccin Latte" },
+  { label = "Tokyo Night Day",       id = "Tokyo Night Day" },
+  { label = "Gruvbox Light Hard",    id = "Gruvbox Light Hard" },
+  { label = "Zenbones Light",        id = "zenbones" },
+  { label = "Night Owl (Gogh)",      id = "Night Owl (Gogh)" },
+}
 
 -- local key_tables = {
 -- 	resize_font = {
@@ -148,6 +166,23 @@ config.color_scheme = "GruvboxDarkHard"
 ---config.leader = { key = "b", mods = "CTRL", timeout_milliseconds = 1000 }
 config.leader = { key = ",", mods = "CTRL", timeout_milliseconds = 1000 }
 config.keys = {
+    -- toggle theme from above list --
+    {
+        key = 'E',
+        mods = 'CTRL|SHIFT',
+        action = wezterm.action.InputSelector {
+            title = 'Select a High-Visibility Theme',
+            choices = light_themes,
+            -- This logic runs instantly when you select an entry from the list
+            action = wezterm.action_callback(function(window, pane, id, label)
+                if id then
+                    window:set_config_overrides({
+                        color_scheme = id,
+                    })
+                end
+            end),
+        },
+    },
 	-- copy/paste --
 	{ key = "c", mods = "CTRL|SHIFT", action = wezterm.action.CopyTo("Clipboard") },
 	{ key = "v", mods = "CTRL|SHIFT", action = wezterm.action.PasteFrom("Clipboard") },
