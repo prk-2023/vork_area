@@ -40,10 +40,10 @@ instantly without consulting the user-space, the common actions are:
 
 ### Hardware Offloading: 
 
-Hardware Offloading is achieved by moving the SW cache and move it out of Linux kernel entirely and pushing
-it directly onto the NIC Hardware. 
+Hardware Offloading is achieved by moving the SW cache and move it out of Linux kernel entirely and
+pushing  it directly onto the NIC Hardware. 
 
-In a standard OVS setup, even when you hit the kernel cache (the Fast Path), the CPU still has to spend 
+In a standard OVS setup, even when a packet hits the kernel cache (the Fast Path), the CPU still has to spend 
 cycles processing the packet, parsing headers, and executing the action list. When handling millions of
 packets per second, this burns massive amounts of CPU power.
 
