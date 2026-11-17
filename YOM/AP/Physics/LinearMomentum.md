@@ -66,3 +66,24 @@ then
 $\sum{\vec{F}} = \frac{\Delta \vec{p}}{\Delta t} = \frac{ m\vec{v_f} - m\vec{v_i}}{\Delta t} = \frac{m \Delta {\vec{v}}}{\Delta t}$
 
 This can be written as $\sum{\vec{F}} = m \vec{a}$, since $\frac{\Delta v}{\Delta t} = \vec{a}$
+
+## Conservation of Momentum:
+
+In an elastic collision of two objects with initial momentum 
+
+$\vec{p_{1i}} = m_1 . \vec{v_{1i}}$ and $\vec{p_{2i}} = m_2 . \vec{v_{2i}}$ 
+
+After the collision there momentum changes, the sum of there momentum before is same as the sum momentum
+after the collision ( elastic collision has no loss of energy )
+
+$\vec{p_{1f}} = m_1 . \vec{v_{1f}}$ and $\vec{p_{2f}} = m_2 . \vec{v_{2f}}$ 
+
+So for elastic collision ( not required to be head-on ) and with no net external forces we have:
+    
+$\text { momentum before } = \text { momentum after }$ 
+
+$\vec{p_{1i}} + \vec{p_{2i}}  =  \vec{p_{1f}} + \vec{p_{2f}}$ 
+
+Total vector momentum of the system of two objects colliding is conserved. It stays constant.
+
+
